@@ -15,7 +15,7 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="dmg-emu.cpp">
+    <ClCompile Include="src\dmg-emu.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
