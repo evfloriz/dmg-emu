@@ -26,6 +26,7 @@
   <ItemGroup>
     <ClInclude Include="src\Bus.h" />
     <ClInclude Include="src\CPU.h" />
+    <ClInclude Include="src\olcPixelGameEngine.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
