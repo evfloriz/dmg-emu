@@ -33,10 +33,26 @@
 	OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+#ifdef _WIN32
+#define _CRT_SECURE_NO_WARNINGS
+#endif
+
 #include <iostream>
 
 int main() {
-    std::cout << "Hello World!\n";
+    // load boot rom
+
+	unsigned char memory[0x100];
+	FILE* file = fopen("DMG_ROM.bin", "rb");
+	int pos = 0;
+	while (fread(&memory[pos], 1, 1, file)) {
+		pos++;
+	}
+	fclose(file);
+
+	for (auto m : memory) {
+		printf("%x\n", m);
+	}
 
     return 0;
 }

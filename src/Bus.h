@@ -15,8 +15,8 @@ public:
 	// CPU
 	CPU cpu;
 
-	// Fake RAM for now, 8KB
-	std::array<uint8_t, 8 * 1024> ram;
+	// Fake RAM for now, 64 KB addressable space so I'll use that for now
+	std::array<uint8_t, 64 * 1024> ram;
 
 public:
 	// Bus read and write
