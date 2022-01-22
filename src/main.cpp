@@ -117,7 +117,7 @@ public:
 			pos++;
 		}
 
-		dmg.cpu.LDSP();
+		//dmg.cpu.LDSP();
 
 		return true;
 	}
@@ -125,11 +125,11 @@ public:
 	bool OnUserUpdate(float fElapsedTime) {
 		Clear(olc::DARK_BLUE);
 
-		/*if (GetKey(olc::Key::SPACE).bPressed) {
+		if (GetKey(olc::Key::SPACE).bPressed) {
 			do {
 				dmg.cpu.clock();
 			} while (!dmg.cpu.complete());
-		}*/
+		}
 
 		// what exactly should I draw for the bootrom? 0x00-0xFF I think which is the bootrom itself, then
 		// whatever parts are actually used

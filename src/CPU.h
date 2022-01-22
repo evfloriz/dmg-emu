@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <string>
 #include <vector>
+#include <map>
 
 class Bus;
 
@@ -29,10 +30,10 @@ public:
 
 	// External event functions
 	// todo: double check that these are the same on the dmg cpu
-	/*void reset();
-	void irq();
-	void nmi();
-	void clock();*/
+	//void reset();
+	//void irq();
+	//void nmi();
+	void clock();
 
 	// interrupt model
 	// just to different locations preset for interrupts at the beginning of ram (irq)
@@ -59,6 +60,8 @@ private:
 	// Helper functions to access status register
 
 	// Helper variables
+	uint8_t cycles = 0;
+	uint8_t opcode = 0x00;
 
 	// Facilitate link to bus
 	Bus* bus = nullptr;
@@ -70,16 +73,26 @@ private:
 
 	// todo:double check if this is the best structure
 	// Instruction structure
-	struct INSTRUCTION {
+	/*struct INSTRUCTION {
 		std::string name;
 		uint8_t (CPU::* operate)(void) = nullptr;
-		uint8_t (CPU::* addrmode)(void) = nullptr;
+		// commenting this out for now
+		//uint8_t (CPU::* addrmode)(void) = nullptr;
+		uint8_t cycles = 0;
+	};*/
+
+	struct INSTRUCTION {
+		uint8_t(CPU::* operate)(void) = nullptr;
+		// commenting this out for now
+		//uint8_t (CPU::* addrmode)(void) = nullptr;
 		uint8_t cycles = 0;
 	};
 
 	// lookup tables for opcodes
-	std::vector<INSTRUCTION> lookup;
-	std::vector<INSTRUCTION> lookupCB;
+	//std::vector<INSTRUCTION> lookup;
+	//std::vector<INSTRUCTION> lookupCB;
+
+	std::map<uint8_t, INSTRUCTION> lookup;
 
 private:
 	// Addressing modes
