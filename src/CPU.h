@@ -29,10 +29,10 @@ public:
 
 	// External event functions
 	// todo: double check that these are the same on the dmg cpu
-	void reset();
+	/*void reset();
 	void irq();
 	void nmi();
-	void clock();
+	void clock();*/
 
 	// interrupt model
 	// just to different locations preset for interrupts at the beginning of ram (irq)
@@ -91,7 +91,10 @@ private:
 	// if the data is immediate or what register it's loaded from etc. I'll have to think about a
 	// solution tomorrow.
 
-private:
+//private
+public:		// public for testing
 	// Opcodes
+
+	uint8_t LDSP();
 
 };

@@ -117,6 +117,8 @@ public:
 			pos++;
 		}
 
+		dmg.cpu.LDSP();
+
 		return true;
 	}
 
