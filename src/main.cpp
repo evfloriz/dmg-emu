@@ -101,7 +101,22 @@ public:
 	}
 
 	bool OnUserCreate() {
-		// anything to do? right now I'm reading the file just in main
+		// Load boot rom
+		unsigned char memory[0x100];
+		FILE* file = fopen("DMG_ROM.bin", "rb");
+		int pos = 0;
+		while (fread(&memory[pos], 1, 1, file)) {
+			pos++;
+		}
+		fclose(file);
+
+		// copy bootrom into memory
+		pos = 0;
+		for (auto m : memory) {
+			dmg.write(pos, m);
+			pos++;
+		}
+
 		return true;
 	}
 
@@ -114,9 +129,10 @@ public:
 			} while (!dmg.cpu.complete());
 		}*/
 
-		// what exactly should I draw for the bootrom?
+		// what exactly should I draw for the bootrom? 0x00-0xFF I think which is the bootrom itself, then
+		// whatever parts are actually used
 		DrawRam(2, 2, 0x0000, 16, 16);
-		DrawRam(2, 182, 0x8000, 16, 16);
+		//DrawRam(2, 182, 0x8000, 16, 16);
 		DrawCPU(448, 2);
 
 		return true;
@@ -125,19 +141,6 @@ public:
 };
 
 int main() {
-    // load boot rom
-
-	unsigned char memory[0x100];
-	FILE* file = fopen("DMG_ROM.bin", "rb");
-	int pos = 0;
-	while (fread(&memory[pos], 1, 1, file)) {
-		pos++;
-	}
-	fclose(file);
-
-	/*for (auto m : memory) {
-		printf("%x\n", m);
-	}*/
 
 	Demo demo;
 	demo.Construct(680, 480, 2, 2);
