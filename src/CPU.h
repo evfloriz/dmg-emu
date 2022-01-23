@@ -109,5 +109,6 @@ public:		// public for testing
 	// Opcodes
 
 	uint8_t LDSP();
+	uint8_t LDHL();
 
 };
