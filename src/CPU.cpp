@@ -6,34 +6,60 @@
 CPU::CPU() {
 	lookup = {		
 		// 16-bit loads
-		{0x01, {&CPU::LD_BC_d16, 3}},
-		{0x11, {&CPU::LD_DE_d16, 3}},
-		{0x21, {&CPU::LD_HL_d16, 3}},
-		{0x31, {&CPU::LD_SP_d16, 3}},
-		{0x08, {&CPU::LD_a16_SP, 5}},
-		{0xF8, {&CPU::LD_HL_SP_r8, 3}},
-		{0xF9, {&CPU::LD_SP_HL, 2}},
+		{0x01, {&CPU::LD_BC_d16,	3}},
+		{0x11, {&CPU::LD_DE_d16,	3}},
+		{0x21, {&CPU::LD_HL_d16,	3}},
+		{0x31, {&CPU::LD_SP_d16,	3}},
+		{0x08, {&CPU::LD_a16_SP,	5}},
+		{0xF8, {&CPU::LD_HL_SP_r8,	3}},
+		{0xF9, {&CPU::LD_SP_HL,		2}},
 
 		// 8-bit loads
-		{0x06, {&CPU::LD_B_d8, 2}},
-		{0x40, {&CPU::LD_B_B, 1}},
-		{0x41, {&CPU::LD_B_C, 1}},
-		{0x42, {&CPU::LD_B_D, 1}},
-		{0x43, {&CPU::LD_B_E, 1}},
-		{0x44, {&CPU::LD_B_H, 1}},
-		{0x45, {&CPU::LD_B_L, 1}},
-		{0x46, {&CPU::LD_B_HL, 2}},
-		{0x47, {&CPU::LD_B_A, 1}},
+		{0x06, {&CPU::LD_8,		2,	&b}},			{0x0E, {&CPU::LD_8,		2,	&c}},
+		{0x40, {&CPU::LD_8,		1,	&b, &b}},		{0x48, {&CPU::LD_8,		1,	&c, &b}},
+		{0x41, {&CPU::LD_8,		1,	&b, &c}},		{0x49, {&CPU::LD_8,		1,	&c, &c}},
+		{0x42, {&CPU::LD_8,		1,	&b, &d}},		{0x4A, {&CPU::LD_8,		1,	&c, &d}},
+		{0x43, {&CPU::LD_8,		1,	&b, &e}},		{0x4B, {&CPU::LD_8,		1,	&c, &e}},
+		{0x44, {&CPU::LD_8,		1,	&b,	&h}},		{0x4C, {&CPU::LD_8,		1,	&c,	&h}},
+		{0x45, {&CPU::LD_8,		1,	&b, &l}},		{0x4D, {&CPU::LD_8,		1,	&c, &l}},
+		{0x46, {&CPU::LD_16,	2,	&b, &h, &l}},	{0x4E, {&CPU::LD_16,	2,	&c, &h, &l}},
+		{0x47, {&CPU::LD_8,		1,	&b, &a}},		{0x4F, {&CPU::LD_8,		1,	&c, &a}},
 
-		{0x0E, {&CPU::LD_C_d8, 2}},
-		{0x48, {&CPU::LD_C_B, 1}},
-		{0x49, {&CPU::LD_C_C, 1}},
-		{0x4A, {&CPU::LD_C_D, 1}},
-		{0x4B, {&CPU::LD_C_E, 1}},
-		{0x4C, {&CPU::LD_C_H, 1}},
-		{0x4D, {&CPU::LD_C_L, 1}},
-		{0x4E, {&CPU::LD_C_HL, 2}},
-		{0x4F, {&CPU::LD_C_A, 1}},
+		{0x16, {&CPU::LD_8,		2,	&d}},			{0x1E, {&CPU::LD_8,		2,	&e}},
+		{0x50, {&CPU::LD_8,		1,	&d, &b}},		{0x58, {&CPU::LD_8,		1,	&e, &b}},
+		{0x51, {&CPU::LD_8,		1,	&d, &c}},		{0x59, {&CPU::LD_8,		1,	&e, &c}},
+		{0x52, {&CPU::LD_8,		1,	&d, &d}},		{0x5A, {&CPU::LD_8,		1,	&e, &d}},
+		{0x53, {&CPU::LD_8,		1,	&d, &e}},		{0x5B, {&CPU::LD_8,		1,	&e, &e}},
+		{0x54, {&CPU::LD_8,		1,	&d,	&h}},		{0x5C, {&CPU::LD_8,		1,	&e,	&h}},
+		{0x55, {&CPU::LD_8,		1,	&d, &l}},		{0x5D, {&CPU::LD_8,		1,	&e, &l}},
+		{0x56, {&CPU::LD_16,	2,	&d, &h, &l}},	{0x5E, {&CPU::LD_16,	2,	&e, &h, &l}},
+		{0x57, {&CPU::LD_8,		1,	&d, &a}},		{0x5F, {&CPU::LD_8,		1,	&e, &a}},
+
+		{0x26, {&CPU::LD_8,		2,	&h}},			{0x2E, {&CPU::LD_8,		2,	&l}},
+		{0x60, {&CPU::LD_8,		1,	&h, &b}},		{0x68, {&CPU::LD_8,		1,	&l, &b}},
+		{0x61, {&CPU::LD_8,		1,	&h, &c}},		{0x69, {&CPU::LD_8,		1,	&l, &c}},
+		{0x62, {&CPU::LD_8,		1,	&h, &d}},		{0x6A, {&CPU::LD_8,		1,	&l, &d}},
+		{0x63, {&CPU::LD_8,		1,	&h, &e}},		{0x6B, {&CPU::LD_8,		1,	&l, &e}},
+		{0x64, {&CPU::LD_8,		1,	&h,	&h}},		{0x6C, {&CPU::LD_8,		1,	&l,	&h}},
+		{0x65, {&CPU::LD_8,		1,	&h, &l}},		{0x6D, {&CPU::LD_8,		1,	&l, &l}},
+		{0x66, {&CPU::LD_16,	2,	&h, &h, &l}},	{0x6E, {&CPU::LD_16,	2,	&l, &h, &l}},
+		{0x67, {&CPU::LD_8,		1,	&h, &a}},		{0x6F, {&CPU::LD_8,		1,	&l, &a}},
+
+		{0x02, {&CPU::LD_8_r16,	2,	&b, &c, &a}},	{0x0A, {&CPU::LD_16,	2,	&a, &b, &c}},
+		{0x12, {&CPU::LD_8_r16,	2,	&d, &e, &a}},	{0x1A, {&CPU::LD_16,	2,	&a, &d, &e}},
+		{0x22, {&CPU::LD_HLI_A,	2,	&h, &l, &a}},	{0x2A, {&CPU::LD_A_HLI,	2,	&a, &h, &l}},	// these don't actually need operands
+		{0x32, {&CPU::LD_HLD_A,	2,	&h, &l, &a}},	{0x3A, {&CPU::LD_A_HLD,	2,	&a, &h, &l}},
+		
+		{0x36, {&CPU::LD_8_r16,	3,	&h, &l}},		{0x3E, {&CPU::LD_8,		2,	&a}},
+		{0x70, {&CPU::LD_8_r16,	2,	&h, &l, &b}},	{0x68, {&CPU::LD_8,		1,	&a, &b}},
+		{0x71, {&CPU::LD_8_r16,	2,	&h, &l, &c}},	{0x69, {&CPU::LD_8,		1,	&a, &c}},
+		{0x72, {&CPU::LD_8_r16,	2,	&h, &l, &d}},	{0x6A, {&CPU::LD_8,		1,	&a, &d}},
+		{0x73, {&CPU::LD_8_r16,	2,	&h, &l, &e}},	{0x6B, {&CPU::LD_8,		1,	&a, &e}},
+		{0x74, {&CPU::LD_8_r16,	2,	&h, &l, &h}},	{0x6C, {&CPU::LD_8,		1,	&a, &h}},
+		{0x75, {&CPU::LD_8_r16,	2,	&h, &l, &l}},	{0x6D, {&CPU::LD_8,		1,	&a, &l}},
+		/*{0x76, {&CPU::HALT,		1}},*/			{0x6E, {&CPU::LD_16,	2,	&a, &h, &l}},
+		{0x77, {&CPU::LD_8_r16,	2,	&h, &l, &a}},	{0x6F, {&CPU::LD_8,		1,	&a, &a}},
+
 	};
 }
 
@@ -254,107 +280,117 @@ uint8_t CPU::LD_SP_HL() {
 
 // B 8-bit loads
 
-uint8_t CPU::LD_B_d8() {
-	b = bus->read(pc);
-	pc++;
+uint8_t CPU::LD_8() {
+	uint8_t *op1 = lookup[opcode].op1;
+	uint8_t *op2 = lookup[opcode].op2;
+
+	// todo: might need to check that op1 isn't null
+
+	if (op2) {
+		// todo: might need to guard against self assignment
+		// todo: double check I can do this with pointers
+		*op1 = *op2;
+	}
+	else {
+		*op1 = bus->read(pc);
+		pc++;
+	}
 
 	return 0;
 }
 
-uint8_t CPU::LD_B_B() {
-	// todo: check if this is allowed, might need to guard against self assignment
-	b = b;
+uint8_t CPU::LD_16() {
+	// set value of (hl) to register
+	uint8_t hi = *(lookup[opcode].op2);
+	uint8_t lo = *(lookup[opcode].op3);
+
+	uint16_t addr = (hi << 8) | lo;
+	*(lookup[opcode].op1) = bus->read(addr);
+
 	return 0;
 }
 
-uint8_t CPU::LD_B_C() {
-	b = c;
+// todo: rename
+uint8_t CPU::LD_8_r16() {
+	// eg LD (HL), B
+	
+	uint8_t* op1 = lookup[opcode].op1;
+	uint8_t* op2 = lookup[opcode].op2;
+	uint8_t* op3 = lookup[opcode].op3;
+	
+	uint8_t hi = *(lookup[opcode].op1);
+	uint8_t lo = *(lookup[opcode].op2);
+
+	uint16_t addr = (hi << 8) | lo;
+
+	// if op3 isn't null, use it as the data, otherwise read next value from pc
+	uint8_t data;
+	if (op3) {
+		data = *op3;
+	}
+	else {
+		data = bus->read(pc);
+		pc++;
+	}
+
+	bus->write(addr, data);
+
 	return 0;
 }
 
-uint8_t CPU::LD_B_D() {
-	b = d;
-	return 0;
-}
+uint8_t CPU::LD_HLI_A() {
+	// todo: can this overflow?
 
-uint8_t CPU::LD_B_E() {
-	b = e;
-	return 0;
-}
-
-uint8_t CPU::LD_B_H() {
-	b = h;
-	return 0;
-}
-
-uint8_t CPU::LD_B_L() {
-	b = l;
-	return 0;
-}
-
-uint8_t CPU::LD_B_HL() {
-	// set value of (hl) to b
 	uint16_t addr = (h << 8) | l;
-	b = bus->read(addr);
+	bus->write(addr, a);
+	addr++;
+
+	// convert back to h and l
+	// idea: function to convert to and from hl and address
+	l = addr & 0xFF;
+	h = (addr >> 8) & 0xFF;
 
 	return 0;
 }
 
-uint8_t CPU::LD_B_A() {
-	b = a;
-	return 0;
-}
-
-// C 8-bit loads
-// todo: combine these
-
-uint8_t CPU::LD_C_d8() {
-	c = bus->read(pc);
-	pc++;
-
-	return 0;
-}
-
-uint8_t CPU::LD_C_B() {
-	// todo: check if this is allowed, might need to guard against self assignment
-	c = b;
-	return 0;
-}
-
-uint8_t CPU::LD_C_C() {
-	c = c;
-	return 0;
-}
-
-uint8_t CPU::LD_C_D() {
-	c = d;
-	return 0;
-}
-
-uint8_t CPU::LD_C_E() {
-	c = e;
-	return 0;
-}
-
-uint8_t CPU::LD_C_H() {
-	c = h;
-	return 0;
-}
-
-uint8_t CPU::LD_C_L() {
-	c = l;
-	return 0;
-}
-
-uint8_t CPU::LD_C_HL() {
-	// set value of (hl) to b
+uint8_t CPU::LD_HLD_A() {
+	// todo: can this underflow?
+	
 	uint16_t addr = (h << 8) | l;
-	c = bus->read(addr);
+	bus->write(addr, a);
+	addr--;
+
+	// convert back to h and l
+	l = addr & 0xFF;
+	h = (addr >> 8) & 0xFF;
 
 	return 0;
 }
 
-uint8_t CPU::LD_C_A() {
-	c = a;
+uint8_t CPU::LD_A_HLI() {
+	// note: these are guaranteed to be a, h, and l
+	// todo: can this overflow?
+	uint16_t addr = (h << 8) | l;
+	a = bus->read(addr);
+	addr++;
+
+	// convert back to h and l
+	l = addr & 0xFF;
+	h = (addr >> 8) & 0xFF;
+
+	return 0;
+}
+
+uint8_t CPU::LD_A_HLD() {
+	// todo: can this underflow?
+
+	uint16_t addr = (h << 8) | l;
+	a = bus->read(addr);
+	addr--;
+
+	// convert back to h and l
+	l = addr & 0xFF;
+	h = (addr >> 8) & 0xFF;
+
 	return 0;
 }

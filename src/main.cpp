@@ -117,6 +117,10 @@ public:
 			pos++;
 		}
 
+		// Implement test program
+		//dmg.cpu.pc = 0x0100;
+		//std::vector<uint8_t>
+
 		return true;
 	}
 

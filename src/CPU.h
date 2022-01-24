@@ -78,6 +78,9 @@ private:
 		uint8_t(CPU::* operate)(void) = nullptr;
 		//uint8_t (CPU::* addrmode)(void) = nullptr;
 		uint8_t cycles = 0;
+		uint8_t* op1 = nullptr;
+		uint8_t* op2 = nullptr;
+		uint8_t* op3 = nullptr;
 	};
 
 	// lookup tables for opcodes
@@ -89,6 +92,7 @@ private:
 private:
 	// Opcodes
 
+	// todo: original chunk, pleace rename
 	uint8_t LD_SP_d16();
 	uint8_t LD_HL_d16();
 	uint8_t LD_BC_d16();
@@ -98,28 +102,14 @@ private:
 	uint8_t LD_HL_SP_r8();
 	uint8_t LD_SP_HL();
 
-	// general 8-bit load
-	//uint8_t LD(uint8_t& reg1, uint8_t& reg2);
+	uint8_t LD_8();
+	uint8_t LD_16();
 
-	uint8_t LD_B_d8();
-	uint8_t LD_B_B();
-	uint8_t LD_B_C();
-	uint8_t LD_B_D();
-	uint8_t LD_B_E();
-	uint8_t LD_B_H();
-	uint8_t LD_B_L();
-	uint8_t LD_B_HL();
-	uint8_t LD_B_A();
-
-	uint8_t LD_C_d8();
-	uint8_t LD_C_B();
-	uint8_t LD_C_C();
-	uint8_t LD_C_D();
-	uint8_t LD_C_E();
-	uint8_t LD_C_H();
-	uint8_t LD_C_L();
-	uint8_t LD_C_HL();
-	uint8_t LD_C_A();
-
+	uint8_t LD_8_r16();
+	
+	uint8_t LD_HLI_A();
+	uint8_t LD_HLD_A();
+	uint8_t LD_A_HLI();
+	uint8_t LD_A_HLD();
 
 };
