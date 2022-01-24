@@ -110,14 +110,12 @@ public:
 		}
 		fclose(file);
 
-		// copy bootrom into memory
+		// Copy bootrom into memory
 		pos = 0;
 		for (auto m : memory) {
 			dmg.write(pos, m);
 			pos++;
 		}
-
-		//dmg.cpu.LDSP();
 
 		return true;
 	}

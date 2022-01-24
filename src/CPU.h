@@ -58,10 +58,13 @@ public:
 
 private:
 	// Helper functions to access status register
+	uint8_t getFlag(FLAGS flag);
+	void setFlag(FLAGS flag, bool value);
 
 	// Helper variables
 	uint8_t cycles = 0;
 	uint8_t opcode = 0x00;
+	uint16_t addr_abs = 0x0000;
 
 	// Facilitate link to bus
 	Bus* bus = nullptr;
@@ -71,44 +74,28 @@ private:
 	// Fetch data
 	uint8_t fetch();
 
-	// todo:double check if this is the best structure
-	// Instruction structure
-	/*struct INSTRUCTION {
-		std::string name;
-		uint8_t (CPU::* operate)(void) = nullptr;
-		// commenting this out for now
-		//uint8_t (CPU::* addrmode)(void) = nullptr;
-		uint8_t cycles = 0;
-	};*/
-
 	struct INSTRUCTION {
 		uint8_t(CPU::* operate)(void) = nullptr;
-		// commenting this out for now
 		//uint8_t (CPU::* addrmode)(void) = nullptr;
 		uint8_t cycles = 0;
 	};
 
 	// lookup tables for opcodes
-	//std::vector<INSTRUCTION> lookup;
-	//std::vector<INSTRUCTION> lookupCB;
-
 	std::map<uint8_t, INSTRUCTION> lookup;
 
 private:
 	// Addressing modes
-	
-	// Don't need I don't think. Unlike the 6502 which has 56 opcodes augmented by 13 addressing
-	// modes, it looks like the dmg cpu just has a ton of opcodes instead.
-	
-	// Actually I think it still does, I think addressing modes are the general way of describing
-	// if the data is immediate or what register it's loaded from etc. I'll have to think about a
-	// solution tomorrow.
 
-//private
-public:		// public for testing
+private:
 	// Opcodes
 
-	uint8_t LDSP();
-	uint8_t LDHL();
+	uint8_t LD_SP_d16();
+	uint8_t LD_HL_d16();
+	uint8_t LD_BC_d16();
+	uint8_t LD_DE_d16();
+
+	uint8_t LD_a16_SP();
+	uint8_t LD_HL_SPr8();
+	uint8_t LD_SP_HL();
 
 };
