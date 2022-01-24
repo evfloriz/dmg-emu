@@ -72,7 +72,7 @@ private:
 	uint8_t read(uint16_t addr);
 
 	// Fetch data
-	uint8_t fetch();
+	//uint8_t fetch();
 
 	struct INSTRUCTION {
 		uint8_t(CPU::* operate)(void) = nullptr;
@@ -95,7 +95,31 @@ private:
 	uint8_t LD_DE_d16();
 
 	uint8_t LD_a16_SP();
-	uint8_t LD_HL_SPr8();
+	uint8_t LD_HL_SP_r8();
 	uint8_t LD_SP_HL();
+
+	// general 8-bit load
+	//uint8_t LD(uint8_t& reg1, uint8_t& reg2);
+
+	uint8_t LD_B_d8();
+	uint8_t LD_B_B();
+	uint8_t LD_B_C();
+	uint8_t LD_B_D();
+	uint8_t LD_B_E();
+	uint8_t LD_B_H();
+	uint8_t LD_B_L();
+	uint8_t LD_B_HL();
+	uint8_t LD_B_A();
+
+	uint8_t LD_C_d8();
+	uint8_t LD_C_B();
+	uint8_t LD_C_C();
+	uint8_t LD_C_D();
+	uint8_t LD_C_E();
+	uint8_t LD_C_H();
+	uint8_t LD_C_L();
+	uint8_t LD_C_HL();
+	uint8_t LD_C_A();
+
 
 };

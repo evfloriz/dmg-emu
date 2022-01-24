@@ -4,15 +4,36 @@
 #include <iostream>
 
 CPU::CPU() {
-	lookup = {
-		{0x31, {&CPU::LD_SP_d16, 3}},
-		{0x21, {&CPU::LD_HL_d16, 3}},
+	lookup = {		
+		// 16-bit loads
 		{0x01, {&CPU::LD_BC_d16, 3}},
 		{0x11, {&CPU::LD_DE_d16, 3}},
-		
-		{0x31, {&CPU::LD_a16_SP, 5}},
-		{0x21, {&CPU::LD_HL_SPr8, 3}},
-		{0x21, {&CPU::LD_SP_HL, 2}}
+		{0x21, {&CPU::LD_HL_d16, 3}},
+		{0x31, {&CPU::LD_SP_d16, 3}},
+		{0x08, {&CPU::LD_a16_SP, 5}},
+		{0xF8, {&CPU::LD_HL_SP_r8, 3}},
+		{0xF9, {&CPU::LD_SP_HL, 2}},
+
+		// 8-bit loads
+		{0x06, {&CPU::LD_B_d8, 2}},
+		{0x40, {&CPU::LD_B_B, 1}},
+		{0x41, {&CPU::LD_B_C, 1}},
+		{0x42, {&CPU::LD_B_D, 1}},
+		{0x43, {&CPU::LD_B_E, 1}},
+		{0x44, {&CPU::LD_B_H, 1}},
+		{0x45, {&CPU::LD_B_L, 1}},
+		{0x46, {&CPU::LD_B_HL, 2}},
+		{0x47, {&CPU::LD_B_A, 1}},
+
+		{0x0E, {&CPU::LD_C_d8, 2}},
+		{0x48, {&CPU::LD_C_B, 1}},
+		{0x49, {&CPU::LD_C_C, 1}},
+		{0x4A, {&CPU::LD_C_D, 1}},
+		{0x4B, {&CPU::LD_C_E, 1}},
+		{0x4C, {&CPU::LD_C_H, 1}},
+		{0x4D, {&CPU::LD_C_L, 1}},
+		{0x4E, {&CPU::LD_C_HL, 2}},
+		{0x4F, {&CPU::LD_C_A, 1}},
 	};
 }
 
@@ -175,7 +196,7 @@ uint8_t CPU::LD_a16_SP() {
 	return 0;
 }
 
-uint8_t CPU::LD_HL_SPr8() {
+uint8_t CPU::LD_HL_SP_r8() {
 	// load sp with a signed offset into hl
 	// 3 machine cycles
 	// 0 0 H C
@@ -228,5 +249,112 @@ uint8_t CPU::LD_SP_HL() {
 	// simple as?
 	sp = (h << 8) | l;
 
+	return 0;
+}
+
+// B 8-bit loads
+
+uint8_t CPU::LD_B_d8() {
+	b = bus->read(pc);
+	pc++;
+
+	return 0;
+}
+
+uint8_t CPU::LD_B_B() {
+	// todo: check if this is allowed, might need to guard against self assignment
+	b = b;
+	return 0;
+}
+
+uint8_t CPU::LD_B_C() {
+	b = c;
+	return 0;
+}
+
+uint8_t CPU::LD_B_D() {
+	b = d;
+	return 0;
+}
+
+uint8_t CPU::LD_B_E() {
+	b = e;
+	return 0;
+}
+
+uint8_t CPU::LD_B_H() {
+	b = h;
+	return 0;
+}
+
+uint8_t CPU::LD_B_L() {
+	b = l;
+	return 0;
+}
+
+uint8_t CPU::LD_B_HL() {
+	// set value of (hl) to b
+	uint16_t addr = (h << 8) | l;
+	b = bus->read(addr);
+
+	return 0;
+}
+
+uint8_t CPU::LD_B_A() {
+	b = a;
+	return 0;
+}
+
+// C 8-bit loads
+// todo: combine these
+
+uint8_t CPU::LD_C_d8() {
+	c = bus->read(pc);
+	pc++;
+
+	return 0;
+}
+
+uint8_t CPU::LD_C_B() {
+	// todo: check if this is allowed, might need to guard against self assignment
+	c = b;
+	return 0;
+}
+
+uint8_t CPU::LD_C_C() {
+	c = c;
+	return 0;
+}
+
+uint8_t CPU::LD_C_D() {
+	c = d;
+	return 0;
+}
+
+uint8_t CPU::LD_C_E() {
+	c = e;
+	return 0;
+}
+
+uint8_t CPU::LD_C_H() {
+	c = h;
+	return 0;
+}
+
+uint8_t CPU::LD_C_L() {
+	c = l;
+	return 0;
+}
+
+uint8_t CPU::LD_C_HL() {
+	// set value of (hl) to b
+	uint16_t addr = (h << 8) | l;
+	c = bus->read(addr);
+
+	return 0;
+}
+
+uint8_t CPU::LD_C_A() {
+	c = a;
 	return 0;
 }
