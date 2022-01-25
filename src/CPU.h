@@ -92,16 +92,20 @@ private:
 private:
 	// Opcodes
 
+	// r8 - 8-bit register, or data if no operand
+	// r16 - 16-bit register
+	// d16 - 16 bits of data
+	// p16 - address pointed to by a 16-bit register
+	// o8 - 8-bit signed offset
+
 	// todo: original chunk, pleace rename
-	uint8_t LD_SP_d16();
-	uint8_t LD_HL_d16();
-	uint8_t LD_BC_d16();
-	uint8_t LD_DE_d16();
+	
+	uint8_t LD_r16();
+	uint8_t LD_SP();
 
 	uint8_t LD_a16_SP();
-	uint8_t LD_HL_SP_r8();
-	uint8_t LD_SP_HL();
-
+	uint8_t LD_HL_SP_o8();
+	
 	uint8_t LD_r8_r8();
 	uint8_t LD_r8_p16();
 	uint8_t LD_p16_r8();

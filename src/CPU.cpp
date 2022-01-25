@@ -6,13 +6,13 @@
 CPU::CPU() {
 	lookup = {		
 		// 16-bit loads
-		{0x01, {&CPU::LD_BC_d16,	3}},
-		{0x11, {&CPU::LD_DE_d16,	3}},
-		{0x21, {&CPU::LD_HL_d16,	3}},
-		{0x31, {&CPU::LD_SP_d16,	3}},
+		{0x01, {&CPU::LD_r16,		3,	&b, &c}},
+		{0x11, {&CPU::LD_r16,		3,	&d, &e}},
+		{0x21, {&CPU::LD_r16,		3,	&h, &l}},
+		{0x31, {&CPU::LD_SP,		3}},
 		{0x08, {&CPU::LD_a16_SP,	5}},
-		{0xF8, {&CPU::LD_HL_SP_r8,	3}},
-		{0xF9, {&CPU::LD_SP_HL,		2}},
+		{0xF8, {&CPU::LD_HL_SP_o8,	3}},
+		{0xF9, {&CPU::LD_SP,		2, &h, &l}},
 
 		// 8-bit loads
 		{0x06, {&CPU::LD_r8_r8,		2,	&b}},			{0x0E, {&CPU::LD_r8_r8,		2,	&c}},
@@ -112,89 +112,50 @@ void CPU::setFlag(FLAGS flag, bool value) {
 	}
 }
 
-uint8_t CPU::LD_BC_d16() {
-	// load BC register
+uint8_t CPU::LD_r16() {
+	// load 16-bit register
 	// d16 - immediate little endian 16 bit data
-	// 3 machine cycles
-	// no flags
+	// eg LD BC, d16
+
+	// todo: should I check for valid input?
 
 	uint8_t lo = bus->read(pc);
 	pc++;
 	uint8_t hi = bus->read(pc);
 	pc++;
 
-	b = hi;
-	c = lo;
+	*(lookup[opcode].op1) = hi;
+	*(lookup[opcode].op2) = lo;
 
-	return 0;
-}
-
-uint8_t CPU::LD_DE_d16() {
-	// load DE register
-	// d16 - immediate little endian 16 bit data
-	// 3 machine cycles
-	// no flags
-
-	uint8_t lo = bus->read(pc);
-	pc++;
-	uint8_t hi = bus->read(pc);
-	pc++;
-
-	d = hi;
-	e = lo;
-
-	return 0;
-}
-
-uint8_t CPU::LD_HL_d16() {
-	// load HL register
-	// d16 - immediate little endian 16 bit data
-	// 3 machine cycles
-	// no flags
-
-	// get low and high values
-	uint8_t lo = bus->read(pc);
-	pc++;
-	uint8_t hi = bus->read(pc);
-	pc++;
-
-	// store lo in h and hi in l
 	// apparently b, d, and h hold the more significant values
 	// todo: double check this, im not sure why endianness would change
 	// https://stackoverflow.com/questions/21639597/z80-register-endianness
-	h = hi;
-	l = lo;
 
-	// can this have additional cycles
-	// I think it's only branch instructions that can
 	return 0;
 }
 
-uint8_t CPU::LD_SP_d16() {
-	// load stack pointer
-	// d16 - immediate little endian 16 bit data
-	// 3 machine cycles
-	// no flags
+uint8_t CPU::LD_SP() {
+	// load stack pointer with (op2, op3) if provided or immediate 16-bit data if not
+	// eg LD SP, HL
 
-	// get data value
-	// todo: should i increment this before opcode is called
-	// looks like I probably should increment it in clock() since I always will have to
-	//pc++;
+	uint8_t* op1 = lookup[opcode].op1;
+	uint8_t* op2 = lookup[opcode].op2;
 
-	// get low and high values
-	uint8_t lo = bus->read(pc);
-	pc++;
-	uint8_t hi = bus->read(pc);
-	pc++;
+	if (op1 && op2) {
+		// load hl into sp
+		sp = (*op1 << 8) | *op2;
+	}
+	else {
+		// get immediate
+		uint8_t lo = bus->read(pc);
+		pc++;
+		uint8_t hi = bus->read(pc);
+		pc++;
 
-	// combine
-	uint16_t imm = (hi << 8) | lo;
+		// combine and store
+		sp = (hi << 8) | lo;
+	}
 
-	// store imm in stack pointer
-	sp = imm;
-
-	// can this have additional cycles
-	// I think it's only branch instructions that can
 	return 0;
 }
 
@@ -222,7 +183,7 @@ uint8_t CPU::LD_a16_SP() {
 	return 0;
 }
 
-uint8_t CPU::LD_HL_SP_r8() {
+uint8_t CPU::LD_HL_SP_o8() {
 	// load sp with a signed offset into hl
 	// 3 machine cycles
 	// 0 0 H C
@@ -263,17 +224,6 @@ uint8_t CPU::LD_HL_SP_r8() {
 	else {
 		setFlag(C, 0);
 	}
-
-	return 0;
-}
-
-uint8_t CPU::LD_SP_HL() {
-	// load hl into sp
-	// 2 machine cycles
-	// no flags
-
-	// simple as?
-	sp = (h << 8) | l;
 
 	return 0;
 }
