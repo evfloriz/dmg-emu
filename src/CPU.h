@@ -102,10 +102,9 @@ private:
 	uint8_t LD_HL_SP_r8();
 	uint8_t LD_SP_HL();
 
-	uint8_t LD_8();
-	uint8_t LD_16();
-
-	uint8_t LD_8_r16();
+	uint8_t LD_r8_r8();
+	uint8_t LD_r8_p16();
+	uint8_t LD_p16_r8();
 	
 	uint8_t LD_HLI_A();
 	uint8_t LD_HLD_A();

@@ -15,50 +15,50 @@ CPU::CPU() {
 		{0xF9, {&CPU::LD_SP_HL,		2}},
 
 		// 8-bit loads
-		{0x06, {&CPU::LD_8,		2,	&b}},			{0x0E, {&CPU::LD_8,		2,	&c}},
-		{0x40, {&CPU::LD_8,		1,	&b, &b}},		{0x48, {&CPU::LD_8,		1,	&c, &b}},
-		{0x41, {&CPU::LD_8,		1,	&b, &c}},		{0x49, {&CPU::LD_8,		1,	&c, &c}},
-		{0x42, {&CPU::LD_8,		1,	&b, &d}},		{0x4A, {&CPU::LD_8,		1,	&c, &d}},
-		{0x43, {&CPU::LD_8,		1,	&b, &e}},		{0x4B, {&CPU::LD_8,		1,	&c, &e}},
-		{0x44, {&CPU::LD_8,		1,	&b,	&h}},		{0x4C, {&CPU::LD_8,		1,	&c,	&h}},
-		{0x45, {&CPU::LD_8,		1,	&b, &l}},		{0x4D, {&CPU::LD_8,		1,	&c, &l}},
-		{0x46, {&CPU::LD_16,	2,	&b, &h, &l}},	{0x4E, {&CPU::LD_16,	2,	&c, &h, &l}},
-		{0x47, {&CPU::LD_8,		1,	&b, &a}},		{0x4F, {&CPU::LD_8,		1,	&c, &a}},
+		{0x06, {&CPU::LD_r8_r8,		2,	&b}},			{0x0E, {&CPU::LD_r8_r8,		2,	&c}},
+		{0x40, {&CPU::LD_r8_r8,		1,	&b, &b}},		{0x48, {&CPU::LD_r8_r8,		1,	&c, &b}},
+		{0x41, {&CPU::LD_r8_r8,		1,	&b, &c}},		{0x49, {&CPU::LD_r8_r8,		1,	&c, &c}},
+		{0x42, {&CPU::LD_r8_r8,		1,	&b, &d}},		{0x4A, {&CPU::LD_r8_r8,		1,	&c, &d}},
+		{0x43, {&CPU::LD_r8_r8,		1,	&b, &e}},		{0x4B, {&CPU::LD_r8_r8,		1,	&c, &e}},
+		{0x44, {&CPU::LD_r8_r8,		1,	&b,	&h}},		{0x4C, {&CPU::LD_r8_r8,		1,	&c,	&h}},
+		{0x45, {&CPU::LD_r8_r8,		1,	&b, &l}},		{0x4D, {&CPU::LD_r8_r8,		1,	&c, &l}},
+		{0x46, {&CPU::LD_r8_p16,	2,	&b, &h, &l}},	{0x4E, {&CPU::LD_r8_p16,	2,	&c, &h, &l}},
+		{0x47, {&CPU::LD_r8_r8,		1,	&b, &a}},		{0x4F, {&CPU::LD_r8_r8,		1,	&c, &a}},
 
-		{0x16, {&CPU::LD_8,		2,	&d}},			{0x1E, {&CPU::LD_8,		2,	&e}},
-		{0x50, {&CPU::LD_8,		1,	&d, &b}},		{0x58, {&CPU::LD_8,		1,	&e, &b}},
-		{0x51, {&CPU::LD_8,		1,	&d, &c}},		{0x59, {&CPU::LD_8,		1,	&e, &c}},
-		{0x52, {&CPU::LD_8,		1,	&d, &d}},		{0x5A, {&CPU::LD_8,		1,	&e, &d}},
-		{0x53, {&CPU::LD_8,		1,	&d, &e}},		{0x5B, {&CPU::LD_8,		1,	&e, &e}},
-		{0x54, {&CPU::LD_8,		1,	&d,	&h}},		{0x5C, {&CPU::LD_8,		1,	&e,	&h}},
-		{0x55, {&CPU::LD_8,		1,	&d, &l}},		{0x5D, {&CPU::LD_8,		1,	&e, &l}},
-		{0x56, {&CPU::LD_16,	2,	&d, &h, &l}},	{0x5E, {&CPU::LD_16,	2,	&e, &h, &l}},
-		{0x57, {&CPU::LD_8,		1,	&d, &a}},		{0x5F, {&CPU::LD_8,		1,	&e, &a}},
+		{0x16, {&CPU::LD_r8_r8,		2,	&d}},			{0x1E, {&CPU::LD_r8_r8,		2,	&e}},
+		{0x50, {&CPU::LD_r8_r8,		1,	&d, &b}},		{0x58, {&CPU::LD_r8_r8,		1,	&e, &b}},
+		{0x51, {&CPU::LD_r8_r8,		1,	&d, &c}},		{0x59, {&CPU::LD_r8_r8,		1,	&e, &c}},
+		{0x52, {&CPU::LD_r8_r8,		1,	&d, &d}},		{0x5A, {&CPU::LD_r8_r8,		1,	&e, &d}},
+		{0x53, {&CPU::LD_r8_r8,		1,	&d, &e}},		{0x5B, {&CPU::LD_r8_r8,		1,	&e, &e}},
+		{0x54, {&CPU::LD_r8_r8,		1,	&d,	&h}},		{0x5C, {&CPU::LD_r8_r8,		1,	&e,	&h}},
+		{0x55, {&CPU::LD_r8_r8,		1,	&d, &l}},		{0x5D, {&CPU::LD_r8_r8,		1,	&e, &l}},
+		{0x56, {&CPU::LD_r8_p16,	2,	&d, &h, &l}},	{0x5E, {&CPU::LD_r8_p16,	2,	&e, &h, &l}},
+		{0x57, {&CPU::LD_r8_r8,		1,	&d, &a}},		{0x5F, {&CPU::LD_r8_r8,		1,	&e, &a}},
 
-		{0x26, {&CPU::LD_8,		2,	&h}},			{0x2E, {&CPU::LD_8,		2,	&l}},
-		{0x60, {&CPU::LD_8,		1,	&h, &b}},		{0x68, {&CPU::LD_8,		1,	&l, &b}},
-		{0x61, {&CPU::LD_8,		1,	&h, &c}},		{0x69, {&CPU::LD_8,		1,	&l, &c}},
-		{0x62, {&CPU::LD_8,		1,	&h, &d}},		{0x6A, {&CPU::LD_8,		1,	&l, &d}},
-		{0x63, {&CPU::LD_8,		1,	&h, &e}},		{0x6B, {&CPU::LD_8,		1,	&l, &e}},
-		{0x64, {&CPU::LD_8,		1,	&h,	&h}},		{0x6C, {&CPU::LD_8,		1,	&l,	&h}},
-		{0x65, {&CPU::LD_8,		1,	&h, &l}},		{0x6D, {&CPU::LD_8,		1,	&l, &l}},
-		{0x66, {&CPU::LD_16,	2,	&h, &h, &l}},	{0x6E, {&CPU::LD_16,	2,	&l, &h, &l}},
-		{0x67, {&CPU::LD_8,		1,	&h, &a}},		{0x6F, {&CPU::LD_8,		1,	&l, &a}},
+		{0x26, {&CPU::LD_r8_r8,		2,	&h}},			{0x2E, {&CPU::LD_r8_r8,		2,	&l}},
+		{0x60, {&CPU::LD_r8_r8,		1,	&h, &b}},		{0x68, {&CPU::LD_r8_r8,		1,	&l, &b}},
+		{0x61, {&CPU::LD_r8_r8,		1,	&h, &c}},		{0x69, {&CPU::LD_r8_r8,		1,	&l, &c}},
+		{0x62, {&CPU::LD_r8_r8,		1,	&h, &d}},		{0x6A, {&CPU::LD_r8_r8,		1,	&l, &d}},
+		{0x63, {&CPU::LD_r8_r8,		1,	&h, &e}},		{0x6B, {&CPU::LD_r8_r8,		1,	&l, &e}},
+		{0x64, {&CPU::LD_r8_r8,		1,	&h,	&h}},		{0x6C, {&CPU::LD_r8_r8,		1,	&l,	&h}},
+		{0x65, {&CPU::LD_r8_r8,		1,	&h, &l}},		{0x6D, {&CPU::LD_r8_r8,		1,	&l, &l}},
+		{0x66, {&CPU::LD_r8_p16,	2,	&h, &h, &l}},	{0x6E, {&CPU::LD_r8_p16,	2,	&l, &h, &l}},
+		{0x67, {&CPU::LD_r8_r8,		1,	&h, &a}},		{0x6F, {&CPU::LD_r8_r8,		1,	&l, &a}},
 
-		{0x02, {&CPU::LD_8_r16,	2,	&b, &c, &a}},	{0x0A, {&CPU::LD_16,	2,	&a, &b, &c}},
-		{0x12, {&CPU::LD_8_r16,	2,	&d, &e, &a}},	{0x1A, {&CPU::LD_16,	2,	&a, &d, &e}},
+		{0x02, {&CPU::LD_p16_r8,	2,	&b, &c, &a}},	{0x0A, {&CPU::LD_r8_p16,	2,	&a, &b, &c}},
+		{0x12, {&CPU::LD_p16_r8,	2,	&d, &e, &a}},	{0x1A, {&CPU::LD_r8_p16,	2,	&a, &d, &e}},
 		{0x22, {&CPU::LD_HLI_A,	2,	&h, &l, &a}},	{0x2A, {&CPU::LD_A_HLI,	2,	&a, &h, &l}},	// these don't actually need operands
 		{0x32, {&CPU::LD_HLD_A,	2,	&h, &l, &a}},	{0x3A, {&CPU::LD_A_HLD,	2,	&a, &h, &l}},
 		
-		{0x36, {&CPU::LD_8_r16,	3,	&h, &l}},		{0x3E, {&CPU::LD_8,		2,	&a}},
-		{0x70, {&CPU::LD_8_r16,	2,	&h, &l, &b}},	{0x68, {&CPU::LD_8,		1,	&a, &b}},
-		{0x71, {&CPU::LD_8_r16,	2,	&h, &l, &c}},	{0x69, {&CPU::LD_8,		1,	&a, &c}},
-		{0x72, {&CPU::LD_8_r16,	2,	&h, &l, &d}},	{0x6A, {&CPU::LD_8,		1,	&a, &d}},
-		{0x73, {&CPU::LD_8_r16,	2,	&h, &l, &e}},	{0x6B, {&CPU::LD_8,		1,	&a, &e}},
-		{0x74, {&CPU::LD_8_r16,	2,	&h, &l, &h}},	{0x6C, {&CPU::LD_8,		1,	&a, &h}},
-		{0x75, {&CPU::LD_8_r16,	2,	&h, &l, &l}},	{0x6D, {&CPU::LD_8,		1,	&a, &l}},
-		/*{0x76, {&CPU::HALT,		1}},*/			{0x6E, {&CPU::LD_16,	2,	&a, &h, &l}},
-		{0x77, {&CPU::LD_8_r16,	2,	&h, &l, &a}},	{0x6F, {&CPU::LD_8,		1,	&a, &a}},
+		{0x36, {&CPU::LD_p16_r8,	3,	&h, &l}},		{0x3E, {&CPU::LD_r8_r8,		2,	&a}},
+		{0x70, {&CPU::LD_p16_r8,	2,	&h, &l, &b}},	{0x68, {&CPU::LD_r8_r8,		1,	&a, &b}},
+		{0x71, {&CPU::LD_p16_r8,	2,	&h, &l, &c}},	{0x69, {&CPU::LD_r8_r8,		1,	&a, &c}},
+		{0x72, {&CPU::LD_p16_r8,	2,	&h, &l, &d}},	{0x6A, {&CPU::LD_r8_r8,		1,	&a, &d}},
+		{0x73, {&CPU::LD_p16_r8,	2,	&h, &l, &e}},	{0x6B, {&CPU::LD_r8_r8,		1,	&a, &e}},
+		{0x74, {&CPU::LD_p16_r8,	2,	&h, &l, &h}},	{0x6C, {&CPU::LD_r8_r8,		1,	&a, &h}},
+		{0x75, {&CPU::LD_p16_r8,	2,	&h, &l, &l}},	{0x6D, {&CPU::LD_r8_r8,		1,	&a, &l}},
+		/*{0x76, {&CPU::HALT,		1}},*/			{0x6E, {&CPU::LD_r8_p16,	2,	&a, &h, &l}},
+		{0x77, {&CPU::LD_p16_r8,	2,	&h, &l, &a}},	{0x6F, {&CPU::LD_r8_r8,		1,	&a, &a}},
 
 	};
 }
@@ -280,7 +280,10 @@ uint8_t CPU::LD_SP_HL() {
 
 // B 8-bit loads
 
-uint8_t CPU::LD_8() {
+uint8_t CPU::LD_r8_r8() {
+	// load an 8 bit register or data into an 8 bit register (op2 = null means data)
+	// eg LD B, B
+
 	uint8_t *op1 = lookup[opcode].op1;
 	uint8_t *op2 = lookup[opcode].op2;
 
@@ -299,7 +302,10 @@ uint8_t CPU::LD_8() {
 	return 0;
 }
 
-uint8_t CPU::LD_16() {
+uint8_t CPU::LD_r8_p16() {
+	// load the value at the address pointed to by a 16-bit register into an 8-bit register
+	// eg LD B, (HL)
+
 	// set value of (hl) to register
 	uint8_t hi = *(lookup[opcode].op2);
 	uint8_t lo = *(lookup[opcode].op3);
@@ -311,7 +317,8 @@ uint8_t CPU::LD_16() {
 }
 
 // todo: rename
-uint8_t CPU::LD_8_r16() {
+uint8_t CPU::LD_p16_r8() {
+	// load the value of an 8-bit register into the address pointed to by a 16-bit register
 	// eg LD (HL), B
 	
 	uint8_t* op1 = lookup[opcode].op1;
@@ -339,6 +346,8 @@ uint8_t CPU::LD_8_r16() {
 }
 
 uint8_t CPU::LD_HLI_A() {
+	// eg LD (HL+), A
+
 	// todo: can this overflow?
 
 	uint16_t addr = (h << 8) | l;
@@ -354,6 +363,8 @@ uint8_t CPU::LD_HLI_A() {
 }
 
 uint8_t CPU::LD_HLD_A() {
+	// eg LD (HL-), A
+
 	// todo: can this underflow?
 	
 	uint16_t addr = (h << 8) | l;
@@ -368,6 +379,8 @@ uint8_t CPU::LD_HLD_A() {
 }
 
 uint8_t CPU::LD_A_HLI() {
+	// eg LD A, (HL+)
+
 	// note: these are guaranteed to be a, h, and l
 	// todo: can this overflow?
 	uint16_t addr = (h << 8) | l;
@@ -382,6 +395,8 @@ uint8_t CPU::LD_A_HLI() {
 }
 
 uint8_t CPU::LD_A_HLD() {
+	// eg LD A, (HL+)
+
 	// todo: can this underflow?
 
 	uint16_t addr = (h << 8) | l;
