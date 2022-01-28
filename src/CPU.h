@@ -96,9 +96,11 @@ private:
 	// r16 - 16-bit register
 	// d16 - 16 bits of data
 	// p16 - address pointed to by a 16-bit register
+	// p8 - address pointed to by 8-bit register, OR immediate 8-bit address (for LDH)
+	// a16 - immediate 16-bit address
 	// o8 - 8-bit signed offset
 
-	// todo: original chunk, pleace rename
+	// todo: simplify 
 	
 	uint8_t LD_r16();
 	uint8_t LD_SP();
@@ -114,5 +116,13 @@ private:
 	uint8_t LD_HLD_A();
 	uint8_t LD_A_HLI();
 	uint8_t LD_A_HLD();
+
+	uint8_t LDH_A_p8();
+	uint8_t LDH_p8_A();
+	uint8_t LD_a16_A();
+	uint8_t LD_A_a16();
+
+	uint8_t PUSH_r16();
+	uint8_t POP_r16();
 
 };

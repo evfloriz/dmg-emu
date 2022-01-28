@@ -14,6 +14,11 @@ CPU::CPU() {
 		{0xF8, {&CPU::LD_HL_SP_o8,	3}},
 		{0xF9, {&CPU::LD_SP,		2, &h, &l}},
 
+		{0xC1, {&CPU::POP_r16,		3,	&b,	&c}},		{0xC5, {&CPU::PUSH_r16,		3,	&b, &c}},
+		{0xD1, {&CPU::POP_r16,		3,	&d, &e}},		{0xD5, {&CPU::PUSH_r16,		3,	&d, &e}},
+		{0xE1, {&CPU::POP_r16,		3,	&h, &l}},		{0xE5, {&CPU::PUSH_r16,		3,	&h, &l}},
+		{0xF1, {&CPU::POP_r16,		3,	&a, &f}},		{0xF5, {&CPU::PUSH_r16,		3,	&a, &f}},
+
 		// 8-bit loads
 		{0x06, {&CPU::LD_r8_r8,		2,	&b}},			{0x0E, {&CPU::LD_r8_r8,		2,	&c}},
 		{0x40, {&CPU::LD_r8_r8,		1,	&b, &b}},		{0x48, {&CPU::LD_r8_r8,		1,	&c, &b}},
@@ -47,18 +52,23 @@ CPU::CPU() {
 
 		{0x02, {&CPU::LD_p16_r8,	2,	&b, &c, &a}},	{0x0A, {&CPU::LD_r8_p16,	2,	&a, &b, &c}},
 		{0x12, {&CPU::LD_p16_r8,	2,	&d, &e, &a}},	{0x1A, {&CPU::LD_r8_p16,	2,	&a, &d, &e}},
-		{0x22, {&CPU::LD_HLI_A,	2,	&h, &l, &a}},	{0x2A, {&CPU::LD_A_HLI,	2,	&a, &h, &l}},	// these don't actually need operands
-		{0x32, {&CPU::LD_HLD_A,	2,	&h, &l, &a}},	{0x3A, {&CPU::LD_A_HLD,	2,	&a, &h, &l}},
+		{0x22, {&CPU::LD_HLI_A,	2,	&h, &l, &a}},		{0x2A, {&CPU::LD_A_HLI,	2,	&a, &h, &l}},	// these don't actually need operands
+		{0x32, {&CPU::LD_HLD_A,	2,	&h, &l, &a}},		{0x3A, {&CPU::LD_A_HLD,	2,	&a, &h, &l}},
 		
 		{0x36, {&CPU::LD_p16_r8,	3,	&h, &l}},		{0x3E, {&CPU::LD_r8_r8,		2,	&a}},
-		{0x70, {&CPU::LD_p16_r8,	2,	&h, &l, &b}},	{0x68, {&CPU::LD_r8_r8,		1,	&a, &b}},
-		{0x71, {&CPU::LD_p16_r8,	2,	&h, &l, &c}},	{0x69, {&CPU::LD_r8_r8,		1,	&a, &c}},
-		{0x72, {&CPU::LD_p16_r8,	2,	&h, &l, &d}},	{0x6A, {&CPU::LD_r8_r8,		1,	&a, &d}},
-		{0x73, {&CPU::LD_p16_r8,	2,	&h, &l, &e}},	{0x6B, {&CPU::LD_r8_r8,		1,	&a, &e}},
-		{0x74, {&CPU::LD_p16_r8,	2,	&h, &l, &h}},	{0x6C, {&CPU::LD_r8_r8,		1,	&a, &h}},
-		{0x75, {&CPU::LD_p16_r8,	2,	&h, &l, &l}},	{0x6D, {&CPU::LD_r8_r8,		1,	&a, &l}},
-		/*{0x76, {&CPU::HALT,		1}},*/			{0x6E, {&CPU::LD_r8_p16,	2,	&a, &h, &l}},
-		{0x77, {&CPU::LD_p16_r8,	2,	&h, &l, &a}},	{0x6F, {&CPU::LD_r8_r8,		1,	&a, &a}},
+		{0x70, {&CPU::LD_p16_r8,	2,	&h, &l, &b}},	{0x78, {&CPU::LD_r8_r8,		1,	&a, &b}},
+		{0x71, {&CPU::LD_p16_r8,	2,	&h, &l, &c}},	{0x79, {&CPU::LD_r8_r8,		1,	&a, &c}},
+		{0x72, {&CPU::LD_p16_r8,	2,	&h, &l, &d}},	{0x7A, {&CPU::LD_r8_r8,		1,	&a, &d}},
+		{0x73, {&CPU::LD_p16_r8,	2,	&h, &l, &e}},	{0x7B, {&CPU::LD_r8_r8,		1,	&a, &e}},
+		{0x74, {&CPU::LD_p16_r8,	2,	&h, &l, &h}},	{0x7C, {&CPU::LD_r8_r8,		1,	&a, &h}},
+		{0x75, {&CPU::LD_p16_r8,	2,	&h, &l, &l}},	{0x7D, {&CPU::LD_r8_r8,		1,	&a, &l}},
+		/*{0x76, {&CPU::HALT,		1}},*/				{0x7E, {&CPU::LD_r8_p16,	2,	&a, &h, &l}},
+		{0x77, {&CPU::LD_p16_r8,	2,	&h, &l, &a}},	{0x7F, {&CPU::LD_r8_r8,		1,	&a, &a}},
+
+		{0xE0, {&CPU::LDH_p8_A,		3}},				{0xE2, {&CPU::LDH_p8_A,		2,	&c}},
+		{0xF0, {&CPU::LDH_A_p8,		3}},				{0xE2, {&CPU::LDH_A_p8,		2,	&c}},
+		{0xEA, {&CPU::LD_a16_A,		4}},
+		{0xFA, {&CPU::LD_A_a16,		4}},
 
 	};
 }
@@ -266,7 +276,6 @@ uint8_t CPU::LD_r8_p16() {
 	return 0;
 }
 
-// todo: rename
 uint8_t CPU::LD_p16_r8() {
 	// load the value of an 8-bit register into the address pointed to by a 16-bit register
 	// eg LD (HL), B
@@ -358,4 +367,126 @@ uint8_t CPU::LD_A_HLD() {
 	h = (addr >> 8) & 0xFF;
 
 	return 0;
+}
+
+uint8_t CPU::LDH_A_p8() {
+	// load A with 0xFF00 page byte from register or address
+	// eg LD A, [C]
+	// op1 = &c for [C] or null for a8
+
+	uint8_t* op1 = lookup[opcode].op1;
+
+	uint8_t offset;
+
+	if (op1) {
+		// load from register
+		offset = *op1;
+	}
+	else {
+		// load from immediate address
+		offset = bus->read(pc);
+		pc++;
+	}
+
+	uint16_t addr = 0xFF00 + offset;
+	
+	a = bus->read(addr);
+
+	return 0;
+}
+
+uint8_t CPU::LDH_p8_A() {
+	// load 0xFF00 page byte from register or address with A
+	// eg LD [C], A
+	// op1 = &c for [C] or null for a8
+
+	uint8_t* op1 = lookup[opcode].op1;
+
+	uint8_t offset;
+
+	if (op1) {
+		// load from register
+		offset = *op1;
+	}
+	else {
+		// load from immediate address
+		offset = bus->read(pc);
+		pc++;
+	}
+
+	uint16_t addr = 0xFF00 + offset;
+
+	// write A to address
+	bus->write(addr, a);
+
+	return 0;
+}
+
+uint8_t CPU::LD_a16_A() {
+	// load A into a16 location
+	// a16 - little endian 16 bit address
+	// 3 machine cycles
+	// no flags
+
+	uint8_t lo = bus->read(pc);
+	pc++;
+	uint8_t hi = bus->read(pc);
+	pc++;
+
+	// combine
+	uint16_t addr = (hi << 8) | lo;
+
+	bus->write(addr, a);
+
+	return 0;
+}
+
+uint8_t CPU::LD_A_a16() {
+	// load data at a16 location into A
+	// a16 - little endian 16 bit address
+	// 3 machine cycles
+	// no flags
+
+	uint8_t lo = bus->read(pc);
+	pc++;
+	uint8_t hi = bus->read(pc);
+	pc++;
+
+	// combine
+	uint16_t addr = (hi << 8) | lo;
+
+	a = bus->read(addr);
+
+	return 0;
+}
+
+uint8_t CPU::PUSH_r16() {
+	// push register onto the stack
+	// eg PUSH BC
+
+	uint8_t* op1 = lookup[opcode].op1;
+	uint8_t* op2 = lookup[opcode].op2;
+
+	sp--;
+	bus->write(sp, *op1);
+	sp--;
+	bus->write(sp, *op2);
+
+	return 0;
+}
+
+uint8_t CPU::POP_r16() {
+	// load the value of an address onto the stack into the address pointed to by a 16-bit register
+	// eg LD (HL), B
+
+	uint8_t* op1 = lookup[opcode].op1;
+	uint8_t* op2 = lookup[opcode].op2;
+
+	*op2 = bus->read(sp);
+	sp++;
+	*op1 = bus->read(sp);
+	sp++;
+
+	return 0;
+
 }
