@@ -125,4 +125,9 @@ private:
 	uint8_t PUSH_r16();
 	uint8_t POP_r16();
 
+	uint8_t ADD();
+	uint8_t ADC();
+
+	bool halfCarryPredicate(uint16_t val1, uint16_t val2);
+	bool carryPredicate(uint16_t val1, uint16_t val2);
 };

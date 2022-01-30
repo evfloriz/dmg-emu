@@ -122,6 +122,18 @@ void CPU::setFlag(FLAGS flag, bool value) {
 	}
 }
 
+bool CPU::halfCarryPredicate(uint16_t val1, uint16_t val2) {
+	// half carry
+	// if the bottom 4 bits of each added together sets an upper 4 bit
+	return (val1 & 0xF + val2 & 0xF) & 0x10;
+}
+
+bool CPU::carryPredicate(uint16_t val1, uint16_t val2) {
+	// carry
+	// if the bottom 8 bits of each added together sets an upper 8 bit
+	return (val1 & 0xFF + val2 & 0xFF) & 0x100;
+}
+
 uint8_t CPU::LD_r16() {
 	// load 16-bit register
 	// d16 - immediate little endian 16 bit data
@@ -216,25 +228,9 @@ uint8_t CPU::LD_HL_SP_o8() {
 
 	setFlag(Z, 0);
 	setFlag(N, 0);
+	setFlag(H, halfCarryPredicate(sp, offset));
+	setFlag(C, carryPredicate(sp, offset));
 	
-	// half carry
-	// if the bottom 4 bits of each added together sets an upper 4 bit
-	if ((sp & 0xF + offset & 0xF) & 0x10) {
-		setFlag(H, 1);
-	}
-	else {
-		setFlag(H, 0);
-	}
-
-	// carry
-	// if the bottom 8 bits of each added together sets an upper 8 bit
-	if ((sp & 0xFF + offset & 0xFF) & 0x100) {
-		setFlag(C, 1);
-	}
-	else {
-		setFlag(C, 0);
-	}
-
 	return 0;
 }
 
@@ -489,4 +485,69 @@ uint8_t CPU::POP_r16() {
 
 	return 0;
 
+}
+
+uint8_t CPU::ADD() {
+	uint8_t* op1 = lookup[opcode].op1;		// should always be a
+	uint8_t* op2 = lookup[opcode].op2;
+	uint8_t* op3 = lookup[opcode].op3;
+	
+	// upcast to 16-bit for easier addition
+	uint16_t val1 = *op1;
+	uint16_t val2 = 0x0000;
+
+	if (op3) {
+		// add from address
+		uint16_t addr = (*op1 << 8) | *op2;
+		val2 = bus->read(addr);			
+	}
+	else {
+		// add from register
+		val2 = *op2;
+	}
+
+	// add and load into a (8-bit)
+	*op1 = (val1 + val2) & 0xFF;
+	
+	// set flags
+	setFlag(Z, (*op1 == 0));
+	setFlag(N, 0);
+	setFlag(H, halfCarryPredicate(val1, val2));
+	setFlag(C, carryPredicate(val1, val2));
+
+	return 0;
+}
+
+uint8_t CPU::ADC() {
+	uint8_t* op1 = lookup[opcode].op1;		// should always be a
+	uint8_t* op2 = lookup[opcode].op2;
+	uint8_t* op3 = lookup[opcode].op3;
+
+	// upcast to 16-bit for easier addition
+	uint16_t val1 = *op1;
+	uint16_t val2 = 0x0000;
+	
+	// add the carry bit
+	uint16_t carry = getFlag(FLAGS::C) ? 0x0001 : 0x0000;
+
+	if (op3) {
+		// add from address
+		uint16_t addr = (*op1 << 8) | *op2;
+		val2 = bus->read(addr);
+	}
+	else {
+		// add from register
+		val2 = *op2;
+	}
+
+	// add with carry and load into a (8-bit)
+	*op1 = (val1 + val2 + carry) & 0xFF;
+
+	// set flags
+	setFlag(Z, (*op1 == 0));
+	setFlag(N, 0);
+	setFlag(H, halfCarryPredicate(val1, val2));
+	setFlag(C, carryPredicate(val1, val2));
+
+	return 0;
 }
