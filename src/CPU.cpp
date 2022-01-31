@@ -70,6 +70,23 @@ CPU::CPU() {
 		{0xEA, {&CPU::LD_a16_A,		4}},
 		{0xFA, {&CPU::LD_A_a16,		4}},
 
+		{0x80, {&CPU::ADD,			1,	&a, &b}},		{0x88, {&CPU::ADC,			1,	&a, &b}},
+		{0x81, {&CPU::ADD,			1,	&a, &c}},		{0x89, {&CPU::ADC,			1,	&a, &c}},
+		{0x82, {&CPU::ADD,			1,	&a, &d}},		{0x8A, {&CPU::ADC,			1,	&a, &d}},
+		{0x83, {&CPU::ADD,			1,	&a, &e}},		{0x8B, {&CPU::ADC,			1,	&a, &e}},
+		{0x84, {&CPU::ADD,			1,	&a, &h}},		{0x8C, {&CPU::ADC,			1,	&a, &h}},
+		{0x85, {&CPU::ADD,			1,	&a, &l}},		{0x8D, {&CPU::ADC,			1,	&a, &l}},
+		{0x86, {&CPU::ADD,			2,	&a, &h, &l}},	{0x8E, {&CPU::ADC,			2,	&a, &h, &l}},
+		{0x87, {&CPU::ADD,			1,	&a, &a}},		{0x8F, {&CPU::ADC,			1,	&a, &a}},
+
+		{0x90, {&CPU::SUB,			1,	&a, &b}},		{0x98, {&CPU::SBC,			1,	&a, &b}},
+		{0x91, {&CPU::SUB,			1,	&a, &c}},		{0x99, {&CPU::SBC,			1,	&a, &c}},
+		{0x92, {&CPU::SUB,			1,	&a, &d}},		{0x9A, {&CPU::SBC,			1,	&a, &d}},
+		{0x93, {&CPU::SUB,			1,	&a, &e}},		{0x9B, {&CPU::SBC,			1,	&a, &e}},
+		{0x94, {&CPU::SUB,			1,	&a, &h}},		{0x9C, {&CPU::SBC,			1,	&a, &h}},
+		{0x95, {&CPU::SUB,			1,	&a, &l}},		{0x9D, {&CPU::SBC,			1,	&a, &l}},
+		{0x96, {&CPU::SUB,			2,	&a, &h, &l}},	{0x9E, {&CPU::SBC,			2,	&a, &h, &l}},
+		{0x97, {&CPU::SUB,			1,	&a, &a}},		{0x9F, {&CPU::SBC,			1,	&a, &a}},
 	};
 }
 
@@ -132,6 +149,18 @@ bool CPU::carryPredicate(uint16_t val1, uint16_t val2) {
 	// carry
 	// if the bottom 8 bits of each added together sets an upper 8 bit
 	return (val1 & 0xFF + val2 & 0xFF) & 0x100;
+}
+
+bool CPU::halfBorrowPredicate(uint16_t val1, uint16_t val2) {
+	// half borrow
+	// if the borrowing from the 4th bit (if r8_lo > a_lo)
+	return ((val1 & 0xF) > (val2 & 0xF));
+}
+
+bool CPU::borrowPredicate(uint16_t val1, uint16_t val2) {
+	// borrow
+	// if the borrowing from the theoretical 8th bit (if r8_lo > a_lo)
+	return ((val1 & 0xFF) > (val2 & 0xFF));
 }
 
 uint8_t CPU::LD_r16() {
@@ -526,9 +555,6 @@ uint8_t CPU::ADC() {
 	// upcast to 16-bit for easier addition
 	uint16_t val1 = *op1;
 	uint16_t val2 = 0x0000;
-	
-	// add the carry bit
-	uint16_t carry = getFlag(FLAGS::C) ? 0x0001 : 0x0000;
 
 	if (op3) {
 		// add from address
@@ -540,8 +566,12 @@ uint8_t CPU::ADC() {
 		val2 = *op2;
 	}
 
+	// add the carry bit
+	uint16_t carry = getFlag(FLAGS::C) ? 0x0001 : 0x0000;
+	val2 += carry;
+
 	// add with carry and load into a (8-bit)
-	*op1 = (val1 + val2 + carry) & 0xFF;
+	*op1 = (val1 + val2) & 0xFF;
 
 	// set flags
 	setFlag(Z, (*op1 == 0));
@@ -550,4 +580,77 @@ uint8_t CPU::ADC() {
 	setFlag(C, carryPredicate(val1, val2));
 
 	return 0;
+}
+
+uint8_t CPU::SUB() {
+	uint8_t* op1 = lookup[opcode].op1;		// should always be a
+	uint8_t* op2 = lookup[opcode].op2;
+	uint8_t* op3 = lookup[opcode].op3;
+
+	// upcast to 16-bit for easier operation
+	uint16_t val1 = *op1;
+	uint16_t val2 = 0x0000;
+
+	if (op3) {
+		// add from address
+		uint16_t addr = (*op1 << 8) | *op2;
+		val2 = bus->read(addr);
+	}
+	else {
+		// add from register
+		val2 = *op2;
+	}
+
+	// get the twos complement (of the bottom 8 bits)
+	uint16_t val2_twos = val2 ^ 0x00FF + 0x0001;
+
+	// add twos complement and load into a (8-bit)
+	*op1 = (val1 + val2_twos) & 0xFF;
+
+	// set flags
+	setFlag(Z, (*op1 == 0));
+	setFlag(N, 0);
+	setFlag(H, halfBorrowPredicate(val1, val2));
+	setFlag(C, borrowPredicate(val1, val2));
+
+	return 0;
+}
+
+uint8_t CPU::SBC() {
+	uint8_t* op1 = lookup[opcode].op1;		// should always be a
+	uint8_t* op2 = lookup[opcode].op2;
+	uint8_t* op3 = lookup[opcode].op3;
+
+	// upcast to 16-bit for easier operation
+	uint16_t val1 = *op1;
+	uint16_t val2 = 0x0000;
+
+	if (op3) {
+		// add from address
+		uint16_t addr = (*op1 << 8) | *op2;
+		val2 = bus->read(addr);
+	}
+	else {
+		// add from register
+		val2 = *op2;
+	}
+
+	// add the carry bit
+	uint16_t carry = getFlag(FLAGS::C) ? 0x0001 : 0x0000;
+	val2 += carry;
+
+	// get the twos complement (of the bottom 8 bits)
+	uint16_t val2_twos = val2 ^ 0x00FF + 0x0001;
+
+	// add twos complement and load into a (8-bit)
+	*op1 = (val1 + val2_twos) & 0xFF;
+
+	// set flags
+	setFlag(Z, (*op1 == 0));
+	setFlag(N, 0);
+	setFlag(H, halfBorrowPredicate(val1, val2));
+	setFlag(C, borrowPredicate(val1, val2));
+
+	return 0;
+
 }

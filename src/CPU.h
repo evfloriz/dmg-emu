@@ -127,7 +127,12 @@ private:
 
 	uint8_t ADD();
 	uint8_t ADC();
+	uint8_t SUB();
+	uint8_t SBC();
 
 	bool halfCarryPredicate(uint16_t val1, uint16_t val2);
 	bool carryPredicate(uint16_t val1, uint16_t val2);
+
+	bool halfBorrowPredicate(uint16_t val1, uint16_t val2);
+	bool borrowPredicate(uint16_t val1, uint16_t val2);
 };
