@@ -23,6 +23,11 @@ public:
 	uint8_t h = 0x00;
 	uint8_t l = 0x00;	// hl
 
+	// interrupt flags
+	uint8_t IME = 0x00;
+	uint8_t IE = 0x00;
+	uint8_t IF = 0x00;
+
 	// value at memory pointed to by hl can be used in place of any register in any instruction
 	
 	uint16_t sp = 0x0000;	// stack pointer
@@ -60,11 +65,29 @@ private:
 	// Helper functions to access status register
 	uint8_t getFlag(FLAGS flag);
 	void setFlag(FLAGS flag, bool value);
+	
+	bool halfCarryPredicate(uint16_t val1, uint16_t val2);
+	bool carryPredicate(uint16_t val1, uint16_t val2);
+	bool halfBorrowPredicate(uint16_t val1, uint16_t val2);
+	bool borrowPredicate(uint16_t val1, uint16_t val2);
+	
+	bool checkCondition(uint8_t cc);
 
 	// Helper variables
 	uint8_t cycles = 0;
 	uint8_t opcode = 0x00;
 	uint16_t addr_abs = 0x0000;
+	
+	// Enum class for condition codes
+	// using an enum class for scope (to prevent interference with FLAGS) since I don't
+	// need bitwise operations with them
+	enum CONDITION {
+		c_N,		// none
+		c_Z,		// zero flag set
+		c_NZ,	// zero flag not set
+		c_C,		// carry flag set
+		c_NC		// carry flag not set
+	};
 
 	// Facilitate link to bus
 	Bus* bus = nullptr;
@@ -143,9 +166,10 @@ private:
 	uint8_t CPL();
 	uint8_t CCF();
 
-	bool halfCarryPredicate(uint16_t val1, uint16_t val2);
-	bool carryPredicate(uint16_t val1, uint16_t val2);
-
-	bool halfBorrowPredicate(uint16_t val1, uint16_t val2);
-	bool borrowPredicate(uint16_t val1, uint16_t val2);
+	uint8_t JP();
+	uint8_t JR();
+	uint8_t CALL();
+	uint8_t RET();
+	uint8_t RETI();
+	uint8_t RST();
 };
