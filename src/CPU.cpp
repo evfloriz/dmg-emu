@@ -87,6 +87,43 @@ CPU::CPU() {
 		{0x95, {&CPU::SUB,			1,	&a, &l}},		{0x9D, {&CPU::SBC,			1,	&a, &l}},
 		{0x96, {&CPU::SUB,			2,	&a, &h, &l}},	{0x9E, {&CPU::SBC,			2,	&a, &h, &l}},
 		{0x97, {&CPU::SUB,			1,	&a, &a}},		{0x9F, {&CPU::SBC,			1,	&a, &a}},
+
+		{0xA0, {&CPU::AND,			1,	&a, &b}},		{0xA8, {&CPU::XOR,			1,	&a, &b}},
+		{0xA1, {&CPU::AND,			1,	&a, &c}},		{0xA9, {&CPU::XOR,			1,	&a, &c}},
+		{0xA2, {&CPU::AND,			1,	&a, &d}},		{0xAA, {&CPU::XOR,			1,	&a, &d}},
+		{0xA3, {&CPU::AND,			1,	&a, &e}},		{0xAB, {&CPU::XOR,			1,	&a, &e}},
+		{0xA4, {&CPU::AND,			1,	&a, &h}},		{0xAC, {&CPU::XOR,			1,	&a, &h}},
+		{0xA5, {&CPU::AND,			1,	&a, &l}},		{0xAD, {&CPU::XOR,			1,	&a, &l}},
+		{0xA6, {&CPU::AND,			2,	&a, &h, &l}},	{0xAE, {&CPU::XOR,			2,	&a, &h, &l}},
+		{0xA7, {&CPU::AND,			1,	&a, &a}},		{0xAF, {&CPU::XOR,			1,	&a, &a}},
+
+		{0xB0, {&CPU::OR,			1,	&a, &b}},		{0xB8, {&CPU::CP,			1,	&a, &b}},
+		{0xB1, {&CPU::OR,			1,	&a, &c}},		{0xB9, {&CPU::CP,			1,	&a, &c}},
+		{0xB2, {&CPU::OR,			1,	&a, &d}},		{0xBA, {&CPU::CP,			1,	&a, &d}},
+		{0xB3, {&CPU::OR,			1,	&a, &e}},		{0xBB, {&CPU::CP,			1,	&a, &e}},
+		{0xB4, {&CPU::OR,			1,	&a, &h}},		{0xBC, {&CPU::CP,			1,	&a, &h}},
+		{0xB5, {&CPU::OR,			1,	&a, &l}},		{0xBD, {&CPU::CP,			1,	&a, &l}},
+		{0xB6, {&CPU::OR,			2,	&a, &h, &l}},	{0xBE, {&CPU::CP,			2,	&a, &h, &l}},
+		{0xB7, {&CPU::OR,			1,	&a, &a}},		{0xBF, {&CPU::CP,			1,	&a, &a}},
+
+		{0xC6, {&CPU::ADD,			2,	&a}},			{0xCE, {&CPU::ADC,			2,	&a}},
+		{0xD6, {&CPU::SUB,			2,	&a}},			{0xDE, {&CPU::SBC,			2,	&a}},
+		{0xE6, {&CPU::AND,			2,	&a}},			{0xEE, {&CPU::XOR,			2,	&a}},
+		{0xF6, {&CPU::OR,			2,	&a}},			{0xFE, {&CPU::CP,			2,	&a}},
+
+		{0x04, {&CPU::INC,			1,	&b}},			{0x0C, {&CPU::INC,			1,	&c}},
+		{0x14, {&CPU::INC,			1,	&d}},			{0x1C, {&CPU::INC,			1,	&e}},
+		{0x24, {&CPU::INC,			1,	&h}},			{0x2C, {&CPU::INC,			1,	&l}},
+		{0x34, {&CPU::INC,			3,	&h, &l}},		{0x3C, {&CPU::INC,			1,	&a}},
+
+		{0x05, {&CPU::DEC,			1,	&b}},			{0x0D, {&CPU::DEC,			1,	&c}},
+		{0x15, {&CPU::DEC,			1,	&d}},			{0x1D, {&CPU::DEC,			1,	&e}},
+		{0x25, {&CPU::DEC,			1,	&h}},			{0x2D, {&CPU::DEC,			1,	&l}},
+		{0x35, {&CPU::DEC,			3,	&h, &l}},		{0x3D, {&CPU::DEC,			1,	&a}},
+
+		{0x27, {&CPU::DAA,			1}},				{0x2F, {&CPU::CPL,			1}},
+		{0x37, {&CPU::SCF,			1}},				{0x3F, {&CPU::CCF,			1}},
+
 	};
 }
 
@@ -530,9 +567,14 @@ uint8_t CPU::ADD() {
 		uint16_t addr = (*op1 << 8) | *op2;
 		val2 = bus->read(addr);			
 	}
-	else {
+	else if (op2) {
 		// add from register
 		val2 = *op2;
+	}
+	else {
+		// add from immediate
+		val2 = bus->read(pc);
+		pc++;
 	}
 
 	// add and load into a (8-bit)
@@ -561,9 +603,14 @@ uint8_t CPU::ADC() {
 		uint16_t addr = (*op1 << 8) | *op2;
 		val2 = bus->read(addr);
 	}
-	else {
+	else if (op2) {
 		// add from register
 		val2 = *op2;
+	}
+	else {
+		// add from immediate
+		val2 = bus->read(pc);
+		pc++;
 	}
 
 	// add the carry bit
@@ -592,13 +639,18 @@ uint8_t CPU::SUB() {
 	uint16_t val2 = 0x0000;
 
 	if (op3) {
-		// add from address
+		// address
 		uint16_t addr = (*op1 << 8) | *op2;
 		val2 = bus->read(addr);
 	}
-	else {
-		// add from register
+	else if (op2) {
+		// register
 		val2 = *op2;
+	}
+	else {
+		// immediate
+		val2 = bus->read(pc);
+		pc++;
 	}
 
 	// get the twos complement (of the bottom 8 bits)
@@ -608,8 +660,9 @@ uint8_t CPU::SUB() {
 	*op1 = (val1 + val2_twos) & 0xFF;
 
 	// set flags
+	// todo: fix/double-check flags for sub a, a
 	setFlag(Z, (*op1 == 0));
-	setFlag(N, 0);
+	setFlag(N, 1);
 	setFlag(H, halfBorrowPredicate(val1, val2));
 	setFlag(C, borrowPredicate(val1, val2));
 
@@ -626,13 +679,18 @@ uint8_t CPU::SBC() {
 	uint16_t val2 = 0x0000;
 
 	if (op3) {
-		// add from address
+		// address
 		uint16_t addr = (*op1 << 8) | *op2;
 		val2 = bus->read(addr);
 	}
-	else {
-		// add from register
+	else if (op2) {
+		// register
 		val2 = *op2;
+	}
+	else {
+		// immediate
+		val2 = bus->read(pc);
+		pc++;
 	}
 
 	// add the carry bit
@@ -647,10 +705,255 @@ uint8_t CPU::SBC() {
 
 	// set flags
 	setFlag(Z, (*op1 == 0));
-	setFlag(N, 0);
+	setFlag(N, 1);
 	setFlag(H, halfBorrowPredicate(val1, val2));
 	setFlag(C, borrowPredicate(val1, val2));
 
 	return 0;
+}
 
+uint8_t CPU::AND() {
+	uint8_t* op1 = lookup[opcode].op1;		// should always be a
+	uint8_t* op2 = lookup[opcode].op2;
+	uint8_t* op3 = lookup[opcode].op3;
+
+	// upcast to 16-bit for easier addition
+	uint16_t val1 = *op1;
+	uint16_t val2 = 0x0000;
+
+	if (op3) {
+		// add from address
+		uint16_t addr = (*op1 << 8) | *op2;
+		val2 = bus->read(addr);
+	}
+	else if (op2) {
+		// add from register
+		val2 = *op2;
+	}
+	else {
+		// add from immediate
+		val2 = bus->read(pc);
+		pc++;
+	}
+
+	// and and load into a (8-bit)
+	*op1 = (val1 & val2) & 0xFF;
+
+	// set flags
+	setFlag(Z, (*op1 == 0));
+	setFlag(N, 0);
+	setFlag(H, 1);
+	setFlag(C, 0);
+
+	return 0;
+}
+
+uint8_t CPU::XOR() {
+	uint8_t* op1 = lookup[opcode].op1;		// should always be a
+	uint8_t* op2 = lookup[opcode].op2;
+	uint8_t* op3 = lookup[opcode].op3;
+
+	// upcast to 16-bit for easier addition
+	uint16_t val1 = *op1;
+	uint16_t val2 = 0x0000;
+
+	if (op3) {
+		// add from address
+		uint16_t addr = (*op1 << 8) | *op2;
+		val2 = bus->read(addr);
+	}
+	else if (op2) {
+		// add from register
+		val2 = *op2;
+	}
+	else {
+		// add from immediate
+		val2 = bus->read(pc);
+		pc++;
+	}
+
+	// xor and load into a (8-bit)
+	*op1 = (val1 ^ val2) & 0xFF;
+
+	// set flags
+	setFlag(Z, (*op1 == 0));
+	setFlag(N, 0);
+	setFlag(H, 0);
+	setFlag(C, 0);
+
+	return 0;
+}
+
+uint8_t CPU::OR() {
+	uint8_t* op1 = lookup[opcode].op1;		// should always be a
+	uint8_t* op2 = lookup[opcode].op2;
+	uint8_t* op3 = lookup[opcode].op3;
+
+	// upcast to 16-bit for easier addition
+	uint16_t val1 = *op1;
+	uint16_t val2 = 0x0000;
+
+	if (op3) {
+		// add from address
+		uint16_t addr = (*op1 << 8) | *op2;
+		val2 = bus->read(addr);
+	}
+	else if (op2) {
+		// add from register
+		val2 = *op2;
+	}
+	else {
+		// add from immediate
+		val2 = bus->read(pc);
+		pc++;
+	}
+
+	// and and load into a (8-bit)
+	*op1 = (val1 | val2) & 0xFF;
+
+	// set flags
+	setFlag(Z, (*op1 == 0));
+	setFlag(N, 0);
+	setFlag(H, 0);
+	setFlag(C, 0);
+
+	return 0;
+}
+
+uint8_t CPU::CP() {
+	uint8_t* op1 = lookup[opcode].op1;		// should always be a
+	uint8_t* op2 = lookup[opcode].op2;
+	uint8_t* op3 = lookup[opcode].op3;
+
+	// upcast to 16-bit for easier operation
+	uint16_t val1 = *op1;
+	uint16_t val2 = 0x0000;
+
+	if (op3) {
+		// address
+		uint16_t addr = (*op1 << 8) | *op2;
+		val2 = bus->read(addr);
+	}
+	else if (op2) {
+		// register
+		val2 = *op2;
+	}
+	else {
+		// immediate
+		val2 = bus->read(pc);
+		pc++;
+	}
+
+	// get the twos complement (of the bottom 8 bits)
+	uint16_t val2_twos = val2 ^ 0x00FF + 0x0001;
+
+	// add twos complement and load into temp to set flags
+	uint8_t temp = (val1 + val2_twos) & 0xFF;
+
+	// set flags
+	// todo: fix/double-check flags for sub a, a
+	setFlag(Z, (temp == 0));
+	setFlag(N, 1);
+	setFlag(H, halfBorrowPredicate(val1, val2));
+	setFlag(C, borrowPredicate(val1, val2));
+
+	return 0;
+}
+
+uint8_t CPU::INC() {
+	uint8_t* op1 = lookup[opcode].op1;
+	uint8_t* op2 = lookup[opcode].op2;
+
+	// store value to be incremented in temp for flags
+	uint16_t temp = 0x0000;
+
+	if (op2) {
+		// get byte from address
+		uint16_t addr = (*op1 << 8) | *op2;
+		temp = bus->read(addr);
+		bus->write(addr, temp + 0x0001);
+	}
+	else {
+		// get byte from register
+		temp = *op1;
+		*op1 = temp + 0x0001;
+	}
+
+	// set flags
+	setFlag(Z, (*op1 == 0));
+	setFlag(N, 0);
+	setFlag(H, halfCarryPredicate(temp, 0x0001));
+}
+
+uint8_t CPU::DEC() {
+	uint8_t* op1 = lookup[opcode].op1;
+	uint8_t* op2 = lookup[opcode].op2;
+
+	// store value to be incremented in temp for flags
+	uint16_t temp = 0x0000;
+
+	if (op2) {
+		// get byte from address
+		uint16_t addr = (*op1 << 8) | *op2;
+		temp = bus->read(addr);
+		bus->write(addr, temp - 0x0001);
+	}
+	else {
+		// get byte from register
+		temp = *op1;
+		*op1 = temp - 0x0001;
+	}
+
+	// set flags
+	setFlag(Z, (*op1 == 0));
+	setFlag(N, 1);
+	setFlag(H, halfBorrowPredicate(temp, 0x0001));
+}
+
+uint8_t CPU::DAA() {
+	if (getFlag(N) == 0) {
+		// if addition, greater than 9 or carry (since thats also greater than 9)
+		if (a > 0x99 || getFlag(C)) {
+			a += 0x60;
+		}
+		if ((a & 0x0F) > 0x09 || getFlag(H)) {
+			a += 0x06;
+		}
+	}
+
+	// if subtraction, assuming bcd operands, result can't be greater than 9 unless there was a borrow
+	else {
+		if (getFlag(C)) {
+			a -= 0x60;
+		}
+		if (getFlag(H)) {
+			a -= 0x06;
+		}
+	}
+
+	// set flags
+	setFlag(Z, (a == 0));
+	setFlag(H, 0);
+	setFlag(C, (a > 0x99));
+}
+
+uint8_t CPU::SCF() {
+	// set carry flag
+	setFlag(N, 0);
+	setFlag(H, 0);
+	setFlag(C, 1);
+}
+
+uint8_t CPU::CPL() {
+	// complement a
+	a = ~a;
+	setFlag(N, 1);
+	setFlag(H, 1);
+}
+
+uint8_t CPU::CCF() {
+	// complement carry flag
+	setFlag(N, 0);
+	setFlag(H, 0);
+	setFlag(C, ~getFlag(C));
 }

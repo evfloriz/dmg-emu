@@ -130,6 +130,19 @@ private:
 	uint8_t SUB();
 	uint8_t SBC();
 
+	uint8_t AND();
+	uint8_t XOR();
+	uint8_t OR();
+	uint8_t CP();
+
+	uint8_t INC();
+	uint8_t DEC();
+
+	uint8_t DAA();
+	uint8_t SCF();
+	uint8_t CPL();
+	uint8_t CCF();
+
 	bool halfCarryPredicate(uint16_t val1, uint16_t val2);
 	bool carryPredicate(uint16_t val1, uint16_t val2);
 
