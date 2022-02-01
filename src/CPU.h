@@ -23,8 +23,10 @@ public:
 	uint8_t h = 0x00;
 	uint8_t l = 0x00;	// hl
 
-	// interrupt flags
+	// interrupt flag
 	uint8_t IME = 0x00;
+	
+	// interrupt registers
 	uint8_t IE = 0x00;
 	uint8_t IF = 0x00;
 
@@ -79,7 +81,10 @@ private:
 	// Helper variables
 	uint8_t cycles = 0;
 	uint8_t opcode = 0x00;
+	uint8_t cb_opcode = 0x00;
 	uint16_t addr_abs = 0x0000;
+	bool set_ime = false;
+	bool pending_ime = false;
 	
 	// Enum class for condition codes
 	// using an enum class for scope (to prevent interference with FLAGS) since I don't
@@ -111,6 +116,7 @@ private:
 
 	// lookup tables for opcodes
 	std::map<uint8_t, INSTRUCTION> lookup;
+	std::map<uint8_t, INSTRUCTION> cb_lookup;
 
 private:
 	// Addressing modes
@@ -184,4 +190,16 @@ private:
 	uint8_t RET();
 	uint8_t RETI();
 	uint8_t RST();
+
+	uint8_t NOP();
+	uint8_t STOP();
+	uint8_t HALT();
+	
+	uint8_t EI();
+	uint8_t DI();
+
+	uint8_t CB();
+
+	uint8_t BIT_7_H();
+	
 };

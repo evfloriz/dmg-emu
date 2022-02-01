@@ -72,7 +72,7 @@ CPU::CPU() {
 		{0x73, {&CPU::LD_p16_r8,	2,		&h, &l, &e}},	{0x7B, {&CPU::LD_r8_r8,		1,		&a, &e}},
 		{0x74, {&CPU::LD_p16_r8,	2,		&h, &l, &h}},	{0x7C, {&CPU::LD_r8_r8,		1,		&a, &h}},
 		{0x75, {&CPU::LD_p16_r8,	2,		&h, &l, &l}},	{0x7D, {&CPU::LD_r8_r8,		1,		&a, &l}},
-		/*{0x76, {&CPU::HALT,		1}},*/					{0x7E, {&CPU::LD_r8_p16,	2,		&a, &h, &l}},
+															{0x7E, {&CPU::LD_r8_p16,	2,		&a, &h, &l}},
 		{0x77, {&CPU::LD_p16_r8,	2,		&h, &l, &a}},	{0x7F, {&CPU::LD_r8_r8,		1,		&a, &a}},
 
 		{0xE0, {&CPU::LDH_p8_A,		3}},					{0xE2, {&CPU::LDH_p8_A,		2,		&c}},
@@ -163,6 +163,14 @@ CPU::CPU() {
 		{0x13, {&CPU::INC_r16,		2,		&d, &e}},		{0x1B, {&CPU::DEC_r16,		2,		&a, &c}},
 		{0x23, {&CPU::INC_r16,		2,		&h, &l}},		{0x2B, {&CPU::DEC_r16,		2,		&a, &d}},
 		{0x33, {&CPU::INC_SP,		2}},					{0x3B, {&CPU::DEC_SP,		2}},
+
+		{0x00, {&CPU::NOP,			1}},					{0xF3, {&CPU::DI,			1}},
+		{0x10, {&CPU::STOP,			2}},					{0xFB, {&CPU::EI,			1}},
+		{0x76, {&CPU::HALT,			1}},					{0xCB, {&CPU::CB,			1}},
+	};
+
+	cb_lookup = {
+		{0x7C, {&CPU::BIT_7_H,		2}},
 	};
 }
 
@@ -184,6 +192,12 @@ void CPU::clock() {
 		pc++;
 
 		if (lookup.count(opcode)) {
+			// If last instruction was EI, set IME after this instruction is finished
+			if (pending_ime) {
+				set_ime = true;
+				pending_ime = false;
+			}
+			
 			// Set cycles to number of cycles
 			cycles = lookup[opcode].cycles;
 
@@ -191,6 +205,11 @@ void CPU::clock() {
 			uint8_t extra_cycle = (this->*lookup[opcode].operate)();
 
 			cycles += extra_cycle;
+
+			// Set ime flag after instruction following EI
+			if (set_ime) {
+				IME = true;
+			}
 		}
 		else {
 			printf("Unexpected opcode 0x%02x at 0x%04x\n", opcode, pc);
@@ -1283,5 +1302,84 @@ uint8_t CPU::DEC_r16() {
 
 uint8_t CPU::DEC_SP() {
 	sp--;
+	return 0;
+}
+
+uint8_t CPU::NOP() {
+	return 0;
+}
+
+uint8_t CPU::EI() {
+	// enable IME flag
+	// needs to happen after the next instruction
+	pending_ime = true;
+	return 0;
+}
+
+uint8_t CPU::DI() {
+	// disable IME flag
+	IME = 0;
+	return 0;
+}
+
+uint8_t CPU::STOP() {
+	// ignore next byte
+	pc++;
+
+	// todo: implement this
+
+	return 0;
+}
+
+uint8_t CPU::HALT() {
+	// halt
+
+	if (IME) {
+		if (IE & IF) {
+			// wake up
+			// call interrupt handler
+		}
+	}
+	else {
+		if (IE & IF) {
+			// halt bug
+			
+			// normal case - read byte after halt twice
+			
+			// ei before halt - interrupt serviced, handler called, then interrupt executes another halt
+			// and waits for another interrupt
+		}
+		else {
+			// wait until interrupt becomes pending
+		}
+	}
+
+	return 0;
+}
+
+uint8_t CPU::CB() {
+	// Read next opcode
+	uint8_t cb_opcode = bus->read(pc);
+	pc++;
+
+	// Set cycles to number of cycles in next opcode
+	cycles = lookup[opcode].cycles;
+	
+	// Perform operation
+	uint8_t extra_cycle = (this->*cb_lookup[cb_opcode].operate)();
+
+	cycles += extra_cycle;
+
+	return cycles;
+}
+
+uint8_t CPU::BIT_7_H() {
+	// test bit 7 in h
+	bool bit_set = h & (1 << 6);
+	
+	setFlag(Z, bit_set);
+	setFlag(N, 0);
+	setFlag(H, 1);
+
 	return 0;
 }
