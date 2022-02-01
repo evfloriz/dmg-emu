@@ -230,6 +230,18 @@ bool CPU::borrowPredicate(uint16_t val1, uint16_t val2) {
 	return ((val1 & 0xFF) > (val2 & 0xFF));
 }
 
+bool CPU::halfCarryPredicate16(uint16_t val1, uint16_t val2) {
+	// half carry for 16 bit addition
+	// if overflow from bit 11
+	return (val1 & 0x0FFF + val2 & 0x0FFF) & 0x1000;
+}
+
+bool CPU::carryPredicate16(uint16_t val1, uint16_t val2) {
+	// carry for 16 bit addition
+	// if overflow from bit 15
+	return ((uint32_t)val1 & 0xFFFF + (uint32_t)val2 & 0xFFFF) & 0x10000;
+}
+
 bool CPU::checkCondition(uint8_t cc) {
 	// return true if jump should occur given a condition code and false if not
 	return (cc == CONDITION::c_N)
@@ -1154,5 +1166,111 @@ uint8_t CPU::RST() {
 	// jump to vec value in op1
 	pc = *op1;
 
+	return 0;
+}
+
+uint8_t CPU::ADD_r16() {
+	// eg ADD HL, BC
+	// accumulator always HL
+
+	uint8_t* op1 = lookup[opcode].op1;
+	uint8_t* op2 = lookup[opcode].op2;
+
+	uint16_t val1 = (h << 8) | l;
+	uint16_t val2 = (*op1 << 8) | *op2;
+
+	// add and load into hl (8-bit)
+	uint16_t sum = (val1 + val2);
+	h = (sum >> 8) & 0xFF;
+	l = sum & 0xFF;
+
+	// set flags
+	setFlag(N, 0);
+	setFlag(H, halfCarryPredicate16(val1, val2));
+	setFlag(C, carryPredicate16(val1, val2));
+
+	return 0;
+}
+
+uint8_t CPU::ADD_SP() {
+	// eg ADD HL, SP
+	// accumulator always HL
+
+	uint16_t val1 = (h << 8) | l;
+	uint16_t val2 = sp;
+
+	// add and load into hl (8-bit)
+	uint16_t sum = (val1 + val2);
+	h = (sum >> 8) & 0xFF;
+	l = sum & 0xFF;
+
+	// set flags
+	setFlag(N, 0);
+	setFlag(H, halfCarryPredicate16(val1, val2));
+	setFlag(C, carryPredicate16(val1, val2));
+
+	return 0;
+}
+
+uint8_t CPU::ADD_SP_o8() {
+	// eg ADD SP, o8
+
+	// Get signed offset
+	uint16_t offset = bus->read(pc);
+	pc++;
+
+	// If highest bit is negative sign, extend to higher 8 bits
+	if (offset & 0x80) {
+		offset |= 0xFF00;
+	}
+
+	uint16_t val1 = sp;
+	uint16_t val2 = offset;
+
+	// add and load into sp
+	sp = val1 + val2;
+
+	// set flags
+	setFlag(Z, (sp == 0));
+	setFlag(N, 0);
+	setFlag(H, halfCarryPredicate(val1, val2));
+	setFlag(C, carryPredicate(val1, val2));
+
+	return 0;
+}
+
+uint8_t CPU::INC_r16() {
+	uint8_t* op1 = lookup[opcode].op1;
+	uint8_t* op2 = lookup[opcode].op2;
+
+	uint16_t value = (*op1 << 8) | *op2;
+	value++;
+
+	*op1 = (value >> 8) & 0xFF;
+	*op2 = value & 0xFF;
+
+	return 0;
+}
+
+uint8_t CPU::INC_SP() {
+	sp++;
+	return 0;
+}
+
+uint8_t CPU::DEC_r16() {
+	uint8_t* op1 = lookup[opcode].op1;
+	uint8_t* op2 = lookup[opcode].op2;
+
+	uint16_t value = (*op1 << 8) | *op2;
+	value--;
+
+	*op1 = (value >> 8) & 0xFF;
+	*op2 = value & 0xFF;
+
+	return 0;
+}
+
+uint8_t CPU::DEC_SP() {
+	sp--;
 	return 0;
 }

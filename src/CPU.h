@@ -70,6 +70,9 @@ private:
 	bool carryPredicate(uint16_t val1, uint16_t val2);
 	bool halfBorrowPredicate(uint16_t val1, uint16_t val2);
 	bool borrowPredicate(uint16_t val1, uint16_t val2);
+
+	bool halfCarryPredicate16(uint16_t val1, uint16_t val2);
+	bool carryPredicate16(uint16_t val1, uint16_t val2);
 	
 	bool checkCondition(uint8_t cc);
 
@@ -152,6 +155,15 @@ private:
 	uint8_t ADC();
 	uint8_t SUB();
 	uint8_t SBC();
+
+	uint8_t ADD_r16();
+	uint8_t ADD_SP();
+	uint8_t ADD_SP_o8();
+	
+	uint8_t INC_r16();
+	uint8_t INC_SP();
+	uint8_t DEC_r16();
+	uint8_t DEC_SP();
 
 	uint8_t AND();
 	uint8_t XOR();
