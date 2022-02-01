@@ -152,6 +152,17 @@ CPU::CPU() {
 		{0xD7, {&CPU::RST,			4,		&rst_val[1]}},	{0xDF, {&CPU::RST,			4,		&rst_val[5]}},
 		{0xE7, {&CPU::RST,			4,		&rst_val[2]}},	{0xEF, {&CPU::RST,			4,		&rst_val[6]}},
 		{0xF7, {&CPU::RST,			4,		&rst_val[3]}},	{0xFF, {&CPU::RST,			4,		&rst_val[7]}},
+
+		{0x09, {&CPU::ADD_r16,		2,		&b, &c}},
+		{0x19, {&CPU::ADD_r16,		2,		&d, &e}},
+		{0x29, {&CPU::ADD_r16,		2,		&h, &l}},
+		{0x39, {&CPU::ADD_SP,		2}},
+		{0x88, {&CPU::ADD_SP_o8,	4}},
+
+		{0x03, {&CPU::INC_r16,		2,		&b, &c}},		{0x0B, {&CPU::DEC_r16,		2,		&a, &b}},
+		{0x13, {&CPU::INC_r16,		2,		&d, &e}},		{0x1B, {&CPU::DEC_r16,		2,		&a, &c}},
+		{0x23, {&CPU::INC_r16,		2,		&h, &l}},		{0x2B, {&CPU::DEC_r16,		2,		&a, &d}},
+		{0x33, {&CPU::INC_SP,		2}},					{0x3B, {&CPU::DEC_SP,		2}},
 	};
 }
 
