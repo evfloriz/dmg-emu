@@ -366,6 +366,18 @@ void CPU::clock() {
 		}
 	}
 	cycles--;
+
+	// print test rom output
+	print_test();
+}
+
+void CPU::print_test() {
+	// print the test results from blargg's test rom
+	if (bus->read(0xFF02) == 0x81) {
+		char c = bus->read(0xFF01);
+		printf("%c", c);
+		bus->write(0xFF02, 0x00);
+	}
 }
 
 bool CPU::complete() {

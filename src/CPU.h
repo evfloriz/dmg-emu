@@ -218,4 +218,6 @@ private:
 	uint8_t SRA();
 	uint8_t SWAP();
 	uint8_t SRL();
+
+	void print_test();
 };

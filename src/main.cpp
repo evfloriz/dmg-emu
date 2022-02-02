@@ -45,13 +45,48 @@
 #include "CPU.h"
 #include "olcPixelGameEngine.h"
 
+class DMG {
+public:
+	Bus bus;
+
+	bool init() {
+		// Load boot rom
+		unsigned char memory[0x1000];
+		FILE* file = fopen("DMG_ROM.bin", "rb");
+		//FILE* file = fopen("cpu_instrs.gb", "rb");
+		int pos = 0;
+		while (fread(&memory[pos], 1, 1, file)) {
+			pos++;
+		}
+		fclose(file);
+
+		// Copy bootrom into memory
+		pos = 0;
+		for (auto m : memory) {
+			bus.write(pos, m);
+			pos++;
+		}
+
+		return true;
+	}
+
+	bool tick() {
+		do {
+			bus.cpu.clock();
+		} while (!bus.cpu.complete());
+
+		return true;
+	}
+};
+
 class Demo : public olc::PixelGameEngine {
 public:
+	DMG dmg;
+	Bus& bus = dmg.bus;
+	
 	Demo() {
 		sAppName = "dmg cpu demonstration";
 	}
-
-	Bus dmg;
 
 	// don't worry about disassembly
 	//std::map<uint16_t, std::string> mapAsm;
@@ -71,7 +106,7 @@ public:
 		for (int row = 0; row < nRows; row++) {
 			std::string sOffset = "$" + hex(nAddr, 4) + ":";
 			for (int col = 0; col < nColumns; col++) {
-				sOffset += " " + hex(dmg.read(nAddr), 2);
+				sOffset += " " + hex(bus.read(nAddr), 2);
 				nAddr++;
 			}
 			DrawString(nRamX, nRamY, sOffset);
@@ -83,43 +118,25 @@ public:
 		std::string status = "STATUS: ";
 		DrawString(x, y, "STATUS:", olc::WHITE);
 
-		DrawString(x + 64, y, "Z", dmg.cpu.f & CPU::Z ? olc::GREEN : olc::RED);
-		DrawString(x + 80, y, "N", dmg.cpu.f & CPU::N ? olc::GREEN : olc::RED);
-		DrawString(x + 96, y, "H", dmg.cpu.f & CPU::H ? olc::GREEN : olc::RED);
-		DrawString(x + 112, y, "C", dmg.cpu.f & CPU::C ? olc::GREEN : olc::RED);
+		DrawString(x + 64, y, "Z", bus.cpu.f & CPU::Z ? olc::GREEN : olc::RED);
+		DrawString(x + 80, y, "N", bus.cpu.f & CPU::N ? olc::GREEN : olc::RED);
+		DrawString(x + 96, y, "H", bus.cpu.f & CPU::H ? olc::GREEN : olc::RED);
+		DrawString(x + 112, y, "C", bus.cpu.f & CPU::C ? olc::GREEN : olc::RED);
 
-		DrawString(x, y + 10, "PC: $" + hex(dmg.cpu.pc, 4));
-		DrawString(x, y + 20, "A: $" + hex(dmg.cpu.a, 2) + " [" + std::to_string(dmg.cpu.a) + "]");
-		DrawString(x, y + 30, "F: $" + hex(dmg.cpu.f, 2) + " [" + std::to_string(dmg.cpu.f) + "]");
-		DrawString(x, y + 40, "B: $" + hex(dmg.cpu.b, 2) + " [" + std::to_string(dmg.cpu.b) + "]");
-		DrawString(x, y + 50, "C: $" + hex(dmg.cpu.c, 2) + " [" + std::to_string(dmg.cpu.c) + "]");
-		DrawString(x, y + 60, "D: $" + hex(dmg.cpu.d, 2) + " [" + std::to_string(dmg.cpu.d) + "]");
-		DrawString(x, y + 70, "E: $" + hex(dmg.cpu.e, 2) + " [" + std::to_string(dmg.cpu.e) + "]");
-		DrawString(x, y + 80, "H: $" + hex(dmg.cpu.h, 2) + " [" + std::to_string(dmg.cpu.h) + "]");
-		DrawString(x, y + 90, "L: $" + hex(dmg.cpu.l, 2) + " [" + std::to_string(dmg.cpu.l) + "]");
-		DrawString(x, y + 100, "SP: $" + hex(dmg.cpu.sp, 4));
+		DrawString(x, y + 10, "PC: $" + hex(bus.cpu.pc, 4));
+		DrawString(x, y + 20, "A: $" + hex(bus.cpu.a, 2) + " [" + std::to_string(bus.cpu.a) + "]");
+		DrawString(x, y + 30, "F: $" + hex(bus.cpu.f, 2) + " [" + std::to_string(bus.cpu.f) + "]");
+		DrawString(x, y + 40, "B: $" + hex(bus.cpu.b, 2) + " [" + std::to_string(bus.cpu.b) + "]");
+		DrawString(x, y + 50, "C: $" + hex(bus.cpu.c, 2) + " [" + std::to_string(bus.cpu.c) + "]");
+		DrawString(x, y + 60, "D: $" + hex(bus.cpu.d, 2) + " [" + std::to_string(bus.cpu.d) + "]");
+		DrawString(x, y + 70, "E: $" + hex(bus.cpu.e, 2) + " [" + std::to_string(bus.cpu.e) + "]");
+		DrawString(x, y + 80, "H: $" + hex(bus.cpu.h, 2) + " [" + std::to_string(bus.cpu.h) + "]");
+		DrawString(x, y + 90, "L: $" + hex(bus.cpu.l, 2) + " [" + std::to_string(bus.cpu.l) + "]");
+		DrawString(x, y + 100, "SP: $" + hex(bus.cpu.sp, 4));
 	}
 
 	bool OnUserCreate() {
-		// Load boot rom
-		unsigned char memory[0x100];
-		FILE* file = fopen("DMG_ROM.bin", "rb");
-		int pos = 0;
-		while (fread(&memory[pos], 1, 1, file)) {
-			pos++;
-		}
-		fclose(file);
-
-		// Copy bootrom into memory
-		pos = 0;
-		for (auto m : memory) {
-			dmg.write(pos, m);
-			pos++;
-		}
-
-		// Implement test program
-		//dmg.cpu.pc = 0x0100;
-		//std::vector<uint8_t>
+		dmg.init();
 
 		return true;
 	}
@@ -128,9 +145,7 @@ public:
 		Clear(olc::DARK_BLUE);
 
 		if (GetKey(olc::Key::SPACE).bPressed) {
-			do {
-				dmg.cpu.clock();
-			} while (!dmg.cpu.complete());
+			dmg.tick();
 		}
 
 		// what exactly should I draw for the bootrom? 0x00-0xFF I think which is the bootrom itself, then
@@ -141,7 +156,6 @@ public:
 
 		return true;
 	}
-
 };
 
 int main() {
