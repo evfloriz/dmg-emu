@@ -200,6 +200,22 @@ private:
 
 	uint8_t CB();
 
-	uint8_t BIT_7_H();
+	uint8_t BIT();
+	uint8_t RES();
+	uint8_t SET();
 	
+	uint8_t RLCA();
+	uint8_t RLA();
+	uint8_t RRCA();
+	uint8_t RRA();
+
+	uint8_t RLC();
+	uint8_t RL();
+	uint8_t RRC();
+	uint8_t RR();
+
+	uint8_t SLA();
+	uint8_t SRA();
+	uint8_t SWAP();
+	uint8_t SRL();
 };
