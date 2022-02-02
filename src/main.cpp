@@ -51,9 +51,9 @@ public:
 
 	bool init() {
 		// Load boot rom
-		unsigned char memory[0x1000];
-		FILE* file = fopen("DMG_ROM.bin", "rb");
-		//FILE* file = fopen("cpu_instrs.gb", "rb");
+		unsigned char memory[0x10000];
+		//FILE* file = fopen("DMG_ROM.bin", "rb");
+		FILE* file = fopen("cpu_instrs.gb", "rb");
 		int pos = 0;
 		while (fread(&memory[pos], 1, 1, file)) {
 			pos++;
@@ -144,9 +144,10 @@ public:
 	bool OnUserUpdate(float fElapsedTime) {
 		Clear(olc::DARK_BLUE);
 
-		if (GetKey(olc::Key::SPACE).bPressed) {
+		/*if (GetKey(olc::Key::SPACE).bPressed) {
 			dmg.tick();
-		}
+		}*/
+		dmg.tick();
 
 		// what exactly should I draw for the bootrom? 0x00-0xFF I think which is the bootrom itself, then
 		// whatever parts are actually used
@@ -159,10 +160,20 @@ public:
 };
 
 int main() {
-
-	Demo demo;
-	demo.Construct(680, 480, 2, 2);
-	demo.Start();
+	bool graphics = false;
+	
+	if (graphics) {
+		Demo demo;
+		demo.Construct(680, 480, 2, 2);
+		demo.Start();
+	}
+	else {
+		DMG dmg;
+		dmg.init();
+		do {
+			dmg.tick();
+		} while (true);
+	}
 
     return 0;
 }

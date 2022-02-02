@@ -363,6 +363,7 @@ void CPU::clock() {
 		}
 		else {
 			printf("Unexpected opcode 0x%02x at 0x%04x\n", opcode, pc);
+			pc++;
 		}
 	}
 	cycles--;
