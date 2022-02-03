@@ -52,8 +52,23 @@ public:
 	bool init() {
 		// Load boot rom
 		unsigned char memory[0x10000];
-		//FILE* file = fopen("DMG_ROM.bin", "rb");
-		FILE* file = fopen("cpu_instrs.gb", "rb");
+		const char* test_roms[] = {
+			"test-roms/cpu_instrs.gb",
+			"test-roms/01-special.gb",
+			"test-roms/02-interrupts.gb",
+			"test-roms/03-op sp,hl.gb",
+			"test-roms/04-op r,imm.gb",
+			"test-roms/05-op rp.gb",
+			"test-roms/06-ld r,r.gb",
+			"test-roms/07-jr,jp,call,ret,rst.gb",
+			"test-roms/08-misc instrs.gb",
+			"test-roms/09-op r,r.gb",
+			"test-roms/10-bit ops.gb",
+			"test-roms/11-op a,(hl).gb"
+		};
+		//const char* rom = test_roms[7];
+		const char* rom = "DMG_ROM.bin";
+		FILE* file = fopen(rom, "rb");
 		int pos = 0;
 		while (fread(&memory[pos], 1, 1, file)) {
 			pos++;
@@ -66,6 +81,8 @@ public:
 			bus.write(pos, m);
 			pos++;
 		}
+
+		std::cout << "Beginning execution of " << rom << std::endl;
 
 		return true;
 	}
@@ -152,7 +169,7 @@ public:
 		// what exactly should I draw for the bootrom? 0x00-0xFF I think which is the bootrom itself, then
 		// whatever parts are actually used
 		DrawRam(2, 2, 0x0000, 16, 16);
-		//DrawRam(2, 182, 0x8000, 16, 16);
+		DrawRam(2, 182, 0xFF00, 16, 16);
 		DrawCPU(448, 2);
 
 		return true;
@@ -170,8 +187,19 @@ int main() {
 	else {
 		DMG dmg;
 		dmg.init();
+		int i = 0;
+		int max = 1000000;
+		int count = 0;
 		do {
 			dmg.tick();
+			
+			i++;
+			if (i == max) {
+				std::cout << count << " " << max << " instructions executed" << std::endl;
+				count++;
+				i = 0;
+			}
+			
 		} while (true);
 	}
 

@@ -85,6 +85,12 @@ private:
 	uint16_t addr_abs = 0x0000;
 	bool set_ime = false;
 	bool pending_ime = false;
+
+	// set rst values as uint8_ts
+	uint8_t rst[8] = { 0x00, 0x10, 0x20, 0x30, 0x08, 0x18, 0x28, 0x38 };
+
+	// set bit operation values as uint8_ts
+	uint8_t bit[8] = { 0, 1, 2, 3, 4, 5, 6, 7 };
 	
 	// Enum class for condition codes
 	// using an enum class for scope (to prevent interference with FLAGS) since I don't
@@ -96,6 +102,13 @@ private:
 		c_C,		// carry flag set
 		c_NC		// carry flag not set
 	};
+
+	// set conditions as uint8_ts so they can be passed
+	uint8_t i_N = CONDITION::c_N;
+	uint8_t i_Z = CONDITION::c_Z;
+	uint8_t i_NZ = CONDITION::c_NZ;
+	uint8_t i_C = CONDITION::c_C;
+	uint8_t i_NC = CONDITION::c_NC;
 
 	// Facilitate link to bus
 	Bus* bus = nullptr;
@@ -117,6 +130,9 @@ private:
 	// lookup tables for opcodes
 	std::map<uint8_t, INSTRUCTION> lookup;
 	std::map<uint8_t, INSTRUCTION> cb_lookup;
+
+	std::map<uint8_t, std::string> dis_lookup;
+	std::map<uint8_t, std::string> dis_cb_lookup;
 
 private:
 	// Addressing modes
