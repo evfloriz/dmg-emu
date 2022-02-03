@@ -67,7 +67,7 @@ CPU::CPU() {
 		{0x77, {&CPU::LD_p16_r8,	2,		&h, &l, &a}},	{0x7F, {&CPU::LD_r8_r8,		1,		&a, &a}},
 
 		{0xE0, {&CPU::LDH_p8_A,		3}},					{0xE2, {&CPU::LDH_p8_A,		2,		&c}},
-		{0xF0, {&CPU::LDH_A_p8,		3}},					{0xE2, {&CPU::LDH_A_p8,		2,		&c}},
+		{0xF0, {&CPU::LDH_A_p8,		3}},					{0xF2, {&CPU::LDH_A_p8,		2,		&c}},
 		{0xEA, {&CPU::LD_a16_A,		4}},
 		{0xFA, {&CPU::LD_A_a16,		4}},
 
@@ -136,8 +136,8 @@ CPU::CPU() {
 		{0xCC, {&CPU::CALL,			3,		&i_Z}},			{0xC8, {&CPU::RET,			2,		&i_Z}},
 		{0xDC, {&CPU::CALL,			3,		&i_C}},			{0xD8, {&CPU::RET,			2,		&i_C}},
 		{0xCD, {&CPU::CALL,			3,		&i_N}},			{0xC9, {&CPU::RET,			2,		&i_N}},
-															{0xD9, {&CPU::RETI,			2,		&i_N}},
-															{0xE9, {&CPU::JP,			3,		&i_N, &h, &l}},
+															{0xD9, {&CPU::RETI,			4,		&i_N}},
+															{0xE9, {&CPU::JP,			1,		&i_N, &h, &l}},
 
 		{0xC7, {&CPU::RST,			4,		&rst[0]}},		{0xCF, {&CPU::RST,			4,		&rst[4]}},
 		{0xD7, {&CPU::RST,			4,		&rst[1]}},		{0xDF, {&CPU::RST,			4,		&rst[5]}},
@@ -365,13 +365,12 @@ void CPU::clock() {
 	// If cycles remaining for an instruction is 0, read next byte
 	if (cycles == 0) {
 		opcode = read(pc);
-
-		/*if (pc >= 0x0100) {
-			std::cout << "bootrom complete" << std::endl;
-		}*/
-		//printf("0x%04x: 0x%02x ", pc, opcode);
-		//std::cout << dis_lookup[opcode] << " | ";// << std::endl;
-		//printf("b: 0x%02x c: 0x%02x sp 0x%04x \n", b, c, sp);
+		
+		if (print_toggle) {
+			printf("0x%04x: 0x%02x ", pc, opcode);
+			printf("%-15s ", dis_lookup[opcode].c_str());
+			printf("a: 0x%02x f: 0x%02x b: 0x%02x c: 0x%02x d: 0x%02x e: 0x%02x h: 0x%02x l: 0x%02x pc: 0x%04x sp: 0x%04x \n", a, f, b, c, d, e, h, l, pc, sp);
+		}
 
 		pc++;
 
@@ -843,7 +842,7 @@ uint8_t CPU::ADD() {
 
 	if (op3) {
 		// add from address
-		uint16_t addr = (*op1 << 8) | *op2;
+		uint16_t addr = (*op2 << 8) | *op3;
 		val2 = bus->read(addr);			
 	}
 	else if (op2) {
@@ -879,7 +878,7 @@ uint8_t CPU::ADC() {
 
 	if (op3) {
 		// add from address
-		uint16_t addr = (*op1 << 8) | *op2;
+		uint16_t addr = (*op2 << 8) | *op3;
 		val2 = bus->read(addr);
 	}
 	else if (op2) {
@@ -919,7 +918,7 @@ uint8_t CPU::SUB() {
 
 	if (op3) {
 		// address
-		uint16_t addr = (*op1 << 8) | *op2;
+		uint16_t addr = (*op2 << 8) | *op3;
 		val2 = bus->read(addr);
 	}
 	else if (op2) {
@@ -931,12 +930,19 @@ uint8_t CPU::SUB() {
 		val2 = bus->read(pc);
 		pc++;
 	}
+	
+	// If highest bit is negative sign, extend to higher 8 bits
+	if (val2 & 0x80) {
+		val2 |= 0xFF00;
+	}
+
+	*op1 = (val1 + val2) & 0xFF;
 
 	// get the twos complement (of the bottom 8 bits)
-	uint16_t val2_twos = val2 ^ 0x00FF + 0x0001;
+	//uint16_t val2_twos = val2 ^ 0x00FF + 0x0001;
 
 	// add twos complement and load into a (8-bit)
-	*op1 = (val1 + val2_twos) & 0xFF;
+	//*op1 = (val1 + val2_twos) & 0xFF;
 
 	// set flags
 	// todo: fix/double-check flags for sub a, a
@@ -959,7 +965,7 @@ uint8_t CPU::SBC() {
 
 	if (op3) {
 		// address
-		uint16_t addr = (*op1 << 8) | *op2;
+		uint16_t addr = (*op2 << 8) | *op3;
 		val2 = bus->read(addr);
 	}
 	else if (op2) {
@@ -972,15 +978,23 @@ uint8_t CPU::SBC() {
 		pc++;
 	}
 
+	// If highest bit is negative sign, extend to higher 8 bits
+	if (val2 & 0x80) {
+		val2 |= 0xFF00;
+	}
+
 	// add the carry bit
+	// todo: watch for possible bug with carry bit and sign extension
 	uint16_t carry = getFlag(FLAGS::C) ? 0x0001 : 0x0000;
 	val2 += carry;
 
+	*op1 = (val1 + val2) & 0xFF;
+
 	// get the twos complement (of the bottom 8 bits)
-	uint16_t val2_twos = val2 ^ 0x00FF + 0x0001;
+	//uint16_t val2_twos = val2 ^ 0x00FF + 0x0001;
 
 	// add twos complement and load into a (8-bit)
-	*op1 = (val1 + val2_twos) & 0xFF;
+	//*op1 = (val1 + val2_twos) & 0xFF;
 
 	// set flags
 	setFlag(Z, (*op1 == 0));
@@ -1002,7 +1016,7 @@ uint8_t CPU::AND() {
 
 	if (op3) {
 		// add from address
-		uint16_t addr = (*op1 << 8) | *op2;
+		uint16_t addr = (*op2 << 8) | *op3;
 		val2 = bus->read(addr);
 	}
 	else if (op2) {
@@ -1038,7 +1052,7 @@ uint8_t CPU::XOR() {
 
 	if (op3) {
 		// add from address
-		uint16_t addr = (*op1 << 8) | *op2;
+		uint16_t addr = (*op2 << 8) | *op3;
 		val2 = bus->read(addr);
 	}
 	else if (op2) {
@@ -1074,7 +1088,7 @@ uint8_t CPU::OR() {
 
 	if (op3) {
 		// add from address
-		uint16_t addr = (*op1 << 8) | *op2;
+		uint16_t addr = (*op2 << 8) | *op3;
 		val2 = bus->read(addr);
 	}
 	else if (op2) {
@@ -1110,7 +1124,7 @@ uint8_t CPU::CP() {
 
 	if (op3) {
 		// address
-		uint16_t addr = (*op1 << 8) | *op2;
+		uint16_t addr = (*op2 << 8) | *op3;
 		val2 = bus->read(addr);
 	}
 	else if (op2) {
@@ -1123,11 +1137,18 @@ uint8_t CPU::CP() {
 		pc++;
 	}
 
+	// If highest bit is negative sign, extend to higher 8 bits
+	if (val2 & 0x80) {
+		val2 |= 0xFF00;
+	}
+
+	uint8_t temp = (val1 + val2) & 0xFF;
+
 	// get the twos complement (of the bottom 8 bits)
-	uint16_t val2_twos = val2 ^ 0x00FF + 0x0001;
+	//uint16_t val2_twos = val2 ^ 0x00FF + 0x0001;
 
 	// add twos complement and load into temp to set flags
-	uint8_t temp = (val1 + val2_twos) & 0xFF;
+	//uint8_t temp = (val1 + val2_twos) & 0xFF;
 
 	// set flags
 	// todo: fix/double-check flags for sub a, a
@@ -1258,7 +1279,7 @@ uint8_t CPU::CCF() {
 uint8_t CPU::JP() {
 	uint8_t* op1 = lookup[opcode].op1;
 	uint8_t* op2 = lookup[opcode].op2;
-	uint8_t* op3 = lookup[opcode].op2;
+	uint8_t* op3 = lookup[opcode].op3;
 	
 	// op1 - condition code
 	// op2 and op3 - hl if present, imm if none
@@ -1266,15 +1287,17 @@ uint8_t CPU::JP() {
 	uint16_t addr = 0x0000;
 
 	if (op2 && op3) {
-		// get from address
+		// get from register
 		addr = (*op2 << 8) | *op3;
 	}
 	else {
 		// get from imm
-		addr = bus->read(pc) << 8;
+		uint8_t lo = bus->read(pc);
 		pc++;
-		addr |= bus->read(pc);
+		uint8_t hi = bus->read(pc);
 		pc++;
+
+		addr = (hi << 8) | lo;
 	}
 
 	// jump if condition is met
@@ -1322,15 +1345,16 @@ uint8_t CPU::CALL() {
 		
 		// todo: double check order in terms of endianness
 		sp--;
-		bus->write(sp, next_lo);
-		sp--;
 		bus->write(sp, next_hi);
+		sp--;
+		bus->write(sp, next_lo);
 
 		// execute jump
 		// get from imm
 		uint8_t lo = bus->read(pc);
 		pc++;
 		uint8_t hi = bus->read(pc);
+		pc++;
 		
 		pc = (hi << 8) | lo;
 
@@ -1346,12 +1370,14 @@ uint8_t CPU::RET() {
 
 	if (checkCondition(*op1)) {
 		// pop address off the stack and set pc
-		uint16_t addr = bus->read(sp) << 8;
+		// should fill upper bits first for this one I think
+
+		uint8_t lo = bus->read(sp);
 		sp++;
-		addr |= bus->read(sp);
+		uint8_t hi = bus->read(sp);
 		sp++;
 
-		pc = addr;
+		pc = (hi << 8) | lo;
 
 		// from 2 cycles, add 2 extra cycles if no condition and 3 if condition
 		if (*op1 == CONDITION::c_N) {
@@ -1367,12 +1393,12 @@ uint8_t CPU::RET() {
 
 uint8_t CPU::RETI() {
 	// pop address off the stack and set pc
-	uint16_t addr = bus->read(sp) << 8;
+	uint8_t lo = bus->read(sp);
 	sp++;
-	addr |= bus->read(sp);
+	uint8_t hi = bus->read(sp);
 	sp++;
 
-	pc = addr;
+	pc = (hi << 8) | lo;
 
 	// set IME
 	IME = 1;
@@ -1391,9 +1417,9 @@ uint8_t CPU::RST() {
 
 	// todo: double check order in terms of endianness
 	sp--;
-	bus->write(sp, next_lo);
-	sp--;
 	bus->write(sp, next_hi);
+	sp--;
+	bus->write(sp, next_lo);
 
 	// execute jump
 	// jump to vec value in op1

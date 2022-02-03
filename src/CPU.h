@@ -14,14 +14,18 @@ public:
 
 public:
 	// CPU core registers
-	uint8_t a = 0x00;	// accumulator
-	uint8_t f = 0x00;	// flags
+	// Initialized to proper values after boot rom
+	uint8_t a = 0x01;	// accumulator
+	uint8_t f = 0xB0;	// flags
 	uint8_t b = 0x00;
-	uint8_t c = 0x00;	// bc
+	uint8_t c = 0x13;	// bc
 	uint8_t d = 0x00;
-	uint8_t e = 0x00;	// de
-	uint8_t h = 0x00;
-	uint8_t l = 0x00;	// hl
+	uint8_t e = 0xD8;	// de
+	uint8_t h = 0x01;
+	uint8_t l = 0x4D;	// hl
+
+	uint16_t sp = 0xFFFE;	// stack pointer
+	uint16_t pc = 0x0100;	// program counter
 
 	// interrupt flag
 	uint8_t IME = 0x00;
@@ -29,11 +33,6 @@ public:
 	// interrupt registers
 	uint8_t IE = 0x00;
 	uint8_t IF = 0x00;
-
-	// value at memory pointed to by hl can be used in place of any register in any instruction
-	
-	uint16_t sp = 0x0000;	// stack pointer
-	uint16_t pc = 0x0000;	// program counter
 
 	// External event functions
 	// todo: double check that these are the same on the dmg cpu
@@ -235,5 +234,9 @@ private:
 	uint8_t SWAP();
 	uint8_t SRL();
 
+	// debug things
 	void print_test();
+
+public:
+	bool print_toggle = false;
 };

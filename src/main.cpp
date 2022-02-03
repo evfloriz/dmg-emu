@@ -82,7 +82,23 @@ public:
 			pos++;
 		}
 
+		/*std::vector<uint8_t> program;
+		program = {
+			0x31,		// ld sp, fffe
+			0xfe,
+			0xff,
+		};
+		
+		// copy test program into bootrom
+		pos = 0;
+		for (auto p : program) {
+			bus.write(pos, p);
+			pos++;
+		}*/
+
 		std::cout << "Beginning execution of " << rom << std::endl;
+
+		bus.cpu.print_toggle = true;
 
 		return true;
 	}
@@ -161,10 +177,10 @@ public:
 	bool OnUserUpdate(float fElapsedTime) {
 		Clear(olc::DARK_BLUE);
 
-		/*if (GetKey(olc::Key::SPACE).bPressed) {
+		if (GetKey(olc::Key::SPACE).bPressed) {
 			dmg.tick();
-		}*/
-		dmg.tick();
+		}
+		//dmg.tick();
 
 		// what exactly should I draw for the bootrom? 0x00-0xFF I think which is the bootrom itself, then
 		// whatever parts are actually used
