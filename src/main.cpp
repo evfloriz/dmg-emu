@@ -33,9 +33,9 @@
 	OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#ifdef _WIN32
-#define _CRT_SECURE_NO_WARNINGS
-#endif
+//#ifdef _WIN32
+//#define _CRT_SECURE_NO_WARNINGS
+//#endif
 
 #define OLC_PGE_APPLICATION
 
@@ -66,8 +66,8 @@ public:
 			"test-roms/10-bit ops.gb",
 			"test-roms/11-op a,(hl).gb"
 		};
-		//const char* rom = test_roms[7];
-		const char* rom = "DMG_ROM.bin";
+		const char* rom = test_roms[7];
+		//const char* rom = "DMG_ROM.bin";
 		FILE* file = fopen(rom, "rb");
 		int pos = 0;
 		while (fread(&memory[pos], 1, 1, file)) {

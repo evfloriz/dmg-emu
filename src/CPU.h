@@ -239,4 +239,6 @@ private:
 
 public:
 	bool print_toggle = false;
+
+	FILE* file;
 };

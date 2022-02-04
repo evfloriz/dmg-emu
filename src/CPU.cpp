@@ -348,6 +348,9 @@ CPU::CPU() {
 		{0xE8, "ADD SP, r8"		}, {0xE9, "JP HL"		}, {0xEA, "LD (a16), A"	}, {0xEB, "NULL"		}, {0xEC, "NULL"		}, {0xED, "NULL"		}, {0xEE, "XOR d8"		}, {0xEF, "RST 28H"		},
 		{0xF8, "LD HL, SP + r8"	}, {0xF9, "LD SP, HL, "	}, {0xFA, "LD A, (a16)"	}, {0xFB, "EI"			}, {0xFC, "NULL"		}, {0xFD, "NULL"		}, {0xFE, "CP d8"		}, {0xFF, "RST 38H"		},
 	};
+
+	// file output
+	file = fopen("07-log.txt", "w");
 }
 
 CPU::~CPU() {
@@ -367,9 +370,11 @@ void CPU::clock() {
 		opcode = read(pc);
 		
 		if (print_toggle) {
-			printf("0x%04x: 0x%02x ", pc, opcode);
-			printf("%-15s ", dis_lookup[opcode].c_str());
-			printf("a: 0x%02x f: 0x%02x b: 0x%02x c: 0x%02x d: 0x%02x e: 0x%02x h: 0x%02x l: 0x%02x pc: 0x%04x sp: 0x%04x \n", a, f, b, c, d, e, h, l, pc, sp);
+			//printf("0x%04x: 0x%02x ", pc, opcode);
+			//printf("%-15s ", dis_lookup[opcode].c_str());
+			//printf("a: 0x%02x f: 0x%02x b: 0x%02x c: 0x%02x d: 0x%02x e: 0x%02x h: 0x%02x l: 0x%02x pc: 0x%04x sp: 0x%04x \n", a, f, b, c, d, e, h, l, pc, sp);
+			//printf("Z: %i N: %i H: %i C: %i \n", getFlag(Z), getFlag(N), getFlag(H), getFlag(C));
+			fprintf(file, "A: %02X F: %02X B: %02X C: %02X D: %02X E: %02X H: %02X L: %02X SP: %04X PC: 00:%04X \n", a, f, b, c, d, e, h, l, sp, pc);
 		}
 
 		pc++;
@@ -436,13 +441,13 @@ void CPU::setFlag(FLAGS flag, bool value) {
 bool CPU::halfCarryPredicate(uint16_t val1, uint16_t val2) {
 	// half carry
 	// if the bottom 4 bits of each added together sets an upper 4 bit
-	return (val1 & 0xF + val2 & 0xF) & 0x10;
+	return ((val1 & 0xF) + (val2 & 0xF)) & 0x10;
 }
 
 bool CPU::carryPredicate(uint16_t val1, uint16_t val2) {
 	// carry
 	// if the bottom 8 bits of each added together sets an upper 8 bit
-	return (val1 & 0xFF + val2 & 0xFF) & 0x100;
+	return ((val1 & 0xFF) + (val2 & 0xFF)) & 0x100;
 }
 
 bool CPU::halfBorrowPredicate(uint16_t val1, uint16_t val2) {
@@ -828,7 +833,6 @@ uint8_t CPU::POP_r16() {
 	sp++;
 
 	return 0;
-
 }
 
 uint8_t CPU::ADD() {
@@ -893,10 +897,9 @@ uint8_t CPU::ADC() {
 
 	// add the carry bit
 	uint16_t carry = getFlag(FLAGS::C) ? 0x0001 : 0x0000;
-	val2 += carry;
 
 	// add with carry and load into a (8-bit)
-	*op1 = (val1 + val2) & 0xFF;
+	*op1 = (val1 + val2 + carry) & 0xFF;
 
 	// set flags
 	setFlag(Z, (*op1 == 0));
@@ -931,25 +934,29 @@ uint8_t CPU::SUB() {
 		pc++;
 	}
 	
+	// I think this is for adding negative numbers specically
 	// If highest bit is negative sign, extend to higher 8 bits
-	if (val2 & 0x80) {
-		val2 |= 0xFF00;
+	/*if (val2 & 0x80) {
+		//val2 |= 0xFF00;
 	}
 
-	*op1 = (val1 + val2) & 0xFF;
+	*op1 = (val1 + val2) & 0xFF;*/
 
 	// get the twos complement (of the bottom 8 bits)
 	//uint16_t val2_twos = val2 ^ 0x00FF + 0x0001;
+	uint16_t val2_twos = ~val2 + 0x0001;
 
 	// add twos complement and load into a (8-bit)
-	//*op1 = (val1 + val2_twos) & 0xFF;
+	*op1 = (val1 + val2_twos) & 0xFF;
 
 	// set flags
 	// todo: fix/double-check flags for sub a, a
 	setFlag(Z, (*op1 == 0));
 	setFlag(N, 1);
-	setFlag(H, halfBorrowPredicate(val1, val2));
-	setFlag(C, borrowPredicate(val1, val2));
+	//setFlag(H, halfBorrowPredicate(val1, val2));
+	//setFlag(C, borrowPredicate(val1, val2));
+	setFlag(H, halfCarryPredicate(val1, val2_twos));
+	setFlag(C, carryPredicate(val1, val2_twos));
 
 	return 0;
 }
@@ -979,28 +986,30 @@ uint8_t CPU::SBC() {
 	}
 
 	// If highest bit is negative sign, extend to higher 8 bits
-	if (val2 & 0x80) {
+	/*if (val2 & 0x80) {
 		val2 |= 0xFF00;
-	}
+	}*/
 
 	// add the carry bit
 	// todo: watch for possible bug with carry bit and sign extension
 	uint16_t carry = getFlag(FLAGS::C) ? 0x0001 : 0x0000;
-	val2 += carry;
 
 	*op1 = (val1 + val2) & 0xFF;
 
 	// get the twos complement (of the bottom 8 bits)
 	//uint16_t val2_twos = val2 ^ 0x00FF + 0x0001;
+	uint16_t val2_twos = ~val2 + 0x0001;
 
-	// add twos complement and load into a (8-bit)
-	//*op1 = (val1 + val2_twos) & 0xFF;
+	// add twos complement and carry and load into a (8-bit)
+	*op1 = (val1 + val2_twos + carry) & 0xFF;
 
 	// set flags
 	setFlag(Z, (*op1 == 0));
 	setFlag(N, 1);
-	setFlag(H, halfBorrowPredicate(val1, val2));
-	setFlag(C, borrowPredicate(val1, val2));
+	//setFlag(H, halfBorrowPredicate(val1, val2));
+	//setFlag(C, borrowPredicate(val1, val2));
+	setFlag(H, halfCarryPredicate(val1, val2_twos));
+	setFlag(C, carryPredicate(val1, val2_twos));
 
 	return 0;
 }
@@ -1138,24 +1147,26 @@ uint8_t CPU::CP() {
 	}
 
 	// If highest bit is negative sign, extend to higher 8 bits
-	if (val2 & 0x80) {
+	/*if (val2 & 0x80) {
 		val2 |= 0xFF00;
-	}
+	}*/
 
-	uint8_t temp = (val1 + val2) & 0xFF;
+	//uint8_t temp = (val1 + val2) & 0xFF;
 
 	// get the twos complement (of the bottom 8 bits)
-	//uint16_t val2_twos = val2 ^ 0x00FF + 0x0001;
+	uint16_t val2_twos = val2 ^ 0x00FF + 0x0001;
 
 	// add twos complement and load into temp to set flags
-	//uint8_t temp = (val1 + val2_twos) & 0xFF;
+	uint8_t temp = (val1 + val2_twos) & 0xFF;
 
 	// set flags
 	// todo: fix/double-check flags for sub a, a
 	setFlag(Z, (temp == 0));
 	setFlag(N, 1);
-	setFlag(H, halfBorrowPredicate(val1, val2));
-	setFlag(C, borrowPredicate(val1, val2));
+	//setFlag(H, halfBorrowPredicate(val1, val2));
+	//setFlag(C, borrowPredicate(val1, val2));
+	setFlag(H, halfCarryPredicate(val1, val2_twos));
+	setFlag(C, carryPredicate(val1, val2_twos));
 
 	return 0;
 }
@@ -1360,6 +1371,9 @@ uint8_t CPU::CALL() {
 
 		return 3;
 	}
+
+	// Skip to the next instruction if call not taken
+	pc += 2;
 
 	return 0;
 }
