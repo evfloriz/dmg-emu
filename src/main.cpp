@@ -209,12 +209,12 @@ int main() {
 		do {
 			dmg.tick();
 			
-			i++;
+			/*i++;
 			if (i == max) {
 				std::cout << count << " " << max << " instructions executed" << std::endl;
 				count++;
 				i = 0;
-			}
+			}*/
 			
 		} while (true);
 	}

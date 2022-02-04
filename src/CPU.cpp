@@ -374,7 +374,7 @@ void CPU::clock() {
 			//printf("%-15s ", dis_lookup[opcode].c_str());
 			//printf("a: 0x%02x f: 0x%02x b: 0x%02x c: 0x%02x d: 0x%02x e: 0x%02x h: 0x%02x l: 0x%02x pc: 0x%04x sp: 0x%04x \n", a, f, b, c, d, e, h, l, pc, sp);
 			//printf("Z: %i N: %i H: %i C: %i \n", getFlag(Z), getFlag(N), getFlag(H), getFlag(C));
-			fprintf(file, "A: %02X F: %02X B: %02X C: %02X D: %02X E: %02X H: %02X L: %02X SP: %04X PC: 00:%04X \n", a, f, b, c, d, e, h, l, sp, pc);
+			fprintf(file, "A: %02X F: %02X B: %02X C: %02X D: %02X E: %02X H: %02X L: %02X SP: %04X PC: 00:%04X\n", a, f, b, c, d, e, h, l, sp, pc);
 		}
 
 		pc++;
@@ -452,14 +452,14 @@ bool CPU::carryPredicate(uint16_t val1, uint16_t val2) {
 
 bool CPU::halfBorrowPredicate(uint16_t val1, uint16_t val2) {
 	// half borrow
-	// if the borrowing from the 4th bit (if r8_lo > a_lo)
-	return ((val1 & 0xF) > (val2 & 0xF));
+	// if the borrowing from the 4th bit (if register > a)
+	return ((val1 & 0xF) < (val2 & 0xF));
 }
 
 bool CPU::borrowPredicate(uint16_t val1, uint16_t val2) {
 	// borrow
-	// if the borrowing from the theoretical 8th bit (if r8_lo > a_lo)
-	return ((val1 & 0xFF) > (val2 & 0xFF));
+	// if the borrowing from the theoretical 8th bit (if register > a)
+	return ((val1 & 0xFF) < (val2 & 0xFF));
 }
 
 bool CPU::halfCarryPredicate16(uint16_t val1, uint16_t val2) {
@@ -897,9 +897,10 @@ uint8_t CPU::ADC() {
 
 	// add the carry bit
 	uint16_t carry = getFlag(FLAGS::C) ? 0x0001 : 0x0000;
+	val2 += carry;
 
 	// add with carry and load into a (8-bit)
-	*op1 = (val1 + val2 + carry) & 0xFF;
+	*op1 = (val1 + val2) & 0xFF;
 
 	// set flags
 	setFlag(Z, (*op1 == 0));
@@ -953,10 +954,10 @@ uint8_t CPU::SUB() {
 	// todo: fix/double-check flags for sub a, a
 	setFlag(Z, (*op1 == 0));
 	setFlag(N, 1);
-	//setFlag(H, halfBorrowPredicate(val1, val2));
-	//setFlag(C, borrowPredicate(val1, val2));
-	setFlag(H, halfCarryPredicate(val1, val2_twos));
-	setFlag(C, carryPredicate(val1, val2_twos));
+	setFlag(H, halfBorrowPredicate(val1, val2));
+	setFlag(C, borrowPredicate(val1, val2));
+	//setFlag(H, halfCarryPredicate(val1, val2_twos));
+	//setFlag(C, carryPredicate(val1, val2_twos));
 
 	return 0;
 }
@@ -993,23 +994,24 @@ uint8_t CPU::SBC() {
 	// add the carry bit
 	// todo: watch for possible bug with carry bit and sign extension
 	uint16_t carry = getFlag(FLAGS::C) ? 0x0001 : 0x0000;
-
-	*op1 = (val1 + val2) & 0xFF;
+	
+	// add carry before twos complement I think - ultimately subtract
+	val2 += carry;
 
 	// get the twos complement (of the bottom 8 bits)
 	//uint16_t val2_twos = val2 ^ 0x00FF + 0x0001;
 	uint16_t val2_twos = ~val2 + 0x0001;
 
 	// add twos complement and carry and load into a (8-bit)
-	*op1 = (val1 + val2_twos + carry) & 0xFF;
+	*op1 = (val1 + val2_twos) & 0xFF;
 
 	// set flags
 	setFlag(Z, (*op1 == 0));
 	setFlag(N, 1);
-	//setFlag(H, halfBorrowPredicate(val1, val2));
-	//setFlag(C, borrowPredicate(val1, val2));
-	setFlag(H, halfCarryPredicate(val1, val2_twos));
-	setFlag(C, carryPredicate(val1, val2_twos));
+	setFlag(H, halfBorrowPredicate(val1, val2));
+	setFlag(C, borrowPredicate(val1, val2));
+	//setFlag(H, halfCarryPredicate(val1, val2_twos));
+	//setFlag(C, carryPredicate(val1, val2_twos));
 
 	return 0;
 }
@@ -1154,7 +1156,7 @@ uint8_t CPU::CP() {
 	//uint8_t temp = (val1 + val2) & 0xFF;
 
 	// get the twos complement (of the bottom 8 bits)
-	uint16_t val2_twos = val2 ^ 0x00FF + 0x0001;
+	uint16_t val2_twos = ~val2 + 0x0001;
 
 	// add twos complement and load into temp to set flags
 	uint8_t temp = (val1 + val2_twos) & 0xFF;
@@ -1163,10 +1165,10 @@ uint8_t CPU::CP() {
 	// todo: fix/double-check flags for sub a, a
 	setFlag(Z, (temp == 0));
 	setFlag(N, 1);
-	//setFlag(H, halfBorrowPredicate(val1, val2));
-	//setFlag(C, borrowPredicate(val1, val2));
-	setFlag(H, halfCarryPredicate(val1, val2_twos));
-	setFlag(C, carryPredicate(val1, val2_twos));
+	setFlag(H, halfBorrowPredicate(val1, val2));
+	setFlag(C, borrowPredicate(val1, val2));
+	//setFlag(H, halfCarryPredicate(val1, val2_twos));
+	//setFlag(C, carryPredicate(val1, val2_twos));
 
 	return 0;
 }
@@ -1770,8 +1772,8 @@ uint8_t CPU::RLC() {
 	
 	if (op2) {
 		uint16_t addr = (*op1 << 8) | *op2;
-		uint8_t value = bus->read(addr);
-		bus->write(addr, shift(value));
+		uint8_t data = bus->read(addr);
+		bus->write(addr, shift(data));
 	}
 	else {
 		*op1 = shift(*op1);
@@ -1798,8 +1800,8 @@ uint8_t CPU::RRC() {
 
 	if (op2) {
 		uint16_t addr = (*op1 << 8) | *op2;
-		uint8_t value = bus->read(addr);
-		bus->write(addr, shift(value));
+		uint8_t data = bus->read(addr);
+		bus->write(addr, shift(data));
 	}
 	else {
 		*op1 = shift(*op1);
@@ -1828,8 +1830,8 @@ uint8_t CPU::RL() {
 
 	if (op2) {
 		uint16_t addr = (*op1 << 8) | *op2;
-		uint8_t value = bus->read(addr);
-		bus->write(addr, shift(value));
+		uint8_t data = bus->read(addr);
+		bus->write(addr, shift(data));
 	}
 	else {
 		*op1 = shift(*op1);
@@ -1858,8 +1860,8 @@ uint8_t CPU::RR() {
 
 	if (op2) {
 		uint16_t addr = (*op1 << 8) | *op2;
-		uint8_t value = bus->read(addr);
-		bus->write(addr, shift(value));
+		uint8_t data = bus->read(addr);
+		bus->write(addr, shift(data));
 	}
 	else {
 		*op1 = shift(*op1);
@@ -1886,8 +1888,8 @@ uint8_t CPU::SLA() {
 
 	if (op2) {
 		uint16_t addr = (*op1 << 8) | *op2;
-		uint8_t value = bus->read(addr);
-		bus->write(addr, shift(value));
+		uint8_t data = bus->read(addr);
+		bus->write(addr, shift(data));
 	}
 	else {
 		*op1 = shift(*op1);
@@ -1914,8 +1916,8 @@ uint8_t CPU::SRL() {
 
 	if (op2) {
 		uint16_t addr = (*op1 << 8) | *op2;
-		uint8_t value = bus->read(addr);
-		bus->write(addr, shift(value));
+		uint8_t data = bus->read(addr);
+		bus->write(addr, shift(data));
 	}
 	else {
 		*op1 = shift(*op1);
@@ -1944,8 +1946,8 @@ uint8_t CPU::SRA() {
 
 	if (op2) {
 		uint16_t addr = (*op1 << 8) | *op2;
-		uint8_t value = bus->read(addr);
-		bus->write(addr, shift(value));
+		uint8_t data = bus->read(addr);
+		bus->write(addr, shift(data));
 	}
 	else {
 		*op1 = shift(*op1);
@@ -1972,8 +1974,8 @@ uint8_t CPU::SWAP() {
 	
 	if (op2) {
 		uint16_t addr = (*op1 << 8) | *op2;
-		uint8_t value = bus->read(addr);
-		bus->write(addr, swap(value));
+		uint8_t data = bus->read(addr);
+		bus->write(addr, swap(data));
 	}
 	else {
 		*op1 = swap(*op1);
