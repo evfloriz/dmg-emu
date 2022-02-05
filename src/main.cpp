@@ -50,25 +50,28 @@ public:
 	Bus bus;
 
 	bool init() {
+		// passing 3, 6, 7, 8
+		size_t test_num = 11;
+		
 		// Load boot rom
 		unsigned char memory[0x10000];
-		const char* test_roms[] = {
-			"test-roms/cpu_instrs.gb",
-			"test-roms/01-special.gb",
-			"test-roms/02-interrupts.gb",
-			"test-roms/03-op sp,hl.gb",
-			"test-roms/04-op r,imm.gb",
-			"test-roms/05-op rp.gb",
-			"test-roms/06-ld r,r.gb",
-			"test-roms/07-jr,jp,call,ret,rst.gb",
-			"test-roms/08-misc instrs.gb",
-			"test-roms/09-op r,r.gb",
-			"test-roms/10-bit ops.gb",
-			"test-roms/11-op a,(hl).gb"
+		std::string test_roms[] = {
+			"cpu_instrs.gb",
+			"01-special.gb",
+			"02-interrupts.gb",
+			"03-op sp,hl.gb",
+			"04-op r,imm.gb",
+			"05-op rp.gb",
+			"06-ld r,r.gb",
+			"07-jr,jp,call,ret,rst.gb",
+			"08-misc instrs.gb",
+			"09-op r,r.gb",
+			"10-bit ops.gb",
+			"11-op a,(hl).gb"
 		};
-		const char* rom = test_roms[7];
+		std::string rom = "test-roms/" + test_roms[test_num];
 		//const char* rom = "DMG_ROM.bin";
-		FILE* file = fopen(rom, "rb");
+		FILE* file = fopen(rom.c_str(), "rb");
 		int pos = 0;
 		while (fread(&memory[pos], 1, 1, file)) {
 			pos++;
@@ -98,7 +101,15 @@ public:
 
 		std::cout << "Beginning execution of " << rom << std::endl;
 
-		bus.cpu.print_toggle = true;
+		bus.cpu.print_toggle = false;
+		bus.cpu.log_toggle = false;
+		bus.cpu.log_file = "log/" + test_roms[test_num] + "-log.txt";
+
+		// file output
+		if (bus.cpu.log_toggle) {
+			bus.cpu.file = fopen(bus.cpu.log_file.c_str(), "w");
+		}
+		
 
 		return true;
 	}

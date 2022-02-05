@@ -171,6 +171,8 @@ private:
 
 	uint8_t PUSH_r16();
 	uint8_t POP_r16();
+	uint8_t PUSH_AF();
+	uint8_t POP_AF();
 
 	uint8_t ADD();
 	uint8_t ADC();
@@ -239,6 +241,8 @@ private:
 
 public:
 	bool print_toggle = false;
+	bool log_toggle = false;
+	std::string log_file = "log.txt";
 
 	FILE* file;
 };

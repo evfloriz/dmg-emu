@@ -18,7 +18,7 @@ CPU::CPU() {
 		{0xC1, {&CPU::POP_r16,		3,		&b,	&c}},		{0xC5, {&CPU::PUSH_r16,		3,		&b, &c}},
 		{0xD1, {&CPU::POP_r16,		3,		&d, &e}},		{0xD5, {&CPU::PUSH_r16,		3,		&d, &e}},
 		{0xE1, {&CPU::POP_r16,		3,		&h, &l}},		{0xE5, {&CPU::PUSH_r16,		3,		&h, &l}},
-		{0xF1, {&CPU::POP_r16,		3,		&a, &f}},		{0xF5, {&CPU::PUSH_r16,		3,		&a, &f}},
+		{0xF1, {&CPU::POP_AF,		3,		&a, &f}},		{0xF5, {&CPU::PUSH_AF,		3,		&a, &f}},
 
 		// 8-bit loads
 		{0x06, {&CPU::LD_r8_r8,		2,		&b}},			{0x0E, {&CPU::LD_r8_r8,		2,		&c}},
@@ -148,7 +148,7 @@ CPU::CPU() {
 		{0x19, {&CPU::ADD_r16,		2,		&d, &e}},
 		{0x29, {&CPU::ADD_r16,		2,		&h, &l}},
 		{0x39, {&CPU::ADD_SP,		2}},
-		{0x88, {&CPU::ADD_SP_o8,	4}},
+		{0xE8, {&CPU::ADD_SP_o8,	4}},
 
 		{0x03, {&CPU::INC_r16,		2,		&b, &c}},		{0x0B, {&CPU::DEC_r16,		2,		&a, &b}},
 		{0x13, {&CPU::INC_r16,		2,		&d, &e}},		{0x1B, {&CPU::DEC_r16,		2,		&a, &c}},
@@ -348,9 +348,6 @@ CPU::CPU() {
 		{0xE8, "ADD SP, r8"		}, {0xE9, "JP HL"		}, {0xEA, "LD (a16), A"	}, {0xEB, "NULL"		}, {0xEC, "NULL"		}, {0xED, "NULL"		}, {0xEE, "XOR d8"		}, {0xEF, "RST 28H"		},
 		{0xF8, "LD HL, SP + r8"	}, {0xF9, "LD SP, HL, "	}, {0xFA, "LD A, (a16)"	}, {0xFB, "EI"			}, {0xFC, "NULL"		}, {0xFD, "NULL"		}, {0xFE, "CP d8"		}, {0xFF, "RST 38H"		},
 	};
-
-	// file output
-	file = fopen("07-log.txt", "w");
 }
 
 CPU::~CPU() {
@@ -370,10 +367,13 @@ void CPU::clock() {
 		opcode = read(pc);
 		
 		if (print_toggle) {
-			//printf("0x%04x: 0x%02x ", pc, opcode);
-			//printf("%-15s ", dis_lookup[opcode].c_str());
-			//printf("a: 0x%02x f: 0x%02x b: 0x%02x c: 0x%02x d: 0x%02x e: 0x%02x h: 0x%02x l: 0x%02x pc: 0x%04x sp: 0x%04x \n", a, f, b, c, d, e, h, l, pc, sp);
+			printf("0x%04x: 0x%02x ", pc, opcode);
+			printf("%-15s ", dis_lookup[opcode].c_str());
+			printf("a: 0x%02x f: 0x%02x b: 0x%02x c: 0x%02x d: 0x%02x e: 0x%02x h: 0x%02x l: 0x%02x pc: 0x%04x sp: 0x%04x \n", a, f, b, c, d, e, h, l, pc, sp);
 			//printf("Z: %i N: %i H: %i C: %i \n", getFlag(Z), getFlag(N), getFlag(H), getFlag(C));
+		}
+
+		if (log_toggle) {
 			fprintf(file, "A: %02X F: %02X B: %02X C: %02X D: %02X E: %02X H: %02X L: %02X SP: %04X PC: 00:%04X\n", a, f, b, c, d, e, h, l, sp, pc);
 		}
 
@@ -465,13 +465,13 @@ bool CPU::borrowPredicate(uint16_t val1, uint16_t val2) {
 bool CPU::halfCarryPredicate16(uint16_t val1, uint16_t val2) {
 	// half carry for 16 bit addition
 	// if overflow from bit 11
-	return (val1 & 0x0FFF + val2 & 0x0FFF) & 0x1000;
+	return ((val1 & 0x0FFF) + (val2 & 0x0FFF)) & 0x1000;
 }
 
 bool CPU::carryPredicate16(uint16_t val1, uint16_t val2) {
 	// carry for 16 bit addition
 	// if overflow from bit 15
-	return ((uint32_t)val1 & 0xFFFF + (uint32_t)val2 & 0xFFFF) & 0x10000;
+	return (((uint32_t)val1 & 0xFFFF) + ((uint32_t)val2 & 0xFFFF)) & 0x10000;
 }
 
 bool CPU::checkCondition(uint8_t cc) {
@@ -820,6 +820,20 @@ uint8_t CPU::PUSH_r16() {
 	return 0;
 }
 
+uint8_t CPU::PUSH_AF() {
+	// PUSH AF has slightly different behaviour because of the flags register
+
+	uint8_t* op1 = lookup[opcode].op1;
+	uint8_t* op2 = lookup[opcode].op2;
+
+	sp--;
+	bus->write(sp, *op1);
+	sp--;
+	bus->write(sp, *op2);
+
+	return 0;
+}
+
 uint8_t CPU::POP_r16() {
 	// pop register off stack
 	// eg POP BC
@@ -830,6 +844,17 @@ uint8_t CPU::POP_r16() {
 	*op2 = bus->read(sp);
 	sp++;
 	*op1 = bus->read(sp);
+	sp++;
+
+	return 0;
+}
+
+uint8_t CPU::POP_AF() {
+	// f only cares about upper 4 bits
+
+	f = bus->read(sp) & 0xF0;
+	sp++;
+	a = bus->read(sp);
 	sp++;
 
 	return 0;
@@ -1506,7 +1531,7 @@ uint8_t CPU::ADD_SP_o8() {
 	sp = val1 + val2;
 
 	// set flags
-	setFlag(Z, (sp == 0));
+	setFlag(Z, 0);
 	setFlag(N, 0);
 	setFlag(H, halfCarryPredicate(val1, val2));
 	setFlag(C, carryPredicate(val1, val2));
@@ -1701,6 +1726,10 @@ uint8_t CPU::RLCA() {
 
 	a = temp & 0xFF;
 
+	setFlag(Z, 0);
+	setFlag(N, 0);
+	setFlag(H, 0);
+
 	return 0;
 }
 
@@ -1715,6 +1744,10 @@ uint8_t CPU::RRCA() {
 	temp = (temp >> 1) | (temp << 7);
 
 	a = temp & 0xFF;
+
+	setFlag(Z, 0);
+	setFlag(N, 0);
+	setFlag(H, 0);
 
 	return 0;
 }
@@ -1733,6 +1766,10 @@ uint8_t CPU::RLA() {
 
 	a = temp & 0xFF;
 
+	setFlag(Z, 0);
+	setFlag(N, 0);
+	setFlag(H, 0);
+
 	return 0;
 }
 
@@ -1749,6 +1786,10 @@ uint8_t CPU::RRA() {
 	temp = temp >> 1;
 
 	a = temp & 0xFF;
+
+	setFlag(Z, 0);
+	setFlag(N, 0);
+	setFlag(H, 0);
 
 	return 0;
 }
@@ -1779,6 +1820,9 @@ uint8_t CPU::RLC() {
 		*op1 = shift(*op1);
 	}
 
+	setFlag(N, 0);
+	setFlag(H, 0);
+
 	return 0;
 }
 
@@ -1806,6 +1850,9 @@ uint8_t CPU::RRC() {
 	else {
 		*op1 = shift(*op1);
 	}
+
+	setFlag(N, 0);
+	setFlag(H, 0);
 
 	return 0;
 }
@@ -1837,6 +1884,9 @@ uint8_t CPU::RL() {
 		*op1 = shift(*op1);
 	}
 
+	setFlag(N, 0);
+	setFlag(H, 0);
+
 	return 0;
 }
 
@@ -1867,6 +1917,9 @@ uint8_t CPU::RR() {
 		*op1 = shift(*op1);
 	}
 
+	setFlag(N, 0);
+	setFlag(H, 0);
+
 	return 0;
 }
 
@@ -1895,6 +1948,9 @@ uint8_t CPU::SLA() {
 		*op1 = shift(*op1);
 	}
 
+	setFlag(N, 0);
+	setFlag(H, 0);
+
 	return 0;
 }
 
@@ -1922,6 +1978,9 @@ uint8_t CPU::SRL() {
 	else {
 		*op1 = shift(*op1);
 	}
+
+	setFlag(N, 0);
+	setFlag(H, 0);
 
 	return 0;
 }
@@ -1953,6 +2012,9 @@ uint8_t CPU::SRA() {
 		*op1 = shift(*op1);
 	}
 
+	setFlag(N, 0);
+	setFlag(H, 0);
+
 	return 0;
 }
 
@@ -1980,6 +2042,10 @@ uint8_t CPU::SWAP() {
 	else {
 		*op1 = swap(*op1);
 	}
+	
+	setFlag(N, 0);
+	setFlag(H, 0);
+	setFlag(C, 0);
 
 	return 0;
 }
