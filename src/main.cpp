@@ -51,7 +51,7 @@ public:
 
 	bool init() {
 		// passing 3, 6, 7, 8
-		size_t test_num = 11;
+		size_t test_num = 7;
 		
 		// Load boot rom
 		unsigned char memory[0x10000];

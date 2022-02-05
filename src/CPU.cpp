@@ -5,23 +5,43 @@
 
 CPU::CPU() {
 
-	lookup = {		
-		// 16-bit loads
-		{0x01, {&CPU::LD_r16,		3,		&b, &c}},
-		{0x11, {&CPU::LD_r16,		3,		&d, &e}},
-		{0x21, {&CPU::LD_r16,		3,		&h, &l}},
-		{0x31, {&CPU::LD_SP,		3}},
-		{0x08, {&CPU::LD_a16_SP,	5}},
-		{0xF8, {&CPU::LD_HL_SP_o8,	3}},
-		{0xF9, {&CPU::LD_SP,		2,		&h, &l}},
-
-		{0xC1, {&CPU::POP_r16,		3,		&b,	&c}},		{0xC5, {&CPU::PUSH_r16,		3,		&b, &c}},
-		{0xD1, {&CPU::POP_r16,		3,		&d, &e}},		{0xD5, {&CPU::PUSH_r16,		3,		&d, &e}},
-		{0xE1, {&CPU::POP_r16,		3,		&h, &l}},		{0xE5, {&CPU::PUSH_r16,		3,		&h, &l}},
-		{0xF1, {&CPU::POP_AF,		3,		&a, &f}},		{0xF5, {&CPU::PUSH_AF,		3,		&a, &f}},
-
-		// 8-bit loads
+	lookup = {
+		{0x00, {&CPU::NOP,			1}},					{0x08, {&CPU::LD_a16_SP,	5}},
+		{0x01, {&CPU::LD_r16,		3,		&b, &c}},		{0x09, {&CPU::ADD_r16,		2,		&b, &c}},
+		{0x02, {&CPU::LD_p16_r8,	2,		&b, &c, &a}},	{0x0A, {&CPU::LD_r8_p16,	2,		&a, &b, &c}},
+		{0x03, {&CPU::INC_r16,		2,		&b, &c}},		{0x0B, {&CPU::DEC_r16,		2,		&a, &b}},
+		{0x04, {&CPU::INC,			1,		&b}},			{0x0C, {&CPU::INC,			1,		&c}},
+		{0x05, {&CPU::DEC,			1,		&b}},			{0x0D, {&CPU::DEC,			1,		&c}},
 		{0x06, {&CPU::LD_r8_r8,		2,		&b}},			{0x0E, {&CPU::LD_r8_r8,		2,		&c}},
+		{0x07, {&CPU::RLCA,			1}},					{0x0F, {&CPU::RRCA,			1}},
+		
+		{0x10, {&CPU::STOP,			1}},					{0x18, {&CPU::JR,			2,		&i_N}},
+		{0x11, {&CPU::LD_r16,		3,		&d, &e}},		{0x19, {&CPU::ADD_r16,		2,		&d, &e}},
+		{0x12, {&CPU::LD_p16_r8,	2,		&d, &e, &a}},	{0x1A, {&CPU::LD_r8_p16,	2,		&a, &d, &e}},
+		{0x13, {&CPU::INC_r16,		2,		&d, &e}},		{0x1B, {&CPU::DEC_r16,		2,		&a, &c}},
+		{0x14, {&CPU::INC,			1,		&d}},			{0x1C, {&CPU::INC,			1,		&e}},
+		{0x15, {&CPU::DEC,			1,		&d}},			{0x1D, {&CPU::DEC,			1,		&e}},
+		{0x16, {&CPU::LD_r8_r8,		2,		&d}},			{0x1E, {&CPU::LD_r8_r8,		2,		&e}},
+		{0x17, {&CPU::RLA,			1}},					{0x1F, {&CPU::RRA,			1}},
+				
+		{0x20, {&CPU::JR,			2,		&i_NZ}},		{0x28, {&CPU::JR,			2,		&i_Z}},
+		{0x21, {&CPU::LD_r16,		3,		&h, &l}},		{0x29, {&CPU::ADD_r16,		2,		&h, &l}},
+		{0x22, {&CPU::LD_HLI_A,		2,		&h, &l, &a}},	{0x2A, {&CPU::LD_A_HLI,		2,		&a, &h, &l}},
+		{0x23, {&CPU::INC_r16,		2,		&h, &l}},		{0x2B, {&CPU::DEC_r16,		2,		&a, &d}},
+		{0x24, {&CPU::INC,			1,		&h}},			{0x2C, {&CPU::INC,			1,		&l}},
+		{0x25, {&CPU::DEC,			1,		&h}},			{0x2D, {&CPU::DEC,			1,		&l}},
+		{0x26, {&CPU::LD_r8_r8,		2,		&h}},			{0x2E, {&CPU::LD_r8_r8,		2,		&l}},
+		{0x27, {&CPU::DAA,			1}},					{0x2F, {&CPU::CPL,			1}},
+		
+		{0x30, {&CPU::JR,			2,		&i_NC}},		{0x38, {&CPU::JR,			2,		&i_C}},
+		{0x31, {&CPU::LD_SP,		3}},					{0x39, {&CPU::ADD_SP,		2}},
+		{0x32, {&CPU::LD_HLD_A,		2,		&h, &l, &a}},	{0x3A, {&CPU::LD_A_HLD,		2,		&a, &h, &l}},
+		{0x33, {&CPU::INC_SP,		2}},					{0x3B, {&CPU::DEC_SP,		2}},
+		{0x34, {&CPU::INC,			3,		&h, &l}},		{0x3C, {&CPU::INC,			1,		&a}},
+		{0x35, {&CPU::DEC,			3,		&h, &l}},		{0x3D, {&CPU::DEC,			1,		&a}},
+		{0x36, {&CPU::LD_p16_r8,	3,		&h, &l}},		{0x3E, {&CPU::LD_r8_r8,		2,		&a}},
+		{0x37, {&CPU::SCF,			1}},					{0x3F, {&CPU::CCF,			1}},
+
 		{0x40, {&CPU::LD_r8_r8,		1,		&b, &b}},		{0x48, {&CPU::LD_r8_r8,		1,		&c, &b}},
 		{0x41, {&CPU::LD_r8_r8,		1,		&b, &c}},		{0x49, {&CPU::LD_r8_r8,		1,		&c, &c}},
 		{0x42, {&CPU::LD_r8_r8,		1,		&b, &d}},		{0x4A, {&CPU::LD_r8_r8,		1,		&c, &d}},
@@ -31,7 +51,6 @@ CPU::CPU() {
 		{0x46, {&CPU::LD_r8_p16,	2,		&b, &h, &l}},	{0x4E, {&CPU::LD_r8_p16,	2,		&c, &h, &l}},
 		{0x47, {&CPU::LD_r8_r8,		1,		&b, &a}},		{0x4F, {&CPU::LD_r8_r8,		1,		&c, &a}},
 
-		{0x16, {&CPU::LD_r8_r8,		2,		&d}},			{0x1E, {&CPU::LD_r8_r8,		2,		&e}},
 		{0x50, {&CPU::LD_r8_r8,		1,		&d, &b}},		{0x58, {&CPU::LD_r8_r8,		1,		&e, &b}},
 		{0x51, {&CPU::LD_r8_r8,		1,		&d, &c}},		{0x59, {&CPU::LD_r8_r8,		1,		&e, &c}},
 		{0x52, {&CPU::LD_r8_r8,		1,		&d, &d}},		{0x5A, {&CPU::LD_r8_r8,		1,		&e, &d}},
@@ -40,8 +59,7 @@ CPU::CPU() {
 		{0x55, {&CPU::LD_r8_r8,		1,		&d, &l}},		{0x5D, {&CPU::LD_r8_r8,		1,		&e, &l}},
 		{0x56, {&CPU::LD_r8_p16,	2,		&d, &h, &l}},	{0x5E, {&CPU::LD_r8_p16,	2,		&e, &h, &l}},
 		{0x57, {&CPU::LD_r8_r8,		1,		&d, &a}},		{0x5F, {&CPU::LD_r8_r8,		1,		&e, &a}},
-
-		{0x26, {&CPU::LD_r8_r8,		2,		&h}},			{0x2E, {&CPU::LD_r8_r8,		2,		&l}},
+		
 		{0x60, {&CPU::LD_r8_r8,		1,		&h, &b}},		{0x68, {&CPU::LD_r8_r8,		1,		&l, &b}},
 		{0x61, {&CPU::LD_r8_r8,		1,		&h, &c}},		{0x69, {&CPU::LD_r8_r8,		1,		&l, &c}},
 		{0x62, {&CPU::LD_r8_r8,		1,		&h, &d}},		{0x6A, {&CPU::LD_r8_r8,		1,		&l, &d}},
@@ -50,26 +68,15 @@ CPU::CPU() {
 		{0x65, {&CPU::LD_r8_r8,		1,		&h, &l}},		{0x6D, {&CPU::LD_r8_r8,		1,		&l, &l}},
 		{0x66, {&CPU::LD_r8_p16,	2,		&h, &h, &l}},	{0x6E, {&CPU::LD_r8_p16,	2,		&l, &h, &l}},
 		{0x67, {&CPU::LD_r8_r8,		1,		&h, &a}},		{0x6F, {&CPU::LD_r8_r8,		1,		&l, &a}},
-
-		{0x02, {&CPU::LD_p16_r8,	2,		&b, &c, &a}},	{0x0A, {&CPU::LD_r8_p16,	2,		&a, &b, &c}},
-		{0x12, {&CPU::LD_p16_r8,	2,		&d, &e, &a}},	{0x1A, {&CPU::LD_r8_p16,	2,		&a, &d, &e}},
-		{0x22, {&CPU::LD_HLI_A,		2,		&h, &l, &a}},	{0x2A, {&CPU::LD_A_HLI,		2,		&a, &h, &l}},	// these don't actually need operands
-		{0x32, {&CPU::LD_HLD_A,		2,		&h, &l, &a}},	{0x3A, {&CPU::LD_A_HLD,		2,		&a, &h, &l}},
 		
-		{0x36, {&CPU::LD_p16_r8,	3,		&h, &l}},		{0x3E, {&CPU::LD_r8_r8,		2,		&a}},
 		{0x70, {&CPU::LD_p16_r8,	2,		&h, &l, &b}},	{0x78, {&CPU::LD_r8_r8,		1,		&a, &b}},
 		{0x71, {&CPU::LD_p16_r8,	2,		&h, &l, &c}},	{0x79, {&CPU::LD_r8_r8,		1,		&a, &c}},
 		{0x72, {&CPU::LD_p16_r8,	2,		&h, &l, &d}},	{0x7A, {&CPU::LD_r8_r8,		1,		&a, &d}},
 		{0x73, {&CPU::LD_p16_r8,	2,		&h, &l, &e}},	{0x7B, {&CPU::LD_r8_r8,		1,		&a, &e}},
 		{0x74, {&CPU::LD_p16_r8,	2,		&h, &l, &h}},	{0x7C, {&CPU::LD_r8_r8,		1,		&a, &h}},
 		{0x75, {&CPU::LD_p16_r8,	2,		&h, &l, &l}},	{0x7D, {&CPU::LD_r8_r8,		1,		&a, &l}},
-															{0x7E, {&CPU::LD_r8_p16,	2,		&a, &h, &l}},
+		{0x76, {&CPU::HALT,			1}},					{0x7E, {&CPU::LD_r8_p16,	2,		&a, &h, &l}},
 		{0x77, {&CPU::LD_p16_r8,	2,		&h, &l, &a}},	{0x7F, {&CPU::LD_r8_r8,		1,		&a, &a}},
-
-		{0xE0, {&CPU::LDH_p8_A,		3}},					{0xE2, {&CPU::LDH_p8_A,		2,		&c}},
-		{0xF0, {&CPU::LDH_A_p8,		3}},					{0xF2, {&CPU::LDH_A_p8,		2,		&c}},
-		{0xEA, {&CPU::LD_a16_A,		4}},
-		{0xFA, {&CPU::LD_A_a16,		4}},
 
 		{0x80, {&CPU::ADD,			1,		&a, &b}},		{0x88, {&CPU::ADC,			1,		&a, &b}},
 		{0x81, {&CPU::ADD,			1,		&a, &c}},		{0x89, {&CPU::ADC,			1,		&a, &c}},
@@ -107,62 +114,41 @@ CPU::CPU() {
 		{0xB6, {&CPU::OR,			2,		&a, &h, &l}},	{0xBE, {&CPU::CP,			2,		&a, &h, &l}},
 		{0xB7, {&CPU::OR,			1,		&a, &a}},		{0xBF, {&CPU::CP,			1,		&a, &a}},
 
+		{0xC0, {&CPU::RET,			2,		&i_NZ}},		{0xC8, {&CPU::RET,			2,		&i_Z}},
+		{0xC1, {&CPU::POP_r16,		3,		&b,	&c}},		{0xC9, {&CPU::RET,			2,		&i_N}},
+		{0xC2, {&CPU::JP,			3,		&i_NZ}},		{0xCA, {&CPU::JP,			3,		&i_Z}},
+		{0xC3, {&CPU::JP,			3,		&i_N}},			{0xCB, {&CPU::CB,			1}},
+		{0xC4, {&CPU::CALL,			3,		&i_NZ}},		{0xCC, {&CPU::CALL,			3,		&i_Z}},
+		{0xC5, {&CPU::PUSH_r16,		3,		&b, &c}},		{0xCD, {&CPU::CALL,			3,		&i_N}},
 		{0xC6, {&CPU::ADD,			2,		&a}},			{0xCE, {&CPU::ADC,			2,		&a}},
-		{0xD6, {&CPU::SUB,			2,		&a}},			{0xDE, {&CPU::SBC,			2,		&a}},
-		{0xE6, {&CPU::AND,			2,		&a}},			{0xEE, {&CPU::XOR,			2,		&a}},
-		{0xF6, {&CPU::OR,			2,		&a}},			{0xFE, {&CPU::CP,			2,		&a}},
-
-		{0x04, {&CPU::INC,			1,		&b}},			{0x0C, {&CPU::INC,			1,		&c}},
-		{0x14, {&CPU::INC,			1,		&d}},			{0x1C, {&CPU::INC,			1,		&e}},
-		{0x24, {&CPU::INC,			1,		&h}},			{0x2C, {&CPU::INC,			1,		&l}},
-		{0x34, {&CPU::INC,			3,		&h, &l}},		{0x3C, {&CPU::INC,			1,		&a}},
-
-		{0x05, {&CPU::DEC,			1,		&b}},			{0x0D, {&CPU::DEC,			1,		&c}},
-		{0x15, {&CPU::DEC,			1,		&d}},			{0x1D, {&CPU::DEC,			1,		&e}},
-		{0x25, {&CPU::DEC,			1,		&h}},			{0x2D, {&CPU::DEC,			1,		&l}},
-		{0x35, {&CPU::DEC,			3,		&h, &l}},		{0x3D, {&CPU::DEC,			1,		&a}},
-
-		{0x27, {&CPU::DAA,			1}},					{0x2F, {&CPU::CPL,			1}},
-		{0x37, {&CPU::SCF,			1}},					{0x3F, {&CPU::CCF,			1}},
-
-		{0xC2, {&CPU::JP,			3,		&i_NZ}},		{0x20, {&CPU::JR,			2,		&i_NZ}},
-		{0xD2, {&CPU::JP,			3,		&i_NC}},		{0x30, {&CPU::JR,			2,		&i_NC}},
-		{0xC3, {&CPU::JP,			3,		&i_N}},			{0x18, {&CPU::JR,			2,		&i_N}},
-		{0xCA, {&CPU::JP,			3,		&i_Z}},			{0x28, {&CPU::JR,			2,		&i_Z}},
-		{0xDA, {&CPU::JP,			3,		&i_C}},			{0x38, {&CPU::JR,			2,		&i_C}},
-
-		{0xC4, {&CPU::CALL,			3,		&i_NZ}},		{0xC0, {&CPU::RET,			2,		&i_NZ}},
-		{0xD4, {&CPU::CALL,			3,		&i_NC}},		{0xD0, {&CPU::RET,			2,		&i_NC}},
-		{0xCC, {&CPU::CALL,			3,		&i_Z}},			{0xC8, {&CPU::RET,			2,		&i_Z}},
-		{0xDC, {&CPU::CALL,			3,		&i_C}},			{0xD8, {&CPU::RET,			2,		&i_C}},
-		{0xCD, {&CPU::CALL,			3,		&i_N}},			{0xC9, {&CPU::RET,			2,		&i_N}},
-															{0xD9, {&CPU::RETI,			4,		&i_N}},
-															{0xE9, {&CPU::JP,			1,		&i_N, &h, &l}},
-
 		{0xC7, {&CPU::RST,			4,		&rst[0]}},		{0xCF, {&CPU::RST,			4,		&rst[4]}},
+		
+		{0xD0, {&CPU::RET,			2,		&i_NC}},		{0xD8, {&CPU::RET,			2,		&i_C}},
+		{0xD1, {&CPU::POP_r16,		3,		&d, &e}},		{0xD9, {&CPU::RETI,			4,		&i_N}},				
+		{0xD2, {&CPU::JP,			3,		&i_NC}},		{0xDA, {&CPU::JP,			3,		&i_C}},		
+		/*{0xD3}*/											/*{0xDB}*/
+		{0xD4, {&CPU::CALL,			3,		&i_NC}},		{0xDC, {&CPU::CALL,			3,		&i_C}},
+		{0xD5, {&CPU::PUSH_r16,		3,		&d, &e}},		/*{0xDC}*/
+		{0xD6, {&CPU::SUB,			2,		&a}},			{0xDE, {&CPU::SBC,			2,		&a}},
 		{0xD7, {&CPU::RST,			4,		&rst[1]}},		{0xDF, {&CPU::RST,			4,		&rst[5]}},
+		
+		{0xE0, {&CPU::LDH_p8_A,		3}},					{0xE8, {&CPU::ADD_SP_o8,	4}},
+		{0xE1, {&CPU::POP_r16,		3,		&h, &l}},		{0xE9, {&CPU::JP,			1,		&i_N, &h, &l}},
+		{0xE2, {&CPU::LDH_p8_A,		2,		&c}},			{0xEA, {&CPU::LD_a16_A,		4}},
+		/*{0xE3}*/											/*{0xEB}*/
+		/*{0xE4}*/											/*{0xEC}*/
+		{0xE5, {&CPU::PUSH_r16,		3,		&h, &l}},		/*{0xED}*/
+		{0xE6, {&CPU::AND,			2,		&a}},			{0xEE, {&CPU::XOR,			2,		&a}},
 		{0xE7, {&CPU::RST,			4,		&rst[2]}},		{0xEF, {&CPU::RST,			4,		&rst[6]}},
+		
+		{0xF0, {&CPU::LDH_A_p8,		3}},					{0xF8, {&CPU::LD_HL_SP_o8,	3}},
+		{0xF1, {&CPU::POP_AF,		3,		&a, &f}},		{0xF9, {&CPU::LD_SP,		2,		&h, &l}},
+		{0xF2, {&CPU::LDH_A_p8,		2,		&c}},			{0xFA, {&CPU::LD_A_a16,		4}},
+		{0xF3, {&CPU::DI,			1}},					{0xFB, {&CPU::EI,			1}},
+		/*{0xF4}*/											/*{0xFC}*/
+		{0xF5, {&CPU::PUSH_AF,		3,		&a, &f}},		/*{0xFD}*/
+		{0xF6, {&CPU::OR,			2,		&a}},			{0xFE, {&CPU::CP,			2,		&a}},
 		{0xF7, {&CPU::RST,			4,		&rst[3]}},		{0xFF, {&CPU::RST,			4,		&rst[7]}},
-
-		{0x09, {&CPU::ADD_r16,		2,		&b, &c}},
-		{0x19, {&CPU::ADD_r16,		2,		&d, &e}},
-		{0x29, {&CPU::ADD_r16,		2,		&h, &l}},
-		{0x39, {&CPU::ADD_SP,		2}},
-		{0xE8, {&CPU::ADD_SP_o8,	4}},
-
-		{0x03, {&CPU::INC_r16,		2,		&b, &c}},		{0x0B, {&CPU::DEC_r16,		2,		&a, &b}},
-		{0x13, {&CPU::INC_r16,		2,		&d, &e}},		{0x1B, {&CPU::DEC_r16,		2,		&a, &c}},
-		{0x23, {&CPU::INC_r16,		2,		&h, &l}},		{0x2B, {&CPU::DEC_r16,		2,		&a, &d}},
-		{0x33, {&CPU::INC_SP,		2}},					{0x3B, {&CPU::DEC_SP,		2}},
-
-		{0x00, {&CPU::NOP,			1}},					{0xF3, {&CPU::DI,			1}},
-		{0x10, {&CPU::STOP,			1}},					{0xFB, {&CPU::EI,			1}},
-		{0x76, {&CPU::HALT,			1}},					{0xCB, {&CPU::CB,			1}},
-
-		{0x07, {&CPU::RLCA,			1}},					{0x0F, {&CPU::RRCA,			1}},
-		{0x17, {&CPU::RLA,			1}},					{0x1F, {&CPU::RRA,			1}},
-
-
 	};
 
 	cb_lookup = {
