@@ -50,8 +50,8 @@ public:
 	Bus bus;
 
 	bool init() {
-		// passing 3, 6, 7, 8
-		size_t test_num = 7;
+		// passing 1, 3, 6, 7, 8
+		size_t test_num = 4;
 		
 		// Load boot rom
 		unsigned char memory[0x10000];
@@ -101,15 +101,17 @@ public:
 
 		std::cout << "Beginning execution of " << rom << std::endl;
 
-		bus.cpu.print_toggle = false;
-		bus.cpu.log_toggle = false;
-		bus.cpu.log_file = "log/" + test_roms[test_num] + "-log.txt";
+		bus.cpu.print_toggle = true;
+		bus.cpu.log_toggle = true;
+		bus.cpu.log_file = "log/log" + std::to_string(test_num) + "-log.txt";
 
 		// file output
 		if (bus.cpu.log_toggle) {
 			bus.cpu.file = fopen(bus.cpu.log_file.c_str(), "w");
 		}
-		
+
+		// reset LY
+		bus.write(0xFF44, 0x00);
 
 		return true;
 	}
@@ -117,6 +119,10 @@ public:
 	bool tick() {
 		do {
 			bus.cpu.clock();
+			
+			// Increment LY to simulate vblank
+			bus.cpu.incrementLY();
+
 		} while (!bus.cpu.complete());
 
 		return true;

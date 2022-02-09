@@ -355,8 +355,9 @@ void CPU::clock() {
 		if (print_toggle) {
 			printf("0x%04x: 0x%02x ", pc, opcode);
 			printf("%-15s ", dis_lookup[opcode].c_str());
-			printf("a: 0x%02x f: 0x%02x b: 0x%02x c: 0x%02x d: 0x%02x e: 0x%02x h: 0x%02x l: 0x%02x pc: 0x%04x sp: 0x%04x \n", a, f, b, c, d, e, h, l, pc, sp);
+			printf("a: 0x%02x f: 0x%02x b: 0x%02x c: 0x%02x d: 0x%02x e: 0x%02x h: 0x%02x l: 0x%02x pc: 0x%04x sp: 0x%04x ", a, f, b, c, d, e, h, l, pc, sp);
 			//printf("Z: %i N: %i H: %i C: %i \n", getFlag(Z), getFlag(N), getFlag(H), getFlag(C));
+			printf("LY: %i\n", bus->read(0xFF44));
 		}
 
 		if (log_toggle) {
@@ -377,9 +378,12 @@ void CPU::clock() {
 			cycles = lookup[opcode].cycles;
 
 			// Perform operation
-			uint8_t extra_cycle = (this->*lookup[opcode].operate)();
+			uint8_t extra_cycles = (this->*lookup[opcode].operate)();
 
-			cycles += extra_cycle;
+			cycles += extra_cycles;
+
+			// multiply cycles by 4 for correct clock cpu timing
+			//cycles *= 4;
 
 			// Set ime flag after instruction following EI
 			if (set_ime) {
@@ -424,16 +428,17 @@ void CPU::setFlag(FLAGS flag, bool value) {
 	}
 }
 
-bool CPU::halfCarryPredicate(uint16_t val1, uint16_t val2) {
+bool CPU::halfCarryPredicate(uint16_t val1, uint16_t val2, uint16_t val3) {
 	// half carry
 	// if the bottom 4 bits of each added together sets an upper 4 bit
-	return ((val1 & 0xF) + (val2 & 0xF)) & 0x10;
+	// added an optional third value to accomodate adc and sbc
+	return ((val1 & 0xF) + (val2 & 0xF) + (val3 & 0xF)) & 0x10;
 }
 
-bool CPU::carryPredicate(uint16_t val1, uint16_t val2) {
+bool CPU::carryPredicate(uint16_t val1, uint16_t val2, uint16_t val3) {
 	// carry
 	// if the bottom 8 bits of each added together sets an upper 8 bit
-	return ((val1 & 0xFF) + (val2 & 0xFF)) & 0x100;
+	return ((val1 & 0xFF) + (val2 & 0xFF) + (val3 & 0xFF)) & 0x100;
 }
 
 bool CPU::halfBorrowPredicate(uint16_t val1, uint16_t val2) {
@@ -615,13 +620,13 @@ uint8_t CPU::LD_p16_r8() {
 	uint8_t* op2 = lookup[opcode].op2;
 	uint8_t* op3 = lookup[opcode].op3;
 	
-	uint8_t hi = *(lookup[opcode].op1);
-	uint8_t lo = *(lookup[opcode].op2);
+	uint8_t hi = *op1;
+	uint8_t lo = *op2;
 
 	uint16_t addr = (hi << 8) | lo;
 
 	// if op3 isn't null, use it as the data, otherwise read next value from pc
-	uint8_t data;
+	uint8_t data = 0x00;
 	if (op3) {
 		data = *op3;
 	}
@@ -908,16 +913,15 @@ uint8_t CPU::ADC() {
 
 	// add the carry bit
 	uint16_t carry = getFlag(FLAGS::C) ? 0x0001 : 0x0000;
-	val2 += carry;
 
 	// add with carry and load into a (8-bit)
-	*op1 = (val1 + val2) & 0xFF;
+	*op1 = (val1 + val2 + carry) & 0xFF;
 
 	// set flags
 	setFlag(Z, (*op1 == 0));
 	setFlag(N, 0);
-	setFlag(H, halfCarryPredicate(val1, val2));
-	setFlag(C, carryPredicate(val1, val2));
+	setFlag(H, halfCarryPredicate(val1, val2, carry));
+	setFlag(C, carryPredicate(val1, val2, carry));
 
 	return 0;
 }
@@ -945,30 +949,18 @@ uint8_t CPU::SUB() {
 		val2 = bus->read(pc);
 		pc++;
 	}
-	
-	// I think this is for adding negative numbers specically
-	// If highest bit is negative sign, extend to higher 8 bits
-	/*if (val2 & 0x80) {
-		//val2 |= 0xFF00;
-	}
-
-	*op1 = (val1 + val2) & 0xFF;*/
 
 	// get the twos complement (of the bottom 8 bits)
-	//uint16_t val2_twos = val2 ^ 0x00FF + 0x0001;
 	uint16_t val2_twos = ~val2 + 0x0001;
 
 	// add twos complement and load into a (8-bit)
 	*op1 = (val1 + val2_twos) & 0xFF;
 
 	// set flags
-	// todo: fix/double-check flags for sub a, a
 	setFlag(Z, (*op1 == 0));
 	setFlag(N, 1);
 	setFlag(H, halfBorrowPredicate(val1, val2));
 	setFlag(C, borrowPredicate(val1, val2));
-	//setFlag(H, halfCarryPredicate(val1, val2_twos));
-	//setFlag(C, carryPredicate(val1, val2_twos));
 
 	return 0;
 }
@@ -997,11 +989,6 @@ uint8_t CPU::SBC() {
 		pc++;
 	}
 
-	// If highest bit is negative sign, extend to higher 8 bits
-	/*if (val2 & 0x80) {
-		val2 |= 0xFF00;
-	}*/
-
 	// add the carry bit
 	// todo: watch for possible bug with carry bit and sign extension
 	uint16_t carry = getFlag(FLAGS::C) ? 0x0001 : 0x0000;
@@ -1010,7 +997,6 @@ uint8_t CPU::SBC() {
 	val2 += carry;
 
 	// get the twos complement (of the bottom 8 bits)
-	//uint16_t val2_twos = val2 ^ 0x00FF + 0x0001;
 	uint16_t val2_twos = ~val2 + 0x0001;
 
 	// add twos complement and carry and load into a (8-bit)
@@ -1021,8 +1007,6 @@ uint8_t CPU::SBC() {
 	setFlag(N, 1);
 	setFlag(H, halfBorrowPredicate(val1, val2));
 	setFlag(C, borrowPredicate(val1, val2));
-	//setFlag(H, halfCarryPredicate(val1, val2_twos));
-	//setFlag(C, carryPredicate(val1, val2_twos));
 
 	return 0;
 }
@@ -1123,7 +1107,7 @@ uint8_t CPU::OR() {
 		pc++;
 	}
 
-	// and and load into a (8-bit)
+	// or and load into a (8-bit)
 	*op1 = (val1 | val2) & 0xFF;
 
 	// set flags
@@ -1249,6 +1233,7 @@ uint8_t CPU::DAA() {
 		// if addition, greater than 9 or carry (since thats also greater than 9)
 		if (a > 0x99 || getFlag(C)) {
 			a += 0x60;
+			setFlag(C, 1);
 		}
 		if ((a & 0x0F) > 0x09 || getFlag(H)) {
 			a += 0x06;
@@ -1268,7 +1253,6 @@ uint8_t CPU::DAA() {
 	// set flags
 	setFlag(Z, (a == 0));
 	setFlag(H, 0);
-	setFlag(C, (a > 0x99));
 
 	return 0;
 }
@@ -1619,14 +1603,14 @@ uint8_t CPU::CB() {
 	pc++;
 
 	// Set cycles to number of cycles in next opcode
-	cycles = cb_lookup[cb_opcode].cycles;
+	uint8_t cb_cycles = cb_lookup[cb_opcode].cycles;
 	
 	// Perform operation
 	uint8_t extra_cycle = (this->*cb_lookup[cb_opcode].operate)();
 
-	cycles += extra_cycle;
+	cb_cycles += extra_cycle;
 
-	return cycles;
+	return cb_cycles;
 }
 
 uint8_t CPU::BIT() {
@@ -2034,4 +2018,31 @@ uint8_t CPU::SWAP() {
 	setFlag(C, 0);
 
 	return 0;
+}
+
+void CPU::incrementLY() {
+	bool inc = false;
+	
+	// increment every 114 cycles per scanline
+	// add 4 for now to use real cycles, not machine cycles
+	scanline_clock++;
+	if (scanline_clock > 113) {
+		scanline_clock = 0;
+		
+		inc = true;
+	}
+
+	if (inc) {
+		// get byte from 0xFF44
+		uint16_t addr = 0xFF44;
+		uint8_t value = bus->read(addr);
+
+		// reset after 154 cycles
+		value++;
+		if (value > 153) {
+			value = 0x00;
+		}
+
+		bus->write(addr, value);
+	}
 }

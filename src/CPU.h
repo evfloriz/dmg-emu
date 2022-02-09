@@ -67,8 +67,8 @@ private:
 	uint8_t getFlag(FLAGS flag);
 	void setFlag(FLAGS flag, bool value);
 	
-	bool halfCarryPredicate(uint16_t val1, uint16_t val2);
-	bool carryPredicate(uint16_t val1, uint16_t val2);
+	bool halfCarryPredicate(uint16_t val1, uint16_t val2, uint16_t val3 = 0x0000);
+	bool carryPredicate(uint16_t val1, uint16_t val2, uint16_t val3 = 0x0000);
 	bool halfBorrowPredicate(uint16_t val1, uint16_t val2);
 	bool borrowPredicate(uint16_t val1, uint16_t val2);
 
@@ -84,6 +84,7 @@ private:
 	uint16_t addr_abs = 0x0000;
 	bool set_ime = false;
 	bool pending_ime = false;
+	uint8_t scanline_clock = 0x00;
 
 	// set rst values as uint8_ts
 	uint8_t rst[8] = { 0x00, 0x10, 0x20, 0x30, 0x08, 0x18, 0x28, 0x38 };
@@ -245,4 +246,7 @@ public:
 	std::string log_file = "log.txt";
 
 	FILE* file;
+
+	// ly incrementer for testing
+	void incrementLY();
 };
