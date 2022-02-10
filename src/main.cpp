@@ -121,7 +121,7 @@ public:
 			bus.cpu.clock();
 			
 			// Increment LY to simulate vblank
-			bus.cpu.incrementLY();
+			bus.cpu.simLY();
 
 		} while (!bus.cpu.complete());
 

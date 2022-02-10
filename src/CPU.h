@@ -84,7 +84,9 @@ private:
 	uint16_t addr_abs = 0x0000;
 	bool set_ime = false;
 	bool pending_ime = false;
-	uint8_t scanline_clock = 0x00;
+	
+	// start clock behind so it matches our result
+	uint8_t scanline_clock = 0;
 
 	// set rst values as uint8_ts
 	uint8_t rst[8] = { 0x00, 0x10, 0x20, 0x30, 0x08, 0x18, 0x28, 0x38 };
@@ -237,6 +239,8 @@ private:
 	uint8_t SWAP();
 	uint8_t SRL();
 
+	uint8_t interrupt_handler();
+
 	// debug things
 	void print_test();
 
@@ -248,5 +252,7 @@ public:
 	FILE* file;
 
 	// ly incrementer for testing
-	void incrementLY();
+	void simLY();
+	
+	uint16_t global_cycles = 0;
 };

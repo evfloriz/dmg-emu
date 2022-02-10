@@ -117,9 +117,9 @@ CPU::CPU() {
 		{0xC0, {&CPU::RET,			2,		&i_NZ}},		{0xC8, {&CPU::RET,			2,		&i_Z}},
 		{0xC1, {&CPU::POP_r16,		3,		&b,	&c}},		{0xC9, {&CPU::RET,			2,		&i_N}},
 		{0xC2, {&CPU::JP,			3,		&i_NZ}},		{0xCA, {&CPU::JP,			3,		&i_Z}},
-		{0xC3, {&CPU::JP,			3,		&i_N}},			{0xCB, {&CPU::CB,			1}},
+		{0xC3, {&CPU::JP,			3,		&i_N}},			{0xCB, {&CPU::CB,			0}},
 		{0xC4, {&CPU::CALL,			3,		&i_NZ}},		{0xCC, {&CPU::CALL,			3,		&i_Z}},
-		{0xC5, {&CPU::PUSH_r16,		3,		&b, &c}},		{0xCD, {&CPU::CALL,			3,		&i_N}},
+		{0xC5, {&CPU::PUSH_r16,		4,		&b, &c}},		{0xCD, {&CPU::CALL,			3,		&i_N}},
 		{0xC6, {&CPU::ADD,			2,		&a}},			{0xCE, {&CPU::ADC,			2,		&a}},
 		{0xC7, {&CPU::RST,			4,		&rst[0]}},		{0xCF, {&CPU::RST,			4,		&rst[4]}},
 		
@@ -128,7 +128,7 @@ CPU::CPU() {
 		{0xD2, {&CPU::JP,			3,		&i_NC}},		{0xDA, {&CPU::JP,			3,		&i_C}},		
 		/*{0xD3}*/											/*{0xDB}*/
 		{0xD4, {&CPU::CALL,			3,		&i_NC}},		{0xDC, {&CPU::CALL,			3,		&i_C}},
-		{0xD5, {&CPU::PUSH_r16,		3,		&d, &e}},		/*{0xDC}*/
+		{0xD5, {&CPU::PUSH_r16,		4,		&d, &e}},		/*{0xDC}*/
 		{0xD6, {&CPU::SUB,			2,		&a}},			{0xDE, {&CPU::SBC,			2,		&a}},
 		{0xD7, {&CPU::RST,			4,		&rst[1]}},		{0xDF, {&CPU::RST,			4,		&rst[5]}},
 		
@@ -137,7 +137,7 @@ CPU::CPU() {
 		{0xE2, {&CPU::LDH_p8_A,		2,		&c}},			{0xEA, {&CPU::LD_a16_A,		4}},
 		/*{0xE3}*/											/*{0xEB}*/
 		/*{0xE4}*/											/*{0xEC}*/
-		{0xE5, {&CPU::PUSH_r16,		3,		&h, &l}},		/*{0xED}*/
+		{0xE5, {&CPU::PUSH_r16,		4,		&h, &l}},		/*{0xED}*/
 		{0xE6, {&CPU::AND,			2,		&a}},			{0xEE, {&CPU::XOR,			2,		&a}},
 		{0xE7, {&CPU::RST,			4,		&rst[2]}},		{0xEF, {&CPU::RST,			4,		&rst[6]}},
 		
@@ -146,7 +146,7 @@ CPU::CPU() {
 		{0xF2, {&CPU::LDH_A_p8,		2,		&c}},			{0xFA, {&CPU::LD_A_a16,		4}},
 		{0xF3, {&CPU::DI,			1}},					{0xFB, {&CPU::EI,			1}},
 		/*{0xF4}*/											/*{0xFC}*/
-		{0xF5, {&CPU::PUSH_AF,		3,		&a, &f}},		/*{0xFD}*/
+		{0xF5, {&CPU::PUSH_AF,		4,		&a, &f}},		/*{0xFD}*/
 		{0xF6, {&CPU::OR,			2,		&a}},			{0xFE, {&CPU::CP,			2,		&a}},
 		{0xF7, {&CPU::RST,			4,		&rst[3]}},		{0xFF, {&CPU::RST,			4,		&rst[7]}},
 	};
@@ -194,7 +194,7 @@ CPU::CPU() {
 		{0x43, {&CPU::BIT,			2,	&bit[0], &e}},		{0x4B, {&CPU::BIT,			2,	&bit[1], &e}},
 		{0x44, {&CPU::BIT,			2,	&bit[0], &h}},		{0x4C, {&CPU::BIT,			2,	&bit[1], &h}},
 		{0x45, {&CPU::BIT,			2,	&bit[0], &l}},		{0x4D, {&CPU::BIT,			2,	&bit[1], &l}},
-		{0x46, {&CPU::BIT,			4,	&bit[0], &h, &l}},	{0x4E, {&CPU::BIT,			4,	&bit[1], &h, &l}},
+		{0x46, {&CPU::BIT,			3,	&bit[0], &h, &l}},	{0x4E, {&CPU::BIT,			3,	&bit[1], &h, &l}},
 		{0x47, {&CPU::BIT,			2,	&bit[0], &a}},		{0x4F, {&CPU::BIT,			2,	&bit[1], &a}},
 
 		{0x50, {&CPU::BIT,			2,	&bit[2], &b}},		{0x58, {&CPU::BIT,			2,	&bit[3], &b}},
@@ -203,7 +203,7 @@ CPU::CPU() {
 		{0x53, {&CPU::BIT,			2,	&bit[2], &e}},		{0x5B, {&CPU::BIT,			2,	&bit[3], &e}},
 		{0x54, {&CPU::BIT,			2,	&bit[2], &h}},		{0x5C, {&CPU::BIT,			2,	&bit[3], &h}},
 		{0x55, {&CPU::BIT,			2,	&bit[2], &l}},		{0x5D, {&CPU::BIT,			2,	&bit[3], &l}},
-		{0x56, {&CPU::BIT,			4,	&bit[2], &h, &l}},	{0x5E, {&CPU::BIT,			4,	&bit[3], &h, &l}},
+		{0x56, {&CPU::BIT,			3,	&bit[2], &h, &l}},	{0x5E, {&CPU::BIT,			3,	&bit[3], &h, &l}},
 		{0x57, {&CPU::BIT,			2,	&bit[2], &a}},		{0x5F, {&CPU::BIT,			2,	&bit[3], &a}},
 
 		{0x60, {&CPU::BIT,			2,	&bit[4], &b}},		{0x68, {&CPU::BIT,			2,	&bit[5], &b}},
@@ -212,7 +212,7 @@ CPU::CPU() {
 		{0x63, {&CPU::BIT,			2,	&bit[4], &e}},		{0x6B, {&CPU::BIT,			2,	&bit[5], &e}},
 		{0x64, {&CPU::BIT,			2,	&bit[4], &h}},		{0x6C, {&CPU::BIT,			2,	&bit[5], &h}},
 		{0x65, {&CPU::BIT,			2,	&bit[4], &l}},		{0x6D, {&CPU::BIT,			2,	&bit[5], &l}},
-		{0x66, {&CPU::BIT,			4,	&bit[4], &h, &l}},	{0x6E, {&CPU::BIT,			4,	&bit[5], &h, &l}},
+		{0x66, {&CPU::BIT,			3,	&bit[4], &h, &l}},	{0x6E, {&CPU::BIT,			3,	&bit[5], &h, &l}},
 		{0x67, {&CPU::BIT,			2,	&bit[4], &a}},		{0x6F, {&CPU::BIT,			2,	&bit[5], &a}},
 
 		{0x70, {&CPU::BIT,			2,	&bit[6], &b}},		{0x78, {&CPU::BIT,			2,	&bit[7], &b}},
@@ -221,7 +221,7 @@ CPU::CPU() {
 		{0x73, {&CPU::BIT,			2,	&bit[6], &e}},		{0x7B, {&CPU::BIT,			2,	&bit[7], &e}},
 		{0x74, {&CPU::BIT,			2,	&bit[6], &h}},		{0x7C, {&CPU::BIT,			2,	&bit[7], &h}},
 		{0x75, {&CPU::BIT,			2,	&bit[6], &l}},		{0x7D, {&CPU::BIT,			2,	&bit[7], &l}},
-		{0x76, {&CPU::BIT,			4,	&bit[6], &h, &l}},	{0x7E, {&CPU::BIT,			4,	&bit[7], &h, &l}},
+		{0x76, {&CPU::BIT,			3,	&bit[6], &h, &l}},	{0x7E, {&CPU::BIT,			3,	&bit[7], &h, &l}},
 		{0x77, {&CPU::BIT,			2,	&bit[6], &a}},		{0x7F, {&CPU::BIT,			2,	&bit[7], &a}},
 
 		{0x80, {&CPU::RES,			2,	&bit[0], &b}},		{0x88, {&CPU::RES,			2,	&bit[1], &b}},
@@ -350,14 +350,22 @@ uint8_t CPU::read(uint16_t addr) {
 void CPU::clock() {
 	// If cycles remaining for an instruction is 0, read next byte
 	if (cycles == 0) {
+		// First check interrupt handler and return if there has been one
+		/*cycles = interrupt_handler();
+		if (cycles > 0) {
+			cycles--;
+			return;
+		}*/
+
 		opcode = read(pc);
 		
 		if (print_toggle) {
 			printf("0x%04x: 0x%02x ", pc, opcode);
 			printf("%-15s ", dis_lookup[opcode].c_str());
-			printf("a: 0x%02x f: 0x%02x b: 0x%02x c: 0x%02x d: 0x%02x e: 0x%02x h: 0x%02x l: 0x%02x pc: 0x%04x sp: 0x%04x ", a, f, b, c, d, e, h, l, pc, sp);
+			printf("a: 0x%02x f: 0x%02x b: 0x%02x c: 0x%02x d: 0x%02x e: 0x%02x h: 0x%02x l: 0x%02x pc: 0x%04x sp: 0x%04x\n", a, f, b, c, d, e, h, l, pc, sp);
 			//printf("Z: %i N: %i H: %i C: %i \n", getFlag(Z), getFlag(N), getFlag(H), getFlag(C));
-			printf("LY: %i\n", bus->read(0xFF44));
+			//printf("LY: 0x%02x ", bus->read(0xFF44));
+			//printf("gc: %i\n", global_cycles);
 		}
 
 		if (log_toggle) {
@@ -396,6 +404,13 @@ void CPU::clock() {
 		}
 	}
 	cycles--;
+
+	if (print_toggle) {
+		printf("                                                                                                                    LY: 0x%02x ", bus->read(0xFF44));
+		printf("gc: %i\n", global_cycles);
+	}
+
+	global_cycles++;
 
 	// print test rom output
 	print_test();
@@ -1336,6 +1351,7 @@ uint8_t CPU::JR() {
 
 		// return 1 for extra cycle if branch is taken
 		return 1;
+		//return 0;
 	}
 
 	return 0;
@@ -2020,7 +2036,16 @@ uint8_t CPU::SWAP() {
 	return 0;
 }
 
-void CPU::incrementLY() {
+void CPU::simLY() {
+	// first check if screen is off and reset everything if so
+	if (!(bus->read(0xFF40) & 0x80)) {
+		// LCD off
+		bus->write(0xFF44, 0x00);
+		scanline_clock = 0;
+
+		return;
+	}
+	
 	bool inc = false;
 	
 	// increment every 114 cycles per scanline
@@ -2045,4 +2070,79 @@ void CPU::incrementLY() {
 
 		bus->write(addr, value);
 	}
+}
+
+uint8_t CPU::interrupt_handler() {
+	// read interrupt register
+	if (IME == 0) {
+		return 0;
+	}
+
+	IE = bus->read(0xFFFF);
+	IF = bus->read(0xFF0F);
+
+	bool interrupt = false;
+	uint8_t int_cycles = 5;
+
+	auto push_pc = [&]() {
+		// push current pc to stack
+		uint16_t next = pc;
+		uint8_t next_lo = next & 0xFF;
+		uint8_t next_hi = (next >> 8) & 0xFF;
+
+		sp--;
+		bus->write(sp, next_hi);
+		sp--;
+		bus->write(sp, next_lo);
+	};
+
+	// priority in order
+	if ((IE & (1 << 0)) && (IF & (1 << 0))) {
+		// bit 0, vblank
+		// reset IF and IME
+		IF &= ~(1 << 0);
+		IME = 0;
+
+		push_pc();
+		pc = 0x0040;
+		return int_cycles;
+	}
+	else if ((IE & (1 << 1)) && (IF & (1 << 1))) {
+		// bit 1, LCD STAT
+		IF &= ~(1 << 1);
+		IME = 0;
+
+		push_pc();
+		pc = 0x0048;
+		return int_cycles;
+	}
+	else if ((IE & (1 << 2)) && (IF & (1 << 2))) {
+		// bit 2, Timer
+		IF &= ~(1 << 2);
+		IME = 0;
+
+		push_pc();
+		pc = 0x0050;
+		return int_cycles;
+	}
+	else if ((IE & (1 << 3)) && (IF & (1 << 3))) {
+		// bit 3, Serial
+		IF &= ~(1 << 3);
+		IME = 0;
+
+		push_pc();
+		pc = 0x0058;
+		return int_cycles;
+	}
+	else if ((IE & (1 << 4)) && (IF & (1 << 4))) {
+		// bit 4, Joypad
+		IF &= ~(1 << 4);
+		IME = 0;
+
+		push_pc();
+		pc = 0x0060;
+		return int_cycles;
+	}
+	
+	return 0;
 }
