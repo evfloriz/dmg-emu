@@ -57,8 +57,8 @@ public:
 	// Status register flags
 	enum FLAGS {
 		Z = (1 << 7),	// zero flag
-		N = (1 << 6),	// subtraction flag (likely not needed)
-		H = (1 << 5),	// half carry flag (likely not needed)
+		N = (1 << 6),	// subtraction flag
+		H = (1 << 5),	// half carry flag
 		C = (1 << 4)	// carry flag
 	};
 

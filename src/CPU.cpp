@@ -927,7 +927,7 @@ uint8_t CPU::ADC() {
 	}
 
 	// add the carry bit
-	uint16_t carry = getFlag(FLAGS::C) ? 0x0001 : 0x0000;
+	uint16_t carry = getFlag(FLAGS::C);
 
 	// add with carry and load into a (8-bit)
 	*op1 = (val1 + val2 + carry) & 0xFF;
@@ -1006,8 +1006,17 @@ uint8_t CPU::SBC() {
 
 	// add the carry bit
 	// todo: watch for possible bug with carry bit and sign extension
-	uint16_t carry = getFlag(FLAGS::C) ? 0x0001 : 0x0000;
-	
+	uint16_t carry = getFlag(FLAGS::C);
+
+	if (carry) {
+		printf("");
+	}
+
+	// todo: tech debt, refactor this
+	// check for a half carry for the 00-(0F+1) case
+	bool halfCarryFlag = halfCarryPredicate(val2, carry);
+	bool carryFlag = carryPredicate(val2, carry);
+
 	// add carry before twos complement I think - ultimately subtract
 	val2 += carry;
 
@@ -1020,8 +1029,12 @@ uint8_t CPU::SBC() {
 	// set flags
 	setFlag(Z, (*op1 == 0));
 	setFlag(N, 1);
-	setFlag(H, halfBorrowPredicate(val1, val2));
-	setFlag(C, borrowPredicate(val1, val2));
+	setFlag(H, halfBorrowPredicate(val1, val2) || halfCarryFlag);
+	setFlag(C, borrowPredicate(val1, val2) || carryFlag);
+
+	if (carry) {
+		printf("");
+	}
 
 	return 0;
 }
