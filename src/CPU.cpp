@@ -9,7 +9,7 @@ CPU::CPU() {
 		{0x00, {&CPU::NOP,			1}},					{0x08, {&CPU::LD_a16_SP,	5}},
 		{0x01, {&CPU::LD_r16,		3,		&b, &c}},		{0x09, {&CPU::ADD_r16,		2,		&b, &c}},
 		{0x02, {&CPU::LD_p16_r8,	2,		&b, &c, &a}},	{0x0A, {&CPU::LD_r8_p16,	2,		&a, &b, &c}},
-		{0x03, {&CPU::INC_r16,		2,		&b, &c}},		{0x0B, {&CPU::DEC_r16,		2,		&a, &b}},
+		{0x03, {&CPU::INC_r16,		2,		&b, &c}},		{0x0B, {&CPU::DEC_r16,		2,		&b, &c}},
 		{0x04, {&CPU::INC,			1,		&b}},			{0x0C, {&CPU::INC,			1,		&c}},
 		{0x05, {&CPU::DEC,			1,		&b}},			{0x0D, {&CPU::DEC,			1,		&c}},
 		{0x06, {&CPU::LD_r8_r8,		2,		&b}},			{0x0E, {&CPU::LD_r8_r8,		2,		&c}},
@@ -18,7 +18,7 @@ CPU::CPU() {
 		{0x10, {&CPU::STOP,			1}},					{0x18, {&CPU::JR,			2,		&i_N}},
 		{0x11, {&CPU::LD_r16,		3,		&d, &e}},		{0x19, {&CPU::ADD_r16,		2,		&d, &e}},
 		{0x12, {&CPU::LD_p16_r8,	2,		&d, &e, &a}},	{0x1A, {&CPU::LD_r8_p16,	2,		&a, &d, &e}},
-		{0x13, {&CPU::INC_r16,		2,		&d, &e}},		{0x1B, {&CPU::DEC_r16,		2,		&a, &c}},
+		{0x13, {&CPU::INC_r16,		2,		&d, &e}},		{0x1B, {&CPU::DEC_r16,		2,		&d, &e}},
 		{0x14, {&CPU::INC,			1,		&d}},			{0x1C, {&CPU::INC,			1,		&e}},
 		{0x15, {&CPU::DEC,			1,		&d}},			{0x1D, {&CPU::DEC,			1,		&e}},
 		{0x16, {&CPU::LD_r8_r8,		2,		&d}},			{0x1E, {&CPU::LD_r8_r8,		2,		&e}},
@@ -27,7 +27,7 @@ CPU::CPU() {
 		{0x20, {&CPU::JR,			2,		&i_NZ}},		{0x28, {&CPU::JR,			2,		&i_Z}},
 		{0x21, {&CPU::LD_r16,		3,		&h, &l}},		{0x29, {&CPU::ADD_r16,		2,		&h, &l}},
 		{0x22, {&CPU::LD_HLI_A,		2,		&h, &l, &a}},	{0x2A, {&CPU::LD_A_HLI,		2,		&a, &h, &l}},
-		{0x23, {&CPU::INC_r16,		2,		&h, &l}},		{0x2B, {&CPU::DEC_r16,		2,		&a, &d}},
+		{0x23, {&CPU::INC_r16,		2,		&h, &l}},		{0x2B, {&CPU::DEC_r16,		2,		&h, &l}},
 		{0x24, {&CPU::INC,			1,		&h}},			{0x2C, {&CPU::INC,			1,		&l}},
 		{0x25, {&CPU::DEC,			1,		&h}},			{0x2D, {&CPU::DEC,			1,		&l}},
 		{0x26, {&CPU::LD_r8_r8,		2,		&h}},			{0x2E, {&CPU::LD_r8_r8,		2,		&l}},
@@ -179,14 +179,14 @@ CPU::CPU() {
 		{0x26, {&CPU::SLA,			4,		&h, &l}},		{0x2E, {&CPU::SRA,			4,		&h, &l}},
 		{0x27, {&CPU::SLA,			2,		&a}},			{0x2F, {&CPU::SRA,			2,		&a}},
 
-		{0x30, {&CPU::SLA,			2,		&b}},			{0x38, {&CPU::SRL,			2,		&b}},
-		{0x31, {&CPU::SLA,			2,		&c}},			{0x39, {&CPU::SRL,			2,		&c}},
-		{0x32, {&CPU::SLA,			2,		&d}},			{0x3A, {&CPU::SRL,			2,		&d}},
-		{0x33, {&CPU::SLA,			2,		&e}},			{0x3B, {&CPU::SRL,			2,		&e}},
-		{0x34, {&CPU::SLA,			2,		&h}},			{0x3C, {&CPU::SRL,			2,		&h}},
-		{0x35, {&CPU::SLA,			2,		&l}},			{0x3D, {&CPU::SRL,			2,		&l}},
-		{0x36, {&CPU::SLA,			4,		&h, &l}},		{0x3E, {&CPU::SRL,			4,		&h, &l}},
-		{0x37, {&CPU::SLA,			2,		&a}},			{0x3F, {&CPU::SRL,			2,		&a}},
+		{0x30, {&CPU::SWAP,			2,		&b}},			{0x38, {&CPU::SRL,			2,		&b}},
+		{0x31, {&CPU::SWAP,			2,		&c}},			{0x39, {&CPU::SRL,			2,		&c}},
+		{0x32, {&CPU::SWAP,			2,		&d}},			{0x3A, {&CPU::SRL,			2,		&d}},
+		{0x33, {&CPU::SWAP,			2,		&e}},			{0x3B, {&CPU::SRL,			2,		&e}},
+		{0x34, {&CPU::SWAP,			2,		&h}},			{0x3C, {&CPU::SRL,			2,		&h}},
+		{0x35, {&CPU::SWAP,			2,		&l}},			{0x3D, {&CPU::SRL,			2,		&l}},
+		{0x36, {&CPU::SWAP,			4,		&h, &l}},		{0x3E, {&CPU::SRL,			4,		&h, &l}},
+		{0x37, {&CPU::SWAP,			2,		&a}},			{0x3F, {&CPU::SRL,			2,		&a}},
 
 		{0x40, {&CPU::BIT,			2,	&bit[0], &b}},		{0x48, {&CPU::BIT,			2,	&bit[1], &b}},
 		{0x41, {&CPU::BIT,			2,	&bit[0], &c}},		{0x49, {&CPU::BIT,			2,	&bit[1], &c}},
@@ -351,11 +351,11 @@ void CPU::clock() {
 	// If cycles remaining for an instruction is 0, read next byte
 	if (cycles == 0) {
 		// First check interrupt handler and return if there has been one
-		/*cycles = interrupt_handler();
+		cycles = interrupt_handler();
 		if (cycles > 0) {
 			cycles--;
 			return;
-		}*/
+		}
 
 		opcode = read(pc);
 		
@@ -405,10 +405,10 @@ void CPU::clock() {
 	}
 	cycles--;
 
-	if (print_toggle) {
+	/*if (print_toggle) {
 		printf("                                                                                                                    LY: 0x%02x ", bus->read(0xFF44));
 		printf("gc: %i\n", global_cycles);
-	}
+	}*/
 
 	global_cycles++;
 
@@ -1307,7 +1307,7 @@ uint8_t CPU::CCF() {
 	// complement carry flag
 	setFlag(N, 0);
 	setFlag(H, 0);
-	setFlag(C, ~getFlag(C));
+	setFlag(C, getFlag(C) ? 0 : 1);
 
 	return 0;
 }
@@ -1703,11 +1703,11 @@ uint8_t CPU::SET() {
 		// (HL)
 		uint16_t addr = (*op2 << 8) | *op3;
 		uint8_t value = bus->read(addr);
-		bus->write(addr, value & (1 << *op1));
+		bus->write(addr, value | (1 << *op1));
 	}
 	else {
 		// register
-		*op2 = *op2 & (1 << *op1);
+		*op2 = *op2 | (1 << *op1);
 	}
 
 	return 0;
@@ -1754,14 +1754,14 @@ uint8_t CPU::RRCA() {
 uint8_t CPU::RLA() {
 	// cast to 16 bits
 	// shift everything left 1
-	// set carry to the value of the final bit 8
 	// set first bit 0 to the value of carry
+	// set carry to the value of the final bit 8
 	// mask the bottom 8 bits
 
 	uint16_t temp = a;
 	temp = temp << 1;
+	temp |= getFlag(C) << 0;
 	setFlag(C, temp & 0x0100);
-	temp |= getFlag(C);
 
 	a = temp & 0xFF;
 
@@ -1863,13 +1863,13 @@ uint8_t CPU::RL() {
 
 	// cast to 16 bits
 	// shift everything left 1
-	// set carry to the value of the final bit 8
 	// set first bit 0 to the value of carry
+	// set carry to the value of the final bit 8
 	// mask the bottom 8 bits
 	auto shift = [&](uint16_t value) -> uint8_t {
 		value = value << 1;
+		value |= getFlag(C) << 0;
 		setFlag(C, value & 0x0100);
-		value |= getFlag(C);
 		setFlag(Z, ((value & 0xFF) == 0));
 		return (value & 0xFF);
 	};

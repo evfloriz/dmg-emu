@@ -50,8 +50,8 @@ public:
 	Bus bus;
 
 	bool init() {
-		// passing 1, 3, 4, 6, 7, 8
-		size_t test_num = 4;
+		// passing 1, 3, 4, 5, 6, 7, 8, 9, 10, 11
+		size_t test_num = 2;
 		
 		// Load boot rom
 		unsigned char memory[0x10000];
@@ -101,7 +101,7 @@ public:
 
 		std::cout << "Beginning execution of " << rom << std::endl;
 
-		bus.cpu.print_toggle = false;
+		bus.cpu.print_toggle = true;
 		bus.cpu.log_toggle = true;
 		bus.cpu.log_file = "log/l" + std::to_string(test_num) + ".txt";
 
