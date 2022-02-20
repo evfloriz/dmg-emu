@@ -82,8 +82,10 @@ private:
 	uint8_t opcode = 0x00;
 	uint8_t cb_opcode = 0x00;
 	uint16_t addr_abs = 0x0000;
+	
 	bool set_ime = false;
-	bool pending_ime = false;
+	bool ei_last_instr = false;
+	bool read_next_twice = false;
 	
 	// start clock behind so it matches our result
 	uint8_t scanline_clock = 0;

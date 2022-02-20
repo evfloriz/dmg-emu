@@ -1,3 +1,5 @@
+#include <chrono>
+#include <thread>
 #include "CPU.h"
 
 #include "Bus.h"
@@ -350,13 +352,6 @@ uint8_t CPU::read(uint16_t addr) {
 void CPU::clock() {
 	// If cycles remaining for an instruction is 0, read next byte
 	if (cycles == 0) {
-		// First check interrupt handler and return if there has been one
-		cycles = interrupt_handler();
-		if (cycles > 0) {
-			cycles--;
-			return;
-		}
-
 		opcode = read(pc);
 		
 		if (print_toggle) {
@@ -377,26 +372,31 @@ void CPU::clock() {
 		if (lookup.count(opcode)) {
 
 			// If last instruction was EI, set IME after this instruction is finished
-			if (pending_ime) {
+			if (ei_last_instr) {
 				set_ime = true;
-				pending_ime = false;
+				ei_last_instr = false;
 			}
 			
 			// Set cycles to number of cycles
 			cycles = lookup[opcode].cycles;
+
+			// Check if next byte should be read twice (halt bug)
+			if (read_next_twice) {
+				read_next_twice = false;
+				pc--;
+			}
 
 			// Perform operation
 			uint8_t extra_cycles = (this->*lookup[opcode].operate)();
 
 			cycles += extra_cycles;
 
-			// multiply cycles by 4 for correct clock cpu timing
-			//cycles *= 4;
-
 			// Set ime flag after instruction following EI
 			if (set_ime) {
 				IME = true;
 			}
+
+			
 		}
 		else {
 			printf("Unexpected opcode 0x%02x at 0x%04x\n", opcode, pc);
@@ -1581,7 +1581,7 @@ uint8_t CPU::NOP() {
 uint8_t CPU::EI() {
 	// enable IME flag
 	// needs to happen after the next instruction
-	pending_ime = true;
+	ei_last_instr = true;
 	return 0;
 }
 
@@ -1602,24 +1602,48 @@ uint8_t CPU::STOP() {
 
 uint8_t CPU::HALT() {
 	// halt
+	
+	// Keep track if there was an interrupt pending as soon as halt was called
+	bool initial_pending_interrupt = IE & IF;
+
+	// Spin until pending interrupt
+	// Source: https://stackoverflow.com/questions/158585/how-do-you-add-a-timed-delay-to-a-c-program
+	while (!(IE & IF)) {
+		std::this_thread::sleep_for(std::chrono::nanoseconds(100));
+	}
 
 	if (IME) {
-		if (IE & IF) {
-			// wake up
-			// call interrupt handler
-		}
+		// wake up
+		// call interrupt handler
+		return interrupt_handler();
 	}
 	else {
-		if (IE & IF) {
+		
+		if (initial_pending_interrupt) {
+
 			// halt bug
 			
-			// normal case - read byte after halt twice
-			
-			// ei before halt - interrupt serviced, handler called, then interrupt executes another halt
-			// and waits for another interrupt
+			if (ei_last_instr) {
+				// normal case - read byte after halt twice
+				read_next_twice = true;
+			}
+			else
+			{
+
+				// ei before halt - interrupt serviced, handler called, then interrupt executes another halt
+				// and waits for another interrupt
+
+				// decrement pc so it points to current HALT instruciton
+				pc--;
+
+				// handle interrupt
+				return interrupt_handler();
+			}
 		}
 		else {
-			// wait until interrupt becomes pending
+			// normal execution, return without handling interrupt
+			return 0;
+			
 		}
 	}
 

@@ -101,7 +101,7 @@ public:
 
 		std::cout << "Beginning execution of " << rom << std::endl;
 
-		bus.cpu.print_toggle = true;
+		bus.cpu.print_toggle = false;
 		bus.cpu.log_toggle = true;
 		bus.cpu.log_file = "log/l" + std::to_string(test_num) + ".txt";
 
