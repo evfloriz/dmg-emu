@@ -51,7 +51,7 @@ public:
 
 	bool init() {
 		// passing 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11
-		size_t test_num = 2;
+		size_t test_num = 12;
 		
 		// Load boot rom
 		unsigned char memory[0x10000];
@@ -67,10 +67,10 @@ public:
 			"08-misc instrs.gb",
 			"09-op r,r.gb",
 			"10-bit ops.gb",
-			"11-op a,(hl).gb"
+			"11-op a,(hl).gb",
+			"instr_timing.gb"
 		};
 		std::string rom = "test-roms/" + test_roms[test_num];
-		//const char* rom = "DMG_ROM.bin";
 		FILE* file = fopen(rom.c_str(), "rb");
 		int pos = 0;
 		while (fread(&memory[pos], 1, 1, file)) {

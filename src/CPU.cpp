@@ -135,7 +135,7 @@ CPU::CPU() {
 		{0xD7, {&CPU::RST,			4,		&rst[1]}},		{0xDF, {&CPU::RST,			4,		&rst[5]}},
 		
 		{0xE0, {&CPU::LDH_p8_A,		3}},					{0xE8, {&CPU::ADD_SP_o8,	4}},
-		{0xE1, {&CPU::POP_r16,		3,		&h, &l}},		{0xE9, {&CPU::JP,			1,		&i_N, &h, &l}},
+		{0xE1, {&CPU::POP_r16,		3,		&h, &l}},		{0xE9, {&CPU::JP,			0,		&i_N, &h, &l}},
 		{0xE2, {&CPU::LDH_p8_A,		2,		&c}},			{0xEA, {&CPU::LD_a16_A,		4}},
 		/*{0xE3}*/											/*{0xEB}*/
 		/*{0xE4}*/											/*{0xEC}*/
