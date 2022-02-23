@@ -50,7 +50,7 @@ public:
 	Bus bus;
 
 	bool init() {
-		// passing 1, 3, 4, 5, 6, 7, 8, 9, 10, 11
+		// passing 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11
 		size_t test_num = 2;
 		
 		// Load boot rom
@@ -112,16 +112,27 @@ public:
 
 		// reset LY
 		bus.write(0xFF44, 0x00);
+		
+		// reset divider and timer registers
+		bus.write(0xFF04, 0xAB);
+		bus.write(0xFF05, 0x00);
+		bus.write(0xFF06, 0x00);
+		bus.write(0xFF07, 0xF8);
 
 		return true;
 	}
 
 	bool tick() {
 		do {
+			bus.cpu.interrupt_handler();
+			
 			bus.cpu.clock();
 			
 			// Increment LY to simulate vblank
 			bus.cpu.simLY();
+
+			// Execute timer function
+			bus.cpu.timer();
 
 		} while (!bus.cpu.complete());
 

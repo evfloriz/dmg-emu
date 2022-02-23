@@ -31,8 +31,8 @@ public:
 	uint8_t IME = 0x00;
 	
 	// interrupt registers
-	uint8_t IE = 0x00;
-	uint8_t IF = 0x00;
+	//uint8_t IE = 0x00;
+	//uint8_t IF = 0x00;
 
 	// External event functions
 	// todo: double check that these are the same on the dmg cpu
@@ -86,9 +86,13 @@ private:
 	bool set_ime = false;
 	bool ei_last_instr = false;
 	bool read_next_twice = false;
+
+	bool halt_state = false;
+	bool initial_pending_interrupt = false;
 	
-	// start clock behind so it matches our result
-	uint8_t scanline_clock = 0;
+	uint16_t scanline_clock = 0;
+	uint16_t divider_clock = 0;
+	uint16_t timer_clock = 0;
 
 	// set rst values as uint8_ts
 	uint8_t rst[8] = { 0x00, 0x10, 0x20, 0x30, 0x08, 0x18, 0x28, 0x38 };
@@ -241,7 +245,7 @@ private:
 	uint8_t SWAP();
 	uint8_t SRL();
 
-	uint8_t interrupt_handler();
+	uint8_t halt_cycle();
 
 	// debug things
 	void print_test();
@@ -255,6 +259,9 @@ public:
 
 	// ly incrementer for testing
 	void simLY();
+	
+	uint8_t timer();
+	uint8_t interrupt_handler();
 	
 	uint16_t global_cycles = 0;
 };

@@ -351,7 +351,7 @@ uint8_t CPU::read(uint16_t addr) {
 
 void CPU::clock() {
 	// If cycles remaining for an instruction is 0, read next byte
-	if (cycles == 0) {
+	if (cycles == 0 && !halt_state) {
 		opcode = read(pc);
 		
 		if (print_toggle) {
@@ -391,9 +391,13 @@ void CPU::clock() {
 
 			cycles += extra_cycles;
 
+			// multiply by 4 to convert machine cycles to clock cycles
+			cycles *= 4;
+
 			// Set ime flag after instruction following EI
 			if (set_ime) {
 				IME = true;
+				set_ime = false;
 			}
 
 			
@@ -409,6 +413,11 @@ void CPU::clock() {
 		printf("                                                                                                                    LY: 0x%02x ", bus->read(0xFF44));
 		printf("gc: %i\n", global_cycles);
 	}*/
+
+	// cpu halt state
+	if (halt_state) {
+		cycles = halt_cycle();
+	}
 
 	global_cycles++;
 
@@ -1603,49 +1612,14 @@ uint8_t CPU::STOP() {
 uint8_t CPU::HALT() {
 	// halt
 	
+	uint8_t IE = bus->read(0xFFFF);
+	uint8_t IF = bus->read(0xFF0F);
+	
 	// Keep track if there was an interrupt pending as soon as halt was called
-	bool initial_pending_interrupt = IE & IF;
+	initial_pending_interrupt = IE & IF;
 
-	// Spin until pending interrupt
-	// Source: https://stackoverflow.com/questions/158585/how-do-you-add-a-timed-delay-to-a-c-program
-	while (!(IE & IF)) {
-		std::this_thread::sleep_for(std::chrono::nanoseconds(100));
-	}
-
-	if (IME) {
-		// wake up
-		// call interrupt handler
-		return interrupt_handler();
-	}
-	else {
-		
-		if (initial_pending_interrupt) {
-
-			// halt bug
-			
-			if (ei_last_instr) {
-				// normal case - read byte after halt twice
-				read_next_twice = true;
-			}
-			else
-			{
-
-				// ei before halt - interrupt serviced, handler called, then interrupt executes another halt
-				// and waits for another interrupt
-
-				// decrement pc so it points to current HALT instruciton
-				pc--;
-
-				// handle interrupt
-				return interrupt_handler();
-			}
-		}
-		else {
-			// normal execution, return without handling interrupt
-			return 0;
-			
-		}
-	}
+	// Set the CPU to be in the halt state
+	halt_state = true;
 
 	return 0;
 }
@@ -2085,10 +2059,9 @@ void CPU::simLY() {
 	
 	bool inc = false;
 	
-	// increment every 114 cycles per scanline
-	// add 4 for now to use real cycles, not machine cycles
+	// increment every 114 machine cycles per scanline (456 real clock cycles)
 	scanline_clock++;
-	if (scanline_clock > 113) {
+	if (scanline_clock > 455) {
 		scanline_clock = 0;
 		
 		inc = true;
@@ -2115,10 +2088,9 @@ uint8_t CPU::interrupt_handler() {
 		return 0;
 	}
 
-	IE = bus->read(0xFFFF);
-	IF = bus->read(0xFF0F);
+	uint8_t IE = bus->read(0xFFFF);
+	uint8_t IF = bus->read(0xFF0F);
 
-	bool interrupt = false;
 	uint8_t int_cycles = 5;
 
 	auto push_pc = [&]() {
@@ -2140,7 +2112,9 @@ uint8_t CPU::interrupt_handler() {
 		IF &= ~(1 << 0);
 		IME = 0;
 
+		bus->write(0xFF0F, IF);
 		push_pc();
+
 		pc = 0x0040;
 		return int_cycles;
 	}
@@ -2149,7 +2123,9 @@ uint8_t CPU::interrupt_handler() {
 		IF &= ~(1 << 1);
 		IME = 0;
 
+		bus->write(0xFF0F, IF);
 		push_pc();
+
 		pc = 0x0048;
 		return int_cycles;
 	}
@@ -2158,7 +2134,9 @@ uint8_t CPU::interrupt_handler() {
 		IF &= ~(1 << 2);
 		IME = 0;
 
+		bus->write(0xFF0F, IF);
 		push_pc();
+		
 		pc = 0x0050;
 		return int_cycles;
 	}
@@ -2167,7 +2145,9 @@ uint8_t CPU::interrupt_handler() {
 		IF &= ~(1 << 3);
 		IME = 0;
 
+		bus->write(0xFF0F, IF);
 		push_pc();
+		
 		pc = 0x0058;
 		return int_cycles;
 	}
@@ -2176,10 +2156,104 @@ uint8_t CPU::interrupt_handler() {
 		IF &= ~(1 << 4);
 		IME = 0;
 
+		bus->write(0xFF0F, IF);
 		push_pc();
+		
 		pc = 0x0060;
 		return int_cycles;
 	}
 	
 	return 0;
+}
+
+uint8_t CPU::timer() {
+	// divider
+	// 16384 Hz is every 256 cycles at 4 MHz
+	uint8_t divider = bus->read(0xFF04);
+
+	divider_clock++;
+	if (divider_clock > 255) {
+		divider_clock = 0;
+
+		// increment divider every 256 cycles
+		// should automatically overflow
+		bus->write(0xFF04, divider++);
+	}
+
+	// timer
+	uint8_t timer_counter = bus->read(0xFF05);
+	uint8_t timer_modulo = bus->read(0xFF06);
+	uint8_t timer_control = bus->read(0xFF07);
+	
+	bool timer_on = timer_control & (1 << 2);
+	
+	uint16_t speeds[] = { 1024, 16, 64, 256 };
+	uint16_t speed = speeds[timer_control & 0x03];
+
+	if (timer_on) {
+		//printf("timer counter: %i\n", timer_counter);
+		timer_clock++;
+		if (timer_clock > speed - 1) {
+			timer_clock = timer_modulo;
+
+			// increment timer after correct number of cycles
+			// need to check for overflow for the interrupt
+			timer_counter++;
+			if (timer_counter == 0) {
+				// set timer interrupt
+				bus->write(0xFF0F, (1 << 2));
+			}
+			bus->write(0xFF05, timer_counter);
+		}
+	}
+
+	return 0;
+}
+
+uint8_t CPU::halt_cycle() {
+	// cycle that executes when cpu is in halt state
+
+	uint8_t IE = bus->read(0xFFFF);
+	uint8_t IF = bus->read(0xFF0F);
+
+	// early out cpu should remain in halt state
+	if (!(IE & IF)) {
+		return 0;
+	}
+
+	uint8_t extra_cycles = 0;
+
+	if (IME) {
+		// wake up
+		// call interrupt handler
+		extra_cycles = interrupt_handler();
+	}
+	else {
+		if (initial_pending_interrupt) {
+			// halt bug
+			if (ei_last_instr) {
+				// normal case - read byte after halt twice, return without handling interrupt
+				read_next_twice = true;
+			}
+			else {
+				// ei before halt - interrupt serviced, handler called, then interrupt executes another halt
+				// and waits for another interrupt
+
+				// decrement pc so it points to current HALT instruciton
+				pc--;
+
+				// handle interrupt
+				extra_cycles = interrupt_handler();
+			}
+		}
+		else {
+			// normal execution, return without handling interrupt
+		}
+	}
+
+	// turn off halt state
+	initial_pending_interrupt = false;
+	halt_state = false;
+
+	return extra_cycles;
 }
