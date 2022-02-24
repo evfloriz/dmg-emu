@@ -50,8 +50,8 @@ public:
 	Bus bus;
 
 	bool init() {
-		// passing 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11
-		size_t test_num = 12;
+		// Passing 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, instr_timing
+		size_t test_num = 1;
 		
 		// Load boot rom
 		unsigned char memory[0x10000];
@@ -85,35 +85,21 @@ public:
 			pos++;
 		}
 
-		/*std::vector<uint8_t> program;
-		program = {
-			0x31,		// ld sp, fffe
-			0xfe,
-			0xff,
-		};
-		
-		// copy test program into bootrom
-		pos = 0;
-		for (auto p : program) {
-			bus.write(pos, p);
-			pos++;
-		}*/
-
 		std::cout << "Beginning execution of " << rom << std::endl;
 
 		bus.cpu.print_toggle = false;
 		bus.cpu.log_toggle = true;
 		bus.cpu.log_file = "log/l" + std::to_string(test_num) + ".txt";
 
-		// file output
+		// Initialize output file
 		if (bus.cpu.log_toggle) {
 			bus.cpu.file = fopen(bus.cpu.log_file.c_str(), "w");
 		}
 
-		// reset LY
+		// Reset LY
 		bus.write(0xFF44, 0x00);
 		
-		// reset divider and timer registers
+		// Reset divider and timer registers
 		bus.write(0xFF04, 0xAB);
 		bus.write(0xFF05, 0x00);
 		bus.write(0xFF06, 0x00);
@@ -124,8 +110,10 @@ public:
 
 	bool tick() {
 		do {
+			// Handle interrupts
 			bus.cpu.interrupt_handler();
 			
+			// Execute one clock cycle
 			bus.cpu.clock();
 			
 			// Increment LY to simulate vblank
@@ -148,9 +136,6 @@ public:
 	Demo() {
 		sAppName = "dmg cpu demonstration";
 	}
-
-	// don't worry about disassembly
-	//std::map<uint16_t, std::string> mapAsm;
 
 	std::string hex(uint32_t n, uint8_t d) {
 		std::string s(d, '0');
@@ -208,10 +193,8 @@ public:
 		if (GetKey(olc::Key::SPACE).bPressed) {
 			dmg.tick();
 		}
-		//dmg.tick();
 
-		// what exactly should I draw for the bootrom? 0x00-0xFF I think which is the bootrom itself, then
-		// whatever parts are actually used
+		// TODO: what exactly should I draw?
 		DrawRam(2, 2, 0x0000, 16, 16);
 		DrawRam(2, 182, 0xFF00, 16, 16);
 		DrawCPU(448, 2);
@@ -235,15 +218,7 @@ int main() {
 		int max = 1000000;
 		int count = 0;
 		do {
-			dmg.tick();
-			
-			/*i++;
-			if (i == max) {
-				std::cout << count << " " << max << " instructions executed" << std::endl;
-				count++;
-				i = 0;
-			}*/
-			
+			dmg.tick();			
 		} while (true);
 	}
 

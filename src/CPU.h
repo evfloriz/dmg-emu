@@ -27,32 +27,23 @@ public:
 	uint16_t sp = 0xFFFE;	// stack pointer
 	uint16_t pc = 0x0100;	// program counter
 
-	// interrupt flag
+	// Interrupt flag
 	uint8_t IME = 0x00;
-	
-	// interrupt registers
-	//uint8_t IE = 0x00;
-	//uint8_t IF = 0x00;
 
 	// External event functions
-	// todo: double check that these are the same on the dmg cpu
-	//void reset();
-	//void irq();
-	//void nmi();
 	void clock();
+	uint8_t timer();
+	uint8_t interrupt_handler();
+	uint8_t halt_cycle();
 
-	// interrupt model
-	// just to different locations preset for interrupts at the beginning of ram (irq)
-	// software interrupts as well, 0x00 is reset
+	// LY incrementer for testing
+	void simLY();
 
 	// Signal that instruction is complete
 	bool complete();
 
 	// Link CPU to bus
 	void connectBus(Bus* n) { bus = n; };
-
-	// Memory map of strings for disassembly
-	// todo: figure out if I should do this
 
 	// Status register flags
 	enum FLAGS {
@@ -67,6 +58,7 @@ private:
 	uint8_t getFlag(FLAGS flag);
 	void setFlag(FLAGS flag, bool value);
 	
+	// Helper functions for carry logic
 	bool halfCarryPredicate(uint16_t val1, uint16_t val2, uint16_t val3 = 0x0000);
 	bool carryPredicate(uint16_t val1, uint16_t val2, uint16_t val3 = 0x0000);
 	bool halfBorrowPredicate(uint16_t val1, uint16_t val2);
@@ -75,7 +67,11 @@ private:
 	bool halfCarryPredicate16(uint16_t val1, uint16_t val2);
 	bool carryPredicate16(uint16_t val1, uint16_t val2);
 	
+	// Helper function to check if a condition is met
 	bool checkCondition(uint8_t cc);
+
+	// Helper function for proper EI behaviour
+	void handleEI();
 
 	// Helper variables
 	uint8_t cycles = 0;
@@ -93,25 +89,20 @@ private:
 	uint16_t scanline_clock = 0;
 	uint16_t divider_clock = 0;
 	uint16_t timer_clock = 0;
-
-	// set rst values as uint8_ts
-	uint8_t rst[8] = { 0x00, 0x10, 0x20, 0x30, 0x08, 0x18, 0x28, 0x38 };
-
-	// set bit operation values as uint8_ts
-	uint8_t bit[8] = { 0, 1, 2, 3, 4, 5, 6, 7 };
 	
-	// Enum class for condition codes
-	// using an enum class for scope (to prevent interference with FLAGS) since I don't
-	// need bitwise operations with them
+	// Enum for condition codes
+	// TODO: Should this be an emum class?
 	enum CONDITION {
 		c_N,		// none
 		c_Z,		// zero flag set
-		c_NZ,	// zero flag not set
+		c_NZ,		// zero flag not set
 		c_C,		// carry flag set
 		c_NC		// carry flag not set
 	};
 
-	// set conditions as uint8_ts so they can be passed
+	// Create uint8_t for constant values to pass into opcode functions
+	uint8_t rst[8] = { 0x00, 0x10, 0x20, 0x30, 0x08, 0x18, 0x28, 0x38 };
+	uint8_t bit[8] = { 0, 1, 2, 3, 4, 5, 6, 7 };
 	uint8_t i_N = CONDITION::c_N;
 	uint8_t i_Z = CONDITION::c_Z;
 	uint8_t i_NZ = CONDITION::c_NZ;
@@ -123,27 +114,19 @@ private:
 	void write(uint16_t addr, uint8_t data);
 	uint8_t read(uint16_t addr);
 
-	// Fetch data
-	//uint8_t fetch();
-
 	struct INSTRUCTION {
 		uint8_t(CPU::* operate)(void) = nullptr;
-		//uint8_t (CPU::* addrmode)(void) = nullptr;
 		uint8_t cycles = 0;
 		uint8_t* op1 = nullptr;
 		uint8_t* op2 = nullptr;
 		uint8_t* op3 = nullptr;
 	};
 
-	// lookup tables for opcodes
+	// Lookup tables for opcodes
 	std::map<uint8_t, INSTRUCTION> lookup;
 	std::map<uint8_t, INSTRUCTION> cb_lookup;
 
-	std::map<uint8_t, std::string> dis_lookup;
-	std::map<uint8_t, std::string> dis_cb_lookup;
-
-private:
-	// Addressing modes
+	std::map<uint8_t, std::string> name_lookup;
 
 private:
 	// Opcodes
@@ -156,7 +139,7 @@ private:
 	// a16 - immediate 16-bit address
 	// o8 - 8-bit signed offset
 
-	// todo: simplify 
+	// TODO: simplify
 	
 	uint8_t LD_r16();
 	uint8_t LD_SP();
@@ -245,23 +228,16 @@ private:
 	uint8_t SWAP();
 	uint8_t SRL();
 
-	uint8_t halt_cycle();
-
-	// debug things
+	// Print Blargg test rom output
 	void print_test();
 
 public:
+	// Debug and log related things
 	bool print_toggle = false;
 	bool log_toggle = false;
 	std::string log_file = "log.txt";
 
 	FILE* file;
-
-	// ly incrementer for testing
-	void simLY();
-	
-	uint8_t timer();
-	uint8_t interrupt_handler();
 	
 	uint16_t global_cycles = 0;
 };

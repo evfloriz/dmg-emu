@@ -299,7 +299,7 @@ CPU::CPU() {
 		{0xF7, {&CPU::SET,			2,	&bit[6], &a}},		{0xFF, {&CPU::SET,			2,	&bit[7], &a}},
 	};
 
-	dis_lookup = {
+	name_lookup = {
 		{0x00, "NOP"			}, {0x01, "LD BC, d16"	}, {0x02, "LD (BC), A"	}, {0x03, "INC BC"		}, {0x04, "INC B"		}, {0x05, "DEC B"		}, {0x06, "LD B, d8"	}, {0x07, "RLCA"		},
 		{0x10, "STOP"			}, {0x11, "LD DE, d16"	}, {0x12, "LD (DE), A"	}, {0x13, "INC DE"		}, {0x14, "INC D"		}, {0x15, "DEC D"		}, {0x16, "LD D, d8"	}, {0x17, "RLA"			},
 		{0x20, "JR NZ, r8"		}, {0x21, "LD HL, d16"	}, {0x22, "LD (HL+), A"	}, {0x23, "INC HL"		}, {0x24, "INC H"		}, {0x25, "DEC H"		}, {0x26, "LD H, d8"	}, {0x27, "DAA"			},
@@ -356,7 +356,7 @@ void CPU::clock() {
 		
 		if (print_toggle) {
 			printf("0x%04x: 0x%02x ", pc, opcode);
-			printf("%-15s ", dis_lookup[opcode].c_str());
+			printf("%-15s ", name_lookup[opcode].c_str());
 			printf("a: 0x%02x f: 0x%02x b: 0x%02x c: 0x%02x d: 0x%02x e: 0x%02x h: 0x%02x l: 0x%02x pc: 0x%04x sp: 0x%04x\n", a, f, b, c, d, e, h, l, pc, sp);
 			//printf("Z: %i N: %i H: %i C: %i \n", getFlag(Z), getFlag(N), getFlag(H), getFlag(C));
 			//printf("LY: 0x%02x ", bus->read(0xFF44));
@@ -370,12 +370,6 @@ void CPU::clock() {
 		pc++;
 
 		if (lookup.count(opcode)) {
-
-			// If last instruction was EI, set IME after this instruction is finished
-			if (ei_last_instr) {
-				set_ime = true;
-				ei_last_instr = false;
-			}
 			
 			// Set cycles to number of cycles
 			cycles = lookup[opcode].cycles;
@@ -391,42 +385,31 @@ void CPU::clock() {
 
 			cycles += extra_cycles;
 
-			// multiply by 4 to convert machine cycles to clock cycles
+			// Multiply by 4 to convert machine cycles to true clock cycles
 			cycles *= 4;
 
-			// Set ime flag after instruction following EI
-			if (set_ime) {
-				IME = true;
-				set_ime = false;
-			}
-
-			
+			// Handle EI setting the IME flag
+			handleEI();
 		}
 		else {
 			printf("Unexpected opcode 0x%02x at 0x%04x\n", opcode, pc);
-			//pc++;
 		}
 	}
 	cycles--;
 
-	/*if (print_toggle) {
-		printf("                                                                                                                    LY: 0x%02x ", bus->read(0xFF44));
-		printf("gc: %i\n", global_cycles);
-	}*/
-
-	// cpu halt state
+	// Execute cycle when in halt state
 	if (halt_state) {
 		cycles = halt_cycle();
 	}
 
 	global_cycles++;
 
-	// print test rom output
+	// Print Blargg test rom output
 	print_test();
 }
 
 void CPU::print_test() {
-	// print the test results from blargg's test rom
+	// Print the test results from blargg's test rom
 	if (bus->read(0xFF02) == 0x81) {
 		char c = bus->read(0xFF01);
 		printf("%c", c);
@@ -438,12 +421,29 @@ bool CPU::complete() {
 	return (cycles == 0);
 }
 
+void CPU::handleEI() {
+	// Set IME after the instruction following EI is finished,
+	// in other words the second time handleEI() is called
+	if (set_ime) {
+		IME = true;
+		set_ime = false;
+	}
+	
+	if (ei_last_instr) {
+		set_ime = true;
+		ei_last_instr = false;
+	}
+
+	return;
+}
+
 uint8_t CPU::getFlag(FLAGS flag) {
-	// return true if f has a 1 in the position of flag
+	// Return true if f has a 1 in the position of flag
 	return ((f & flag) > 0) ? 1 : 0;
 }
+
 void CPU::setFlag(FLAGS flag, bool value) {
-	// set the position of the flag in f to 1 or 0
+	// Set the position of the flag in f to 1 or 0
 	if (value) {
 		f |= flag;
 	}
@@ -453,44 +453,40 @@ void CPU::setFlag(FLAGS flag, bool value) {
 }
 
 bool CPU::halfCarryPredicate(uint16_t val1, uint16_t val2, uint16_t val3) {
-	// half carry
-	// if the bottom 4 bits of each added together sets an upper 4 bit
-	// added an optional third value to accomodate adc and sbc
+	// Return true if the bottom 4 bits of each added together sets an upper 4 bit
+	// There is an optional third value to accomodate adc and sbc
 	return ((val1 & 0xF) + (val2 & 0xF) + (val3 & 0xF)) & 0x10;
 }
 
 bool CPU::carryPredicate(uint16_t val1, uint16_t val2, uint16_t val3) {
-	// carry
-	// if the bottom 8 bits of each added together sets an upper 8 bit
+	// Return true if the bottom 8 bits of each added together sets an upper 8 bit
 	return ((val1 & 0xFF) + (val2 & 0xFF) + (val3 & 0xFF)) & 0x100;
 }
 
 bool CPU::halfBorrowPredicate(uint16_t val1, uint16_t val2) {
-	// half borrow
-	// if the borrowing from the 4th bit (if register > a)
+	// Return true if the borrowing from the 4th bit (if register > a)
 	return ((val1 & 0xF) < (val2 & 0xF));
 }
 
 bool CPU::borrowPredicate(uint16_t val1, uint16_t val2) {
-	// borrow
-	// if the borrowing from the theoretical 8th bit (if register > a)
+	// Return true if the borrowing from the theoretical 8th bit (if register > a)
 	return ((val1 & 0xFF) < (val2 & 0xFF));
 }
 
 bool CPU::halfCarryPredicate16(uint16_t val1, uint16_t val2) {
-	// half carry for 16 bit addition
-	// if overflow from bit 11
+	// Half carry for 16 bit addition
+	// Return true if overflow from bit 11
 	return ((val1 & 0x0FFF) + (val2 & 0x0FFF)) & 0x1000;
 }
 
 bool CPU::carryPredicate16(uint16_t val1, uint16_t val2) {
-	// carry for 16 bit addition
-	// if overflow from bit 15
+	// Carry for 16 bit addition
+	// Return true if overflow from bit 15
 	return (((uint32_t)val1 & 0xFFFF) + ((uint32_t)val2 & 0xFFFF)) & 0x10000;
 }
 
 bool CPU::checkCondition(uint8_t cc) {
-	// return true if jump should occur given a condition code and false if not
+	// Return true if jump should occur given a condition code
 	return (cc == CONDITION::c_N)
 		|| (cc == CONDITION::c_Z && getFlag(Z))
 		|| (cc == CONDITION::c_NZ && !getFlag(Z))
@@ -499,46 +495,45 @@ bool CPU::checkCondition(uint8_t cc) {
 }
 
 uint8_t CPU::LD_r16() {
-	// load 16-bit register
-	// d16 - immediate little endian 16 bit data
+	// Load 16-bit register
 	// eg LD BC, d16
 
-	// todo: should I check for valid input?
+	uint8_t* op1 = lookup[opcode].op1;
+	uint8_t* op2 = lookup[opcode].op2;
 
 	uint8_t lo = bus->read(pc);
 	pc++;
 	uint8_t hi = bus->read(pc);
 	pc++;
 
-	*(lookup[opcode].op1) = hi;
-	*(lookup[opcode].op2) = lo;
+	*op1 = hi;
+	*op2 = lo;
 
-	// apparently b, d, and h hold the more significant values
-	// todo: double check this, im not sure why endianness would change
+	// Note: b, d, and h hold the more significant values
 	// https://stackoverflow.com/questions/21639597/z80-register-endianness
 
 	return 0;
 }
 
 uint8_t CPU::LD_SP() {
-	// load stack pointer with (op2, op3) if provided or immediate 16-bit data if not
+	// Load stack pointer with (op2, op3) if provided or immediate 16-bit data if not
 	// eg LD SP, HL
 
 	uint8_t* op1 = lookup[opcode].op1;
 	uint8_t* op2 = lookup[opcode].op2;
 
 	if (op1 && op2) {
-		// load hl into sp
+		// Load hl into sp
 		sp = (*op1 << 8) | *op2;
 	}
 	else {
-		// get immediate
+		// Get immediate
 		uint8_t lo = bus->read(pc);
 		pc++;
 		uint8_t hi = bus->read(pc);
 		pc++;
 
-		// combine and store
+		// Combine and store
 		sp = (hi << 8) | lo;
 	}
 
@@ -546,20 +541,16 @@ uint8_t CPU::LD_SP() {
 }
 
 uint8_t CPU::LD_a16_SP() {
-	// load SP into a16 location
-	// a16 - little endian 16 bit address
-	// 5 machine cycles
-	// no flags
+	// Load SP into a16 location
 
 	uint8_t lo = bus->read(pc);
 	pc++;
 	uint8_t hi = bus->read(pc);
 	pc++;
 	
-	// combine
 	uint16_t addr = (hi << 8) | lo;
 
-	// store stack pointer low in addr and high in addr+1
+	// Store stack pointer low in addr and high in addr+1
 	uint8_t sp_lo = sp & 0xFF;
 	uint8_t sp_hi = (sp >> 8) & 0xFF;
 	
@@ -570,9 +561,7 @@ uint8_t CPU::LD_a16_SP() {
 }
 
 uint8_t CPU::LD_HL_SP_o8() {
-	// load sp with a signed offset into hl
-	// 3 machine cycles
-	// 0 0 H C
+	// Load sp with a signed offset into hl
 	
 	// Get signed offset
 	uint16_t offset = bus->read(pc);
@@ -583,8 +572,6 @@ uint8_t CPU::LD_HL_SP_o8() {
 		offset |= 0xFF00;
 	}
 
-	// I think just add, doesn't matter if it extends the page at least for this load
-	// since its not actually loading a value from memory other than the offset (not like a branch)
 	uint16_t value = sp + offset;
 
 	l = value & 0xFF;
@@ -598,20 +585,14 @@ uint8_t CPU::LD_HL_SP_o8() {
 	return 0;
 }
 
-// B 8-bit loads
-
 uint8_t CPU::LD_r8_r8() {
-	// load an 8 bit register or data into an 8 bit register (op2 = null means data)
+	// Load an 8 bit register or data into an 8 bit register (op2 = null means data)
 	// eg LD B, B
 
 	uint8_t *op1 = lookup[opcode].op1;
 	uint8_t *op2 = lookup[opcode].op2;
 
-	// todo: might need to check that op1 isn't null
-
 	if (op2) {
-		// todo: might need to guard against self assignment
-		// todo: double check I can do this with pointers
 		*op1 = *op2;
 	}
 	else {
@@ -623,21 +604,21 @@ uint8_t CPU::LD_r8_r8() {
 }
 
 uint8_t CPU::LD_r8_p16() {
-	// load the value at the address pointed to by a 16-bit register into an 8-bit register
+	// Load the value at the address pointed to by a 16-bit register into an 8-bit register
 	// eg LD B, (HL)
 
-	// set value of (hl) to register
-	uint8_t hi = *(lookup[opcode].op2);
-	uint8_t lo = *(lookup[opcode].op3);
+	uint8_t* op1 = lookup[opcode].op1;
+	uint8_t* op2 = lookup[opcode].op2;
+	uint8_t* op3 = lookup[opcode].op3;
 
-	uint16_t addr = (hi << 8) | lo;
-	*(lookup[opcode].op1) = bus->read(addr);
+	uint16_t addr = (*op2 << 8) | *op3;
+	*op1 = bus->read(addr);
 
 	return 0;
 }
 
 uint8_t CPU::LD_p16_r8() {
-	// load the value of an 8-bit register into the address pointed to by a 16-bit register
+	// Load the value of an 8-bit register into the address pointed to by a 16-bit register
 	// eg LD (HL), B
 	
 	uint8_t* op1 = lookup[opcode].op1;
@@ -649,7 +630,7 @@ uint8_t CPU::LD_p16_r8() {
 
 	uint16_t addr = (hi << 8) | lo;
 
-	// if op3 isn't null, use it as the data, otherwise read next value from pc
+	// If op3 isn't null, use it as the data, otherwise read next value from pc
 	uint8_t data = 0x00;
 	if (op3) {
 		data = *op3;
@@ -667,14 +648,11 @@ uint8_t CPU::LD_p16_r8() {
 uint8_t CPU::LD_HLI_A() {
 	// eg LD (HL+), A
 
-	// todo: can this overflow?
-
 	uint16_t addr = (h << 8) | l;
 	bus->write(addr, a);
 	addr++;
 
-	// convert back to h and l
-	// idea: function to convert to and from hl and address
+	// Convert back to h and l
 	l = addr & 0xFF;
 	h = (addr >> 8) & 0xFF;
 
@@ -683,14 +661,12 @@ uint8_t CPU::LD_HLI_A() {
 
 uint8_t CPU::LD_HLD_A() {
 	// eg LD (HL-), A
-
-	// todo: can this underflow?
 	
 	uint16_t addr = (h << 8) | l;
 	bus->write(addr, a);
 	addr--;
 
-	// convert back to h and l
+	// Convert back to h and l
 	l = addr & 0xFF;
 	h = (addr >> 8) & 0xFF;
 
@@ -700,13 +676,12 @@ uint8_t CPU::LD_HLD_A() {
 uint8_t CPU::LD_A_HLI() {
 	// eg LD A, (HL+)
 
-	// note: these are guaranteed to be a, h, and l
-	// todo: can this overflow?
+	// Note: these are guaranteed to be a, h, and l
 	uint16_t addr = (h << 8) | l;
 	a = bus->read(addr);
 	addr++;
 
-	// convert back to h and l
+	// Convert back to h and l
 	l = addr & 0xFF;
 	h = (addr >> 8) & 0xFF;
 
@@ -716,13 +691,11 @@ uint8_t CPU::LD_A_HLI() {
 uint8_t CPU::LD_A_HLD() {
 	// eg LD A, (HL+)
 
-	// todo: can this underflow?
-
 	uint16_t addr = (h << 8) | l;
 	a = bus->read(addr);
 	addr--;
 
-	// convert back to h and l
+	// Convert back to h and l
 	l = addr & 0xFF;
 	h = (addr >> 8) & 0xFF;
 
@@ -730,7 +703,7 @@ uint8_t CPU::LD_A_HLD() {
 }
 
 uint8_t CPU::LDH_A_p8() {
-	// load A with 0xFF00 page byte from register or address
+	// Load A with 0xFF00 page byte from register or address
 	// eg LD A, [C]
 	// op1 = &c for [C] or null for a8
 
@@ -739,11 +712,11 @@ uint8_t CPU::LDH_A_p8() {
 	uint8_t offset;
 
 	if (op1) {
-		// load from register
+		// Load from register
 		offset = *op1;
 	}
 	else {
-		// load from immediate address
+		// Load from immediate address
 		offset = bus->read(pc);
 		pc++;
 	}
@@ -756,7 +729,7 @@ uint8_t CPU::LDH_A_p8() {
 }
 
 uint8_t CPU::LDH_p8_A() {
-	// load 0xFF00 page byte from register or address with A
+	// Load 0xFF00 page byte from register or address with A
 	// eg LD [C], A
 	// op1 = &c for [C] or null for a8
 
@@ -765,35 +738,31 @@ uint8_t CPU::LDH_p8_A() {
 	uint8_t offset;
 
 	if (op1) {
-		// load from register
+		// Load from register
 		offset = *op1;
 	}
 	else {
-		// load from immediate address
+		// Load from immediate address
 		offset = bus->read(pc);
 		pc++;
 	}
 
 	uint16_t addr = 0xFF00 + offset;
 
-	// write A to address
+	// Write A to address
 	bus->write(addr, a);
 
 	return 0;
 }
 
 uint8_t CPU::LD_a16_A() {
-	// load A into a16 location
-	// a16 - little endian 16 bit address
-	// 3 machine cycles
-	// no flags
+	// Load A into a16 location
 
 	uint8_t lo = bus->read(pc);
 	pc++;
 	uint8_t hi = bus->read(pc);
 	pc++;
 
-	// combine
 	uint16_t addr = (hi << 8) | lo;
 
 	bus->write(addr, a);
@@ -802,17 +771,13 @@ uint8_t CPU::LD_a16_A() {
 }
 
 uint8_t CPU::LD_A_a16() {
-	// load data at a16 location into A
-	// a16 - little endian 16 bit address
-	// 3 machine cycles
-	// no flags
+	// Load data at a16 location into A
 
 	uint8_t lo = bus->read(pc);
 	pc++;
 	uint8_t hi = bus->read(pc);
 	pc++;
 
-	// combine
 	uint16_t addr = (hi << 8) | lo;
 
 	a = bus->read(addr);
@@ -821,7 +786,7 @@ uint8_t CPU::LD_A_a16() {
 }
 
 uint8_t CPU::PUSH_r16() {
-	// push register onto the stack
+	// Push register onto the stack
 	// eg PUSH BC
 
 	uint8_t* op1 = lookup[opcode].op1;
@@ -850,7 +815,7 @@ uint8_t CPU::PUSH_AF() {
 }
 
 uint8_t CPU::POP_r16() {
-	// pop register off stack
+	// Pop register off stack
 	// eg POP BC
 
 	uint8_t* op1 = lookup[opcode].op1;
@@ -880,29 +845,29 @@ uint8_t CPU::ADD() {
 	uint8_t* op2 = lookup[opcode].op2;
 	uint8_t* op3 = lookup[opcode].op3;
 	
-	// upcast to 16-bit for easier addition
+	// Upcast to 16-bit for easier addition
 	uint16_t val1 = *op1;
 	uint16_t val2 = 0x0000;
 
 	if (op3) {
-		// add from address
+		// Add from address
 		uint16_t addr = (*op2 << 8) | *op3;
 		val2 = bus->read(addr);			
 	}
 	else if (op2) {
-		// add from register
+		// Add from register
 		val2 = *op2;
 	}
 	else {
-		// add from immediate
+		// Add from immediate
 		val2 = bus->read(pc);
 		pc++;
 	}
 
-	// add and load into a (8-bit)
+	// Add and load into accumulator a (8-bit)
 	*op1 = (val1 + val2) & 0xFF;
 	
-	// set flags
+	// Set flags
 	setFlag(Z, (*op1 == 0));
 	setFlag(N, 0);
 	setFlag(H, halfCarryPredicate(val1, val2));
@@ -916,32 +881,32 @@ uint8_t CPU::ADC() {
 	uint8_t* op2 = lookup[opcode].op2;
 	uint8_t* op3 = lookup[opcode].op3;
 
-	// upcast to 16-bit for easier addition
+	// Upcast to 16-bit for easier addition
 	uint16_t val1 = *op1;
 	uint16_t val2 = 0x0000;
 
 	if (op3) {
-		// add from address
+		// Add from address
 		uint16_t addr = (*op2 << 8) | *op3;
 		val2 = bus->read(addr);
 	}
 	else if (op2) {
-		// add from register
+		// Add from register
 		val2 = *op2;
 	}
 	else {
-		// add from immediate
+		// Add from immediate
 		val2 = bus->read(pc);
 		pc++;
 	}
 
-	// add the carry bit
+	// Add the carry bit
 	uint16_t carry = getFlag(FLAGS::C);
 
-	// add with carry and load into a (8-bit)
+	// Add with carry and load into accumulator a (8-bit)
 	*op1 = (val1 + val2 + carry) & 0xFF;
 
-	// set flags
+	// Set flags
 	setFlag(Z, (*op1 == 0));
 	setFlag(N, 0);
 	setFlag(H, halfCarryPredicate(val1, val2, carry));
@@ -955,32 +920,32 @@ uint8_t CPU::SUB() {
 	uint8_t* op2 = lookup[opcode].op2;
 	uint8_t* op3 = lookup[opcode].op3;
 
-	// upcast to 16-bit for easier operation
+	// Upcast to 16-bit for easier operation
 	uint16_t val1 = *op1;
 	uint16_t val2 = 0x0000;
 
 	if (op3) {
-		// address
+		// Address case
 		uint16_t addr = (*op2 << 8) | *op3;
 		val2 = bus->read(addr);
 	}
 	else if (op2) {
-		// register
+		// Register case
 		val2 = *op2;
 	}
 	else {
-		// immediate
+		// Immediate case
 		val2 = bus->read(pc);
 		pc++;
 	}
 
-	// get the twos complement (of the bottom 8 bits)
+	// Get the twos complement (of the bottom 8 bits)
 	uint16_t val2_twos = ~val2 + 0x0001;
 
-	// add twos complement and load into a (8-bit)
+	// Add twos complement and load into a (8-bit)
 	*op1 = (val1 + val2_twos) & 0xFF;
 
-	// set flags
+	// Set flags
 	setFlag(Z, (*op1 == 0));
 	setFlag(N, 1);
 	setFlag(H, halfBorrowPredicate(val1, val2));
@@ -994,56 +959,47 @@ uint8_t CPU::SBC() {
 	uint8_t* op2 = lookup[opcode].op2;
 	uint8_t* op3 = lookup[opcode].op3;
 
-	// upcast to 16-bit for easier operation
+	// Upcast to 16-bit for easier operation
 	uint16_t val1 = *op1;
 	uint16_t val2 = 0x0000;
 
 	if (op3) {
-		// address
+		// Address case
 		uint16_t addr = (*op2 << 8) | *op3;
 		val2 = bus->read(addr);
 	}
 	else if (op2) {
-		// register
+		// Register case
 		val2 = *op2;
 	}
 	else {
-		// immediate
+		// Immediate case
 		val2 = bus->read(pc);
 		pc++;
 	}
 
-	// add the carry bit
-	// todo: watch for possible bug with carry bit and sign extension
+	// Add the carry bit
 	uint16_t carry = getFlag(FLAGS::C);
 
-	if (carry) {
-		printf("");
-	}
-
-	// todo: tech debt, refactor this
-	// check for a half carry for the 00-(0F+1) case
+	// TODO: tech debt, refactor this
+	// Check for a half carry for the 00-(0F+1) case
 	bool halfCarryFlag = halfCarryPredicate(val2, carry);
 	bool carryFlag = carryPredicate(val2, carry);
 
-	// add carry before twos complement I think - ultimately subtract
+	// Add carry before twos complement, ultimately subtract
 	val2 += carry;
 
-	// get the twos complement (of the bottom 8 bits)
+	// Get the twos complement (of the bottom 8 bits)
 	uint16_t val2_twos = ~val2 + 0x0001;
 
-	// add twos complement and carry and load into a (8-bit)
+	// Add twos complement and carry and load into a (8-bit)
 	*op1 = (val1 + val2_twos) & 0xFF;
 
-	// set flags
+	// Set flags
 	setFlag(Z, (*op1 == 0));
 	setFlag(N, 1);
 	setFlag(H, halfBorrowPredicate(val1, val2) || halfCarryFlag);
 	setFlag(C, borrowPredicate(val1, val2) || carryFlag);
-
-	if (carry) {
-		printf("");
-	}
 
 	return 0;
 }
@@ -1053,29 +1009,29 @@ uint8_t CPU::AND() {
 	uint8_t* op2 = lookup[opcode].op2;
 	uint8_t* op3 = lookup[opcode].op3;
 
-	// upcast to 16-bit for easier addition
+	// Upcast to 16-bit for easier operation
 	uint16_t val1 = *op1;
 	uint16_t val2 = 0x0000;
 
 	if (op3) {
-		// add from address
+		// Address case
 		uint16_t addr = (*op2 << 8) | *op3;
 		val2 = bus->read(addr);
 	}
 	else if (op2) {
-		// add from register
+		// Register case
 		val2 = *op2;
 	}
 	else {
-		// add from immediate
+		// Immediate case
 		val2 = bus->read(pc);
 		pc++;
 	}
 
-	// and and load into a (8-bit)
+	// And and load into a (8-bit)
 	*op1 = (val1 & val2) & 0xFF;
 
-	// set flags
+	// Set flags
 	setFlag(Z, (*op1 == 0));
 	setFlag(N, 0);
 	setFlag(H, 1);
@@ -1089,29 +1045,29 @@ uint8_t CPU::XOR() {
 	uint8_t* op2 = lookup[opcode].op2;
 	uint8_t* op3 = lookup[opcode].op3;
 
-	// upcast to 16-bit for easier addition
+	// Upcast to 16-bit for easier operation
 	uint16_t val1 = *op1;
 	uint16_t val2 = 0x0000;
 
 	if (op3) {
-		// add from address
+		// Address case
 		uint16_t addr = (*op2 << 8) | *op3;
 		val2 = bus->read(addr);
 	}
 	else if (op2) {
-		// add from register
+		// Register case
 		val2 = *op2;
 	}
 	else {
-		// add from immediate
+		// Immediate case
 		val2 = bus->read(pc);
 		pc++;
 	}
 
-	// xor and load into a (8-bit)
+	// Xor and load into a (8-bit)
 	*op1 = (val1 ^ val2) & 0xFF;
 
-	// set flags
+	// Set flags
 	setFlag(Z, (*op1 == 0));
 	setFlag(N, 0);
 	setFlag(H, 0);
@@ -1125,29 +1081,29 @@ uint8_t CPU::OR() {
 	uint8_t* op2 = lookup[opcode].op2;
 	uint8_t* op3 = lookup[opcode].op3;
 
-	// upcast to 16-bit for easier addition
+	// upcast to 16-bit for easier operation
 	uint16_t val1 = *op1;
 	uint16_t val2 = 0x0000;
 
 	if (op3) {
-		// add from address
+		// Address case
 		uint16_t addr = (*op2 << 8) | *op3;
 		val2 = bus->read(addr);
 	}
 	else if (op2) {
-		// add from register
+		// Register case
 		val2 = *op2;
 	}
 	else {
-		// add from immediate
+		// Immediate case
 		val2 = bus->read(pc);
 		pc++;
 	}
 
-	// or and load into a (8-bit)
+	// Or and load into a (8-bit)
 	*op1 = (val1 | val2) & 0xFF;
 
-	// set flags
+	// Set flags
 	setFlag(Z, (*op1 == 0));
 	setFlag(N, 0);
 	setFlag(H, 0);
@@ -1161,46 +1117,36 @@ uint8_t CPU::CP() {
 	uint8_t* op2 = lookup[opcode].op2;
 	uint8_t* op3 = lookup[opcode].op3;
 
-	// upcast to 16-bit for easier operation
+	// Upcast to 16-bit for easier operation
 	uint16_t val1 = *op1;
 	uint16_t val2 = 0x0000;
 
 	if (op3) {
-		// address
+		// Address case
 		uint16_t addr = (*op2 << 8) | *op3;
 		val2 = bus->read(addr);
 	}
 	else if (op2) {
-		// register
+		// Register case
 		val2 = *op2;
 	}
 	else {
-		// immediate
+		// Immediate case
 		val2 = bus->read(pc);
 		pc++;
 	}
 
-	// If highest bit is negative sign, extend to higher 8 bits
-	/*if (val2 & 0x80) {
-		val2 |= 0xFF00;
-	}*/
-
-	//uint8_t temp = (val1 + val2) & 0xFF;
-
-	// get the twos complement (of the bottom 8 bits)
+	// Get the twos complement (of the bottom 8 bits)
 	uint16_t val2_twos = ~val2 + 0x0001;
 
-	// add twos complement and load into temp to set flags
+	// Add twos complement and load into temp to set flags
 	uint8_t temp = (val1 + val2_twos) & 0xFF;
 
-	// set flags
-	// todo: fix/double-check flags for sub a, a
+	// Set flags
 	setFlag(Z, (temp == 0));
 	setFlag(N, 1);
 	setFlag(H, halfBorrowPredicate(val1, val2));
 	setFlag(C, borrowPredicate(val1, val2));
-	//setFlag(H, halfCarryPredicate(val1, val2_twos));
-	//setFlag(C, carryPredicate(val1, val2_twos));
 
 	return 0;
 }
@@ -1209,25 +1155,25 @@ uint8_t CPU::INC() {
 	uint8_t* op1 = lookup[opcode].op1;
 	uint8_t* op2 = lookup[opcode].op2;
 
-	// store value to be incremented in temp for flags
+	// Store value to be incremented in temp for flags
 	uint16_t temp = 0x0000;
 	uint8_t result = 0x00;
 
 	if (op2) {
-		// get byte from address
+		// Get byte from address
 		uint16_t addr = (*op1 << 8) | *op2;
 		temp = bus->read(addr);
 		result = (temp + 0x0001) & 0xFF;
 		bus->write(addr, result);
 	}
 	else {
-		// get byte from register
+		// Get byte from register
 		temp = *op1;
 		result = (temp + 0x0001) & 0xFF;
 		*op1 = result;
 	}
 
-	// set flags
+	// Set flags
 	setFlag(Z, (result == 0));
 	setFlag(N, 0);
 	setFlag(H, halfCarryPredicate(temp, 0x0001));
@@ -1239,25 +1185,25 @@ uint8_t CPU::DEC() {
 	uint8_t* op1 = lookup[opcode].op1;
 	uint8_t* op2 = lookup[opcode].op2;
 
-	// store value to be incremented in temp for flags
+	// Store value to be incremented in temp for flags
 	uint16_t temp = 0x0000;
 	uint8_t result = 0x00;
 
 	if (op2) {
-		// get byte from address
+		// Get byte from address
 		uint16_t addr = (*op1 << 8) | *op2;
 		temp = bus->read(addr);
 		result = (temp - 0x0001) & 0xFF;
 		bus->write(addr, result);
 	}
 	else {
-		// get byte from register
+		// Get byte from register
 		temp = *op1;
 		result = (temp - 0x0001) & 0xFF;
 		*op1 = result;
 	}
 
-	// set flags
+	// Set flags
 	setFlag(Z, (result == 0));
 	setFlag(N, 1);
 	setFlag(H, halfBorrowPredicate(temp, 0x0001));
@@ -1267,7 +1213,7 @@ uint8_t CPU::DEC() {
 
 uint8_t CPU::DAA() {
 	if (getFlag(N) == 0) {
-		// if addition, greater than 9 or carry (since thats also greater than 9)
+		// If addition, greater than 9 or carry (since thats also greater than 9)
 		if (a > 0x99 || getFlag(C)) {
 			a += 0x60;
 			setFlag(C, 1);
@@ -1277,7 +1223,7 @@ uint8_t CPU::DAA() {
 		}
 	}
 
-	// if subtraction, assuming bcd operands, result can't be greater than 9 unless there was a borrow
+	// If subtraction, assuming bcd operands, result can't be greater than 9 unless there was a borrow
 	else {
 		if (getFlag(C)) {
 			a -= 0x60;
@@ -1287,7 +1233,7 @@ uint8_t CPU::DAA() {
 		}
 	}
 
-	// set flags
+	// Set flags
 	setFlag(Z, (a == 0));
 	setFlag(H, 0);
 
@@ -1295,7 +1241,7 @@ uint8_t CPU::DAA() {
 }
 
 uint8_t CPU::SCF() {
-	// set carry flag
+	// Set carry flag
 	setFlag(N, 0);
 	setFlag(H, 0);
 	setFlag(C, 1);
@@ -1304,7 +1250,7 @@ uint8_t CPU::SCF() {
 }
 
 uint8_t CPU::CPL() {
-	// complement a
+	// Complement a
 	a = ~a;
 	setFlag(N, 1);
 	setFlag(H, 1);
@@ -1313,7 +1259,7 @@ uint8_t CPU::CPL() {
 }
 
 uint8_t CPU::CCF() {
-	// complement carry flag
+	// Complement carry flag
 	setFlag(N, 0);
 	setFlag(H, 0);
 	setFlag(C, getFlag(C) ? 0 : 1);
@@ -1322,21 +1268,20 @@ uint8_t CPU::CCF() {
 }
 
 uint8_t CPU::JP() {
+	// op1 - condition code
+	// op2 and op3 - hl if present, imm if none
 	uint8_t* op1 = lookup[opcode].op1;
 	uint8_t* op2 = lookup[opcode].op2;
 	uint8_t* op3 = lookup[opcode].op3;
-	
-	// op1 - condition code
-	// op2 and op3 - hl if present, imm if none
 
 	uint16_t addr = 0x0000;
 
 	if (op2 && op3) {
-		// get from register
+		// Get from register
 		addr = (*op2 << 8) | *op3;
 	}
 	else {
-		// get from imm
+		// Get from imm
 		uint8_t lo = bus->read(pc);
 		pc++;
 		uint8_t hi = bus->read(pc);
@@ -1345,11 +1290,11 @@ uint8_t CPU::JP() {
 		addr = (hi << 8) | lo;
 	}
 
-	// jump if condition is met
+	// Jump if condition is met
 	if (checkCondition(*op1)) {
 		pc = addr;
 		
-		// return 1 for extra cycle if branch is taken
+		// Return 1 for extra cycle if branch is taken
 		return 1;
 	}
 
@@ -1371,9 +1316,8 @@ uint8_t CPU::JR() {
 	if (checkCondition(*op1)) {
 		pc += offset;
 
-		// return 1 for extra cycle if branch is taken
+		// Return 1 for extra cycle if branch is taken
 		return 1;
-		//return 0;
 	}
 
 	return 0;
@@ -1384,24 +1328,24 @@ uint8_t CPU::CALL() {
 	uint8_t* op1 = lookup[opcode].op1;
 
 	if (checkCondition(*op1)) {
-		// push next instruction address on stack
+		// Push next instruction address on stack
 		uint16_t next = pc + 2;
 		uint8_t next_lo = next & 0xFF;
 		uint8_t next_hi = (next >> 8) & 0xFF;
 		
-		// todo: double check order in terms of endianness
+		// TODO: double check order in terms of endianness
 		sp--;
 		bus->write(sp, next_hi);
 		sp--;
 		bus->write(sp, next_lo);
 
-		// execute jump
-		// get from imm
+		// Get address from imm
 		uint8_t lo = bus->read(pc);
 		pc++;
 		uint8_t hi = bus->read(pc);
 		pc++;
 		
+		// Execute jump
 		pc = (hi << 8) | lo;
 
 		return 3;
@@ -1418,9 +1362,7 @@ uint8_t CPU::RET() {
 	uint8_t* op1 = lookup[opcode].op1;
 
 	if (checkCondition(*op1)) {
-		// pop address off the stack and set pc
-		// should fill upper bits first for this one I think
-
+		// Pop address off the stack and set pc
 		uint8_t lo = bus->read(sp);
 		sp++;
 		uint8_t hi = bus->read(sp);
@@ -1428,7 +1370,7 @@ uint8_t CPU::RET() {
 
 		pc = (hi << 8) | lo;
 
-		// from 2 cycles, add 2 extra cycles if no condition and 3 if condition
+		// From 2 cycles, add 2 extra cycles if no condition and 3 if condition
 		if (*op1 == CONDITION::c_N) {
 			return 2;
 		}
@@ -1441,7 +1383,7 @@ uint8_t CPU::RET() {
 }
 
 uint8_t CPU::RETI() {
-	// pop address off the stack and set pc
+	// Pop address off the stack and set pc
 	uint8_t lo = bus->read(sp);
 	sp++;
 	uint8_t hi = bus->read(sp);
@@ -1449,7 +1391,7 @@ uint8_t CPU::RETI() {
 
 	pc = (hi << 8) | lo;
 
-	// set IME
+	// Set IME (immediately after instruction, not like EI)
 	IME = 1;
 
 	return 0;
@@ -1459,19 +1401,17 @@ uint8_t CPU::RST() {
 	// op1 is vec value
 	uint8_t* op1 = lookup[opcode].op1;
 
-	// push next instruction address on stack
+	// Push next instruction address on stack
 	uint16_t next = pc;
 	uint8_t next_lo = next & 0xFF;
 	uint8_t next_hi = (next >> 8) & 0xFF;
 
-	// todo: double check order in terms of endianness
 	sp--;
 	bus->write(sp, next_hi);
 	sp--;
 	bus->write(sp, next_lo);
 
-	// execute jump
-	// jump to vec value in op1
+	// Execute jump to vec value in op1
 	pc = *op1;
 
 	return 0;
@@ -1479,7 +1419,7 @@ uint8_t CPU::RST() {
 
 uint8_t CPU::ADD_r16() {
 	// eg ADD HL, BC
-	// accumulator always HL
+	// Accumulator is always HL
 
 	uint8_t* op1 = lookup[opcode].op1;
 	uint8_t* op2 = lookup[opcode].op2;
@@ -1487,12 +1427,12 @@ uint8_t CPU::ADD_r16() {
 	uint16_t val1 = (h << 8) | l;
 	uint16_t val2 = (*op1 << 8) | *op2;
 
-	// add and load into hl (8-bit)
+	// Add and load into hl (8-bit)
 	uint16_t sum = (val1 + val2);
 	h = (sum >> 8) & 0xFF;
 	l = sum & 0xFF;
 
-	// set flags
+	// Set flags
 	setFlag(N, 0);
 	setFlag(H, halfCarryPredicate16(val1, val2));
 	setFlag(C, carryPredicate16(val1, val2));
@@ -1502,17 +1442,17 @@ uint8_t CPU::ADD_r16() {
 
 uint8_t CPU::ADD_SP() {
 	// eg ADD HL, SP
-	// accumulator always HL
+	// Accumulator is always HL
 
 	uint16_t val1 = (h << 8) | l;
 	uint16_t val2 = sp;
 
-	// add and load into hl (8-bit)
+	// Add and load into hl (8-bit)
 	uint16_t sum = (val1 + val2);
 	h = (sum >> 8) & 0xFF;
 	l = sum & 0xFF;
 
-	// set flags
+	// Set flags
 	setFlag(N, 0);
 	setFlag(H, halfCarryPredicate16(val1, val2));
 	setFlag(C, carryPredicate16(val1, val2));
@@ -1535,10 +1475,10 @@ uint8_t CPU::ADD_SP_o8() {
 	uint16_t val1 = sp;
 	uint16_t val2 = offset;
 
-	// add and load into sp
+	// Add and load into sp
 	sp = val1 + val2;
 
-	// set flags
+	// Set flags
 	setFlag(Z, 0);
 	setFlag(N, 0);
 	setFlag(H, halfCarryPredicate(val1, val2));
@@ -1588,30 +1528,28 @@ uint8_t CPU::NOP() {
 }
 
 uint8_t CPU::EI() {
-	// enable IME flag
-	// needs to happen after the next instruction
+	// Enable IME flag
+	// Needs to happen after the next instruction
 	ei_last_instr = true;
 	return 0;
 }
 
 uint8_t CPU::DI() {
-	// disable IME flag
+	// Disable IME flag
 	IME = 0;
 	return 0;
 }
 
 uint8_t CPU::STOP() {
-	// ignore next byte
+	// Ignore next byte
 	pc++;
 
-	// todo: implement this
+	// TODO: implement this
 
 	return 0;
 }
 
-uint8_t CPU::HALT() {
-	// halt
-	
+uint8_t CPU::HALT() {	
 	uint8_t IE = bus->read(0xFFFF);
 	uint8_t IF = bus->read(0xFF0F);
 	
@@ -1641,25 +1579,24 @@ uint8_t CPU::CB() {
 }
 
 uint8_t CPU::BIT() {
+	// op1 is to shift, op2 is register, op3 is for (HL)
 	uint8_t* op1 = cb_lookup[cb_opcode].op1;
 	uint8_t* op2 = cb_lookup[cb_opcode].op2;
 	uint8_t* op3 = cb_lookup[cb_opcode].op3;
 
-	// op1 is to shift, op2 is register, op3 is for (HL)
-
 	uint8_t value = 0x00;
 
 	if (op3) {
-		// (HL)
+		// (HL) case
 		uint16_t addr = (*op2 << 8) | *op3;
 		value = bus->read(addr);
 	}
 	else {
-		// register
+		// Register case
 		value = *op2;
 	}
 	
-	// test bit in value
+	// Test bit in value
 	bool bit_set = value & (1 << *op1);
 	
 	setFlag(Z, !bit_set);
@@ -1670,20 +1607,19 @@ uint8_t CPU::BIT() {
 }
 
 uint8_t CPU::RES() {
+	// op1 is to shift, op2 is register, op3 is for (HL)
 	uint8_t* op1 = cb_lookup[cb_opcode].op1;
 	uint8_t* op2 = cb_lookup[cb_opcode].op2;
 	uint8_t* op3 = cb_lookup[cb_opcode].op3;
 
-	// op1 is to shift, op2 is register, op3 is for (HL)
-
 	if (op3) {
-		// (HL)
+		// (HL) case
 		uint16_t addr = (*op2 << 8) | *op3;
 		uint8_t value = bus->read(addr);
 		bus->write(addr, value & ~(1 << *op1));
 	}
 	else {
-		// register
+		// Register case
 		*op2 = *op2 & ~(1 << *op1);
 	}
 
@@ -1691,20 +1627,19 @@ uint8_t CPU::RES() {
 }
 
 uint8_t CPU::SET() {
+	// op1 is to shift, op2 is register, op3 is for (HL)
 	uint8_t* op1 = cb_lookup[cb_opcode].op1;
 	uint8_t* op2 = cb_lookup[cb_opcode].op2;
 	uint8_t* op3 = cb_lookup[cb_opcode].op3;
 
-	// op1 is to shift, op2 is register, op3 is for (HL)
-
 	if (op3) {
-		// (HL)
+		// (HL) case
 		uint16_t addr = (*op2 << 8) | *op3;
 		uint8_t value = bus->read(addr);
 		bus->write(addr, value | (1 << *op1));
 	}
 	else {
-		// register
+		// Register case
 		*op2 = *op2 | (1 << *op1);
 	}
 
@@ -1712,10 +1647,10 @@ uint8_t CPU::SET() {
 }
 
 uint8_t CPU::RLCA() {
-	// cast to 16 bits
-	// set the bit 7 to carry
-	// shift everything left 1 or right 7 (to wrap around)
-	// mask the bottom 8 bits
+	// Cast to 16 bits
+	// Set the bit 7 to carry
+	// Shift everything left 1 or right 7 (to wrap around)
+	// Mask the bottom 8 bits
 
 	uint16_t temp = a;
 	setFlag(C, temp & 0x0080);
@@ -1731,10 +1666,10 @@ uint8_t CPU::RLCA() {
 }
 
 uint8_t CPU::RRCA() {
-	// cast to 16 bits
-	// set bit 0 to carry
-	// shift everything right 1 or left 7 (to wrap around)
-	// mask the bottom 8 bits
+	// Cast to 16 bits
+	// Set bit 0 to carry
+	// Shift everything right 1 or left 7 (to wrap around)
+	// Mask the bottom 8 bits
 
 	uint16_t temp = a;
 	setFlag(C, temp & 0x0001);
@@ -1750,11 +1685,11 @@ uint8_t CPU::RRCA() {
 }
 
 uint8_t CPU::RLA() {
-	// cast to 16 bits
-	// shift everything left 1
-	// set first bit 0 to the value of carry
-	// set carry to the value of the final bit 8
-	// mask the bottom 8 bits
+	// Cast to 16 bits
+	// Shift everything left 1
+	// Set first bit 0 to the value of carry
+	// Set carry to the value of the final bit 8
+	// Mask the bottom 8 bits
 
 	uint16_t temp = a;
 	temp = temp << 1;
@@ -1771,11 +1706,11 @@ uint8_t CPU::RLA() {
 }
 
 uint8_t CPU::RRA() {
-	// cast to 16 bits
-	// set final bit 8 to the value of carry (itll be shifted right)
-	// set carry to the value of the first bit 0
-	// shift everything right 1
-	// mask the bottom 8 bits
+	// Cast to 16 bits
+	// Set final bit 8 to the value of carry (itll be shifted right)
+	// Set carry to the value of the first bit 0
+	// Shift everything right 1
+	// Mask the bottom 8 bits
 
 	uint16_t temp = a;
 	temp |= getFlag(C) << 8;
@@ -1792,15 +1727,14 @@ uint8_t CPU::RRA() {
 }
 
 uint8_t CPU::RLC() {
+	// op1 is register, op2 is for (hl)
 	uint8_t* op1 = cb_lookup[cb_opcode].op1;
 	uint8_t* op2 = cb_lookup[cb_opcode].op2;
-	// op1 is register, op2 is for (hl)
 	
-	// todo: double check passing in a derefenced pointer makes a copy of it
-	// cast to 16 bits
-	// set the bit 7 to carry
-	// shift everything left 1 or right 7 (to wrap around)
-	// mask the bottom 8 bits
+	// Cast to 16 bits
+	// Set the bit 7 to carry
+	// Shift everything left 1 or right 7 (to wrap around)
+	// Mask the bottom 8 bits
 	auto shift = [&](uint16_t value) -> uint8_t {
 		setFlag(C, value & 0x0080);
 		value = (value << 1) | (value >> 7);
@@ -1824,14 +1758,14 @@ uint8_t CPU::RLC() {
 }
 
 uint8_t CPU::RRC() {
+	// op1 is register, op2 is for (hl)
 	uint8_t* op1 = cb_lookup[cb_opcode].op1;
 	uint8_t* op2 = cb_lookup[cb_opcode].op2;
-	// op1 is register, op2 is for (hl)
-
-	// cast to 16 bits
-	// set bit 0 to carry
-	// shift everything right 1 or left 7 (to wrap around)
-	// mask the bottom 8 bits
+	
+	// Cast to 16 bits
+	// Set bit 0 to carry
+	// Shift everything right 1 or left 7 (to wrap around)
+	// Mask the bottom 8 bits
 	auto shift = [&](uint16_t value) -> uint8_t {
 		setFlag(C, value & 0x0001);
 		value = (value >> 1) | (value << 7);
@@ -1855,15 +1789,15 @@ uint8_t CPU::RRC() {
 }
 
 uint8_t CPU::RL() {
+	// op1 is register, op2 is for (hl)
 	uint8_t* op1 = cb_lookup[cb_opcode].op1;
 	uint8_t* op2 = cb_lookup[cb_opcode].op2;
-	// op1 is register, op2 is for (hl)
-
-	// cast to 16 bits
-	// shift everything left 1
-	// set first bit 0 to the value of carry
-	// set carry to the value of the final bit 8
-	// mask the bottom 8 bits
+	
+	// Cast to 16 bits
+	// Shift everything left 1
+	// Set first bit 0 to the value of carry
+	// Set carry to the value of the final bit 8
+	// Mask the bottom 8 bits
 	auto shift = [&](uint16_t value) -> uint8_t {
 		value = value << 1;
 		value |= getFlag(C) << 0;
@@ -1888,15 +1822,15 @@ uint8_t CPU::RL() {
 }
 
 uint8_t CPU::RR() {
+	// op1 is register, op2 is for (hl)
 	uint8_t* op1 = cb_lookup[cb_opcode].op1;
 	uint8_t* op2 = cb_lookup[cb_opcode].op2;
-	// op1 is register, op2 is for (hl)
 
-	// cast to 16 bits
-	// set final bit 8 to the value of carry (itll be shifted right)
-	// set carry to the value of the first bit 0
-	// shift everything right 1
-	// mask the bottom 8 bits
+	// Cast to 16 bits
+	// Set final bit 8 to the value of carry (itll be shifted right)
+	// Set carry to the value of the first bit 0
+	// Shift everything right 1
+	// Mask the bottom 8 bits
 	auto shift = [&](uint16_t value) -> uint8_t {
 		value |= getFlag(C) << 8;
 		setFlag(C, value & 0x0001);
@@ -1921,14 +1855,14 @@ uint8_t CPU::RR() {
 }
 
 uint8_t CPU::SLA() {
+	// op1 is register, op2 is for (hl)
 	uint8_t* op1 = cb_lookup[cb_opcode].op1;
 	uint8_t* op2 = cb_lookup[cb_opcode].op2;
-	// op1 is register, op2 is for (hl)
-
-	// cast to 16 bits
-	// shift everything left 1
-	// set carry to the value of the final bit 8
-	// mask the bottom 8 bits
+	
+	// Cast to 16 bits
+	// Shift everything left 1
+	// Set carry to the value of the final bit 8
+	// Mask the bottom 8 bits
 	auto shift = [&](uint16_t value) -> uint8_t {
 		value = value << 1;
 		setFlag(C, value & 0x0100);
@@ -1952,14 +1886,14 @@ uint8_t CPU::SLA() {
 }
 
 uint8_t CPU::SRL() {
+	// op1 is register, op2 is for (hl)
 	uint8_t* op1 = cb_lookup[cb_opcode].op1;
 	uint8_t* op2 = cb_lookup[cb_opcode].op2;
-	// op1 is register, op2 is for (hl)
-
-	// cast to 16 bits
-	// set carry to the value of the first bit 0
-	// shift everything right 1
-	// mask the bottom 8 bits
+	
+	// Cast to 16 bits
+	// Set carry to the value of the first bit 0
+	// Shift everything right 1
+	// Mask the bottom 8 bits
 	auto shift = [&](uint16_t value) -> uint8_t {
 		setFlag(C, value & 0x0001);
 		value = value >> 1;
@@ -1983,15 +1917,15 @@ uint8_t CPU::SRL() {
 }
 
 uint8_t CPU::SRA() {
+	// op1 is register, op2 is for (hl)
 	uint8_t* op1 = cb_lookup[cb_opcode].op1;
 	uint8_t* op2 = cb_lookup[cb_opcode].op2;
-	// op1 is register, op2 is for (hl)
-
-	// cast to 16 bits
-	// set carry to the value of the first bit 0
-	// copy bit 7 into bit 8
-	// shift everything right 1
-	// mask the bottom 8 bits
+	
+	// Cast to 16 bits
+	// Set carry to the value of the first bit 0
+	// Copy bit 7 into bit 8
+	// Shift everything right 1
+	// Mask the bottom 8 bits
 	auto shift = [&](uint16_t value) -> uint8_t {
 		setFlag(C, value & 0x0001);
 		value |= (value & (1 << 7)) << 1;				// mask bit 7, shift it to the left, then add it to value
@@ -2016,13 +1950,13 @@ uint8_t CPU::SRA() {
 }
 
 uint8_t CPU::SWAP() {
+	// op1 is register, op2 is for (hl)
 	uint8_t* op1 = cb_lookup[cb_opcode].op1;
 	uint8_t* op2 = cb_lookup[cb_opcode].op2;
-	// op1 is register, op2 is for (hl)
 
-	// set hi to the bottom 4 bits shifted left by 4 (0xX0)
-	// shift value right by 4 (0x0X)
-	// combine
+	// Set hi to the bottom 4 bits shifted left by 4 (0xX0)
+	// Shift value right by 4 (0x0X)
+	// Combine
 	auto swap = [&](uint8_t value) -> uint8_t {
 		uint8_t hi = value << 4;
 		value >>= 4;
@@ -2048,7 +1982,7 @@ uint8_t CPU::SWAP() {
 }
 
 void CPU::simLY() {
-	// first check if screen is off and reset everything if so
+	// First check if screen is off and reset everything if so
 	if (!(bus->read(0xFF40) & 0x80)) {
 		// LCD off
 		bus->write(0xFF44, 0x00);
@@ -2059,7 +1993,7 @@ void CPU::simLY() {
 	
 	bool inc = false;
 	
-	// increment every 114 machine cycles per scanline (456 real clock cycles)
+	// Increment every 456 real clock cycles
 	scanline_clock++;
 	if (scanline_clock > 455) {
 		scanline_clock = 0;
@@ -2068,9 +2002,7 @@ void CPU::simLY() {
 	}
 
 	if (inc) {
-		// get byte from 0xFF44
-		uint16_t addr = 0xFF44;
-		uint8_t value = bus->read(addr);
+		uint8_t value = bus->read(0xFF44);
 
 		// reset after 154 cycles
 		value++;
@@ -2078,12 +2010,12 @@ void CPU::simLY() {
 			value = 0x00;
 		}
 
-		bus->write(addr, value);
+		bus->write(0xFF44, value);
 	}
 }
 
 uint8_t CPU::interrupt_handler() {
-	// read interrupt register
+	// Early out if IME is off
 	if (IME == 0) {
 		return 0;
 	}
@@ -2093,8 +2025,8 @@ uint8_t CPU::interrupt_handler() {
 
 	uint8_t int_cycles = 5;
 
+	// Push current pc to stack
 	auto push_pc = [&]() {
-		// push current pc to stack
 		uint16_t next = pc;
 		uint8_t next_lo = next & 0xFF;
 		uint8_t next_hi = (next >> 8) & 0xFF;
@@ -2105,10 +2037,9 @@ uint8_t CPU::interrupt_handler() {
 		bus->write(sp, next_lo);
 	};
 
-	// priority in order
+	// Priority is order of if statements
 	if ((IE & (1 << 0)) && (IF & (1 << 0))) {
 		// bit 0, vblank
-		// reset IF and IME
 		IF &= ~(1 << 0);
 		IME = 0;
 
@@ -2167,7 +2098,7 @@ uint8_t CPU::interrupt_handler() {
 }
 
 uint8_t CPU::timer() {
-	// divider
+	// Divider
 	// 16384 Hz is every 256 cycles at 4 MHz
 	uint8_t divider = bus->read(0xFF04);
 
@@ -2175,12 +2106,12 @@ uint8_t CPU::timer() {
 	if (divider_clock > 255) {
 		divider_clock = 0;
 
-		// increment divider every 256 cycles
-		// should automatically overflow
+		// Increment divider every 256 cycles
+		// divider will automatically overflow
 		bus->write(0xFF04, divider++);
 	}
 
-	// timer
+	// Timer
 	uint8_t timer_counter = bus->read(0xFF05);
 	uint8_t timer_modulo = bus->read(0xFF06);
 	uint8_t timer_control = bus->read(0xFF07);
@@ -2191,16 +2122,14 @@ uint8_t CPU::timer() {
 	uint16_t speed = speeds[timer_control & 0x03];
 
 	if (timer_on) {
-		//printf("timer counter: %i\n", timer_counter);
 		timer_clock++;
 		if (timer_clock > speed - 1) {
 			timer_clock = timer_modulo;
 
-			// increment timer after correct number of cycles
-			// need to check for overflow for the interrupt
+			// Increment timer after correct number of cycles
 			timer_counter++;
 			if (timer_counter == 0) {
-				// set timer interrupt
+				// Set timer interrupt if overflow occurred
 				bus->write(0xFF0F, (1 << 2));
 			}
 			bus->write(0xFF05, timer_counter);
@@ -2211,12 +2140,13 @@ uint8_t CPU::timer() {
 }
 
 uint8_t CPU::halt_cycle() {
-	// cycle that executes when cpu is in halt state
+	// Cycle that executes when CPU is in halt state
+	// TODO: test halt bug
 
 	uint8_t IE = bus->read(0xFFFF);
 	uint8_t IF = bus->read(0xFF0F);
 
-	// early out cpu should remain in halt state
+	// Early out cpu should remain in halt state, otherwise wake up
 	if (!(IE & IF)) {
 		return 0;
 	}
@@ -2224,34 +2154,33 @@ uint8_t CPU::halt_cycle() {
 	uint8_t extra_cycles = 0;
 
 	if (IME) {
-		// wake up
-		// call interrupt handler
+		// Wake up and call interrupt handler
 		extra_cycles = interrupt_handler();
 	}
 	else {
 		if (initial_pending_interrupt) {
-			// halt bug
+			// Halt bug
 			if (ei_last_instr) {
-				// normal case - read byte after halt twice, return without handling interrupt
+				// Normal case - read byte after halt twice, return without handling interrupt
 				read_next_twice = true;
 			}
 			else {
-				// ei before halt - interrupt serviced, handler called, then interrupt executes another halt
+				// EI before halt - interrupt serviced, handler called, then interrupt executes another halt
 				// and waits for another interrupt
 
-				// decrement pc so it points to current HALT instruciton
+				// Decrement pc so it points to current HALT instruciton
 				pc--;
 
-				// handle interrupt
+				// Handle interrupt
 				extra_cycles = interrupt_handler();
 			}
 		}
 		else {
-			// normal execution, return without handling interrupt
+			// Normal execution, return without handling interrupt
 		}
 	}
 
-	// turn off halt state
+	// Turn off halt state
 	initial_pending_interrupt = false;
 	halt_state = false;
 
