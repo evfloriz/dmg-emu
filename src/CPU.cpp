@@ -1,5 +1,3 @@
-#include <chrono>
-#include <thread>
 #include "CPU.h"
 
 #include "Bus.h"
@@ -358,9 +356,6 @@ void CPU::clock() {
 			printf("0x%04x: 0x%02x ", pc, opcode);
 			printf("%-15s ", name_lookup[opcode].c_str());
 			printf("a: 0x%02x f: 0x%02x b: 0x%02x c: 0x%02x d: 0x%02x e: 0x%02x h: 0x%02x l: 0x%02x pc: 0x%04x sp: 0x%04x\n", a, f, b, c, d, e, h, l, pc, sp);
-			//printf("Z: %i N: %i H: %i C: %i \n", getFlag(Z), getFlag(N), getFlag(H), getFlag(C));
-			//printf("LY: 0x%02x ", bus->read(0xFF44));
-			//printf("gc: %i\n", global_cycles);
 		}
 
 		if (log_toggle) {
@@ -1333,7 +1328,7 @@ uint8_t CPU::CALL() {
 		uint8_t next_lo = next & 0xFF;
 		uint8_t next_hi = (next >> 8) & 0xFF;
 		
-		// TODO: double check order in terms of endianness
+		// Push the hi byte first in order to preserve endianness (since stack grows downward)
 		sp--;
 		bus->write(sp, next_hi);
 		sp--;
