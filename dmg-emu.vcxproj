@@ -19,11 +19,15 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\Cartridge.cpp" />
+    <ClCompile Include="src\PPU.cpp" />
     <ClCompile Include="src\Bus.cpp" />
     <ClCompile Include="src\CPU.cpp" />
     <ClCompile Include="src\main.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\Cartridge.h" />
+    <ClInclude Include="src\PPU.h" />
     <ClInclude Include="src\Bus.h" />
     <ClInclude Include="src\CPU.h" />
     <ClInclude Include="src\olcPixelGameEngine.h" />
