@@ -108,3 +108,11 @@ uint8_t Bus::read(uint16_t addr) {
 void Bus::insertCartridge(const std::shared_ptr<Cartridge>& cartridge) {
 	this->cart = cartridge;
 }
+
+void Bus::clock() {
+	// Execute one CPU clock cycle
+	cpu.clock();
+
+	// Increment LY to simulate vblank
+	cpu.simLY();
+}

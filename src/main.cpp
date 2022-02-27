@@ -101,18 +101,7 @@ public:
 
 	bool tick() {
 		do {
-			// Handle interrupts
-			bus.cpu.interrupt_handler();
-			
-			// Execute one clock cycle
-			bus.cpu.clock();
-			
-			// Increment LY to simulate vblank
-			bus.cpu.simLY();
-
-			// Execute timer function
-			bus.cpu.timer();
-
+			bus.clock();
 		} while (!bus.cpu.complete());
 
 		return true;

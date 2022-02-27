@@ -348,6 +348,9 @@ uint8_t CPU::read(uint16_t addr) {
 }
 
 void CPU::clock() {
+	// Handle interrupts
+	interrupt_handler();
+
 	// If cycles remaining for an instruction is 0, read next byte
 	if (cycles == 0 && !halt_state) {
 		opcode = read(pc);
@@ -396,6 +399,11 @@ void CPU::clock() {
 	if (halt_state) {
 		cycles = halt_cycle();
 	}
+
+	// Execute timer function
+	// TODO: when should this be? I think it just needs to be "before" the interrupt handler
+	// so that it catches the overflow before the next instruction occurs.
+	timer();
 
 	global_cycles++;
 
