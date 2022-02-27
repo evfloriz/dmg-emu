@@ -1,13 +1,17 @@
 #include "Bus.h"
 
 Bus::Bus() {
-	// Clear RAM
-	/*for (auto& i : ram) {
-		i = 0x00;
-	}*/
-
 	// Connect CPU to bus
 	cpu.connectBus(this);
+
+	// Initialize data to 0
+	vram.fill(0x00);
+	externalRam.fill(0x00);
+	wram.fill(0x00);
+	oam.fill(0x00);
+	ioRegisters.fill(0x00);
+	hram.fill(0x00);
+	ieRegister.fill(0x00);
 }
 
 Bus::~Bus() {
@@ -15,8 +19,8 @@ Bus::~Bus() {
 
 void Bus::write(uint16_t addr, uint8_t data) {
 	if (addr >= 0x0000 && addr <= 0x7FFF) {
-		// cartridge
-		rom[addr] = data;
+		// cartridge, invalid to write to
+		return;
 	}
 	else if (addr >= 0x8000 && addr <= 0x9FFF) {
 		// video ram
@@ -59,7 +63,7 @@ void Bus::write(uint16_t addr, uint8_t data) {
 uint8_t Bus::read(uint16_t addr) {
 	if (addr >= 0x0000 && addr <= 0x7FFF) {
 		// cartridge, fixed bank
-		return rom[addr];
+		return cart->read(addr);
 	}
 	else if (addr >= 0x8000 && addr <= 0x9FFF) {
 		// video ram
@@ -102,5 +106,5 @@ uint8_t Bus::read(uint16_t addr) {
 }
 
 void Bus::insertCartridge(const std::shared_ptr<Cartridge>& cartridge) {
-	this->cartridge = cartridge;
+	this->cart = cartridge;
 }

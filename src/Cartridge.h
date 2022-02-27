@@ -1,7 +1,7 @@
 #pragma once
 
 #include <string>
-#include <vector>
+#include <array>
 
 class Cartridge {
 public:
@@ -9,7 +9,9 @@ public:
 	~Cartridge();
 
 public:
-	void write(uint16_t addr, uint8_t data);
+	std::array<uint8_t, 32 * 1024> rom;
+
+public:
 	uint8_t read(uint16_t addr);
 };
 

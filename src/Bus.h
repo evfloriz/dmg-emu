@@ -17,11 +17,9 @@ public:
 	// Devices on bus
 	CPU cpu;
 	PPU ppu;
-	std::shared_ptr<Cartridge> cartridge;
+	std::shared_ptr<Cartridge> cart;
 
-	// Sections of memory
-	
-	std::array<uint8_t, 32 * 1024> rom;
+	// Sections of memory (excluding rom which is on cartridge)
 	std::array<uint8_t, 8 * 1024> vram;
 	std::array<uint8_t, 8 * 1024> externalRam;
 	std::array<uint8_t, 8 * 1024> wram;

@@ -48,13 +48,13 @@
 class DMG {
 public:
 	Bus bus;
+	std::shared_ptr<Cartridge> cart;
 
 	bool init() {
 		// Passing 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, instr_timing
 		size_t test_num = 2;
 		
-		// Load boot rom
-		unsigned char memory[0x10000];
+		// Get rom name
 		std::string test_roms[] = {
 			"cpu_instrs.gb",
 			"01-special.gb",
@@ -70,22 +70,13 @@ public:
 			"11-op a,(hl).gb",
 			"instr_timing.gb"
 		};
-		std::string rom = "test-roms/" + test_roms[test_num];
-		FILE* file = fopen(rom.c_str(), "rb");
-		int pos = 0;
-		while (fread(&memory[pos], 1, 1, file)) {
-			pos++;
-		}
-		fclose(file);
+		std::string romName = "test-roms/" + test_roms[test_num];
 
-		// Copy bootrom into memory
-		pos = 0;
-		for (auto m : memory) {
-			bus.write(pos, m);
-			pos++;
-		}
+		// Create cartridge
+		cart = std::make_shared<Cartridge>(romName);
+		bus.insertCartridge(cart);
 
-		std::cout << "Beginning execution of " << rom << std::endl;
+		std::cout << "Beginning execution of " << romName << std::endl;
 
 		bus.cpu.print_toggle = false;
 		bus.cpu.log_toggle = true;
