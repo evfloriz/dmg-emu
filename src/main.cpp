@@ -170,21 +170,27 @@ public:
 	bool OnUserUpdate(float fElapsedTime) {
 		Clear(olc::DARK_BLUE);
 
-		if (GetKey(olc::Key::SPACE).bPressed) {
+		/*if (GetKey(olc::Key::SPACE).bPressed) {
 			dmg.tick();
-		}
+		}*/
+
+		do {
+			dmg.tick();
+		} while (!dmg.bus.ppu.frameComplete());
 
 		// TODO: what exactly should I draw?
-		DrawRam(2, 2, 0x0000, 16, 16);
-		DrawRam(2, 182, 0xFF00, 16, 16);
-		DrawCPU(448, 2);
+		//DrawRam(2, 2, 0x0000, 16, 16);
+		//DrawRam(2, 182, 0xFF00, 16, 16);
+		//DrawCPU(448, 2);
+
+		DrawSprite(0, 0, dmg.bus.ppu.getScreen(), 2);
 
 		return true;
 	}
 };
 
 int main() {
-	bool graphics = false;
+	bool graphics = true;
 	
 	if (graphics) {
 		Demo demo;

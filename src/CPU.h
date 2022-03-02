@@ -86,7 +86,6 @@ private:
 	bool halt_state = false;
 	bool initial_pending_interrupt = false;
 	
-	uint16_t scanline_clock = 0;
 	uint16_t divider_clock = 0;
 	uint16_t timer_clock = 0;
 	

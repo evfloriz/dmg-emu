@@ -1984,39 +1984,6 @@ uint8_t CPU::SWAP() {
 	return 0;
 }
 
-void CPU::simLY() {
-	// First check if screen is off and reset everything if so
-	if (!(bus->read(0xFF40) & 0x80)) {
-		// LCD off
-		bus->write(0xFF44, 0x00);
-		scanline_clock = 0;
-
-		return;
-	}
-	
-	bool inc = false;
-	
-	// Increment every 456 real clock cycles
-	scanline_clock++;
-	if (scanline_clock > 455) {
-		scanline_clock = 0;
-		
-		inc = true;
-	}
-
-	if (inc) {
-		uint8_t value = bus->read(0xFF44);
-
-		// reset after 154 cycles
-		value++;
-		if (value > 153) {
-			value = 0x00;
-		}
-
-		bus->write(0xFF44, value);
-	}
-}
-
 uint8_t CPU::interrupt_handler() {
 	// Early out if IME is off
 	if (IME == 0) {

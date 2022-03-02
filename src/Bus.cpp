@@ -4,6 +4,9 @@ Bus::Bus() {
 	// Connect CPU to bus
 	cpu.connectBus(this);
 
+	// Connect PPU to bus
+	ppu.connectBus(this);
+
 	// Initialize data to 0
 	vram.fill(0x00);
 	externalRam.fill(0x00);
@@ -113,6 +116,5 @@ void Bus::clock() {
 	// Execute one CPU clock cycle
 	cpu.clock();
 
-	// Increment LY to simulate vblank
-	cpu.simLY();
+	ppu.clock();
 }
