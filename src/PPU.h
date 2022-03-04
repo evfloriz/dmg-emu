@@ -30,6 +30,9 @@ public:
 	void updateTileDataTest();
 	void updateTileMap();
 
+	uint8_t getSCY();
+	uint8_t getSCX();
+
 	bool frame_complete = false;
 
 private:

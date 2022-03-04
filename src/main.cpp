@@ -72,7 +72,7 @@ public:
 		};
 		std::string romName = "test-roms/" + test_roms[test_num];
 
-		//romName = "roms/tetris.gb";
+		romName = "roms/tetris.gb";
 
 		// Create cartridge
 		cart = std::make_shared<Cartridge>(romName);
@@ -207,11 +207,17 @@ public:
 
 		DrawSprite(0, 0, dmg.bus.ppu.getScreen(), 2);*/
 
-		DrawSprite(256, 256 - 192, dmg.bus.ppu.getTileData(0), 1);
-		DrawSprite(256, 256 - 128, dmg.bus.ppu.getTileData(1), 1);
-		DrawSprite(256, 256 - 64, dmg.bus.ppu.getTileData(2), 1);
+		int x = 160;
+		int y = 144;
+		int scale = 2;
+
+		DrawSprite(x * scale, y * scale - 192, dmg.bus.ppu.getTileData(0), 1);
+		DrawSprite(x * scale, y * scale - 128, dmg.bus.ppu.getTileData(1), 1);
+		DrawSprite(x * scale, y * scale - 64, dmg.bus.ppu.getTileData(2), 1);
 		
-		DrawSprite(0, 0, dmg.bus.ppu.getTileMap(0), 1);
+		//DrawSprite(0, 0, dmg.bus.ppu.getTileMap(0), 1);
+		// TODO: figure out a better scroll method
+		DrawPartialSprite(0, 0, dmg.bus.ppu.getTileMap(0), dmg.bus.ppu.getSCX(), dmg.bus.ppu.getSCY(), x, y, scale);
 
 		return true;
 	}

@@ -116,8 +116,14 @@ void PPU::updateLY() {
 	if (inc) {
 		scanline = bus->read(0xFF44);
 
-		// reset after 154 cycles
+		// Reset after 154 cycles
 		scanline++;
+		
+		// Set VBLANK interrupt flag when LY is 144
+		if (scanline == 144) {
+			bus->write(0xFF0F, (1 << 0));
+		}
+
 		if (scanline > 153) {
 			scanline = 0x00;
 			frame_complete = true;
@@ -300,5 +306,12 @@ void PPU::updateTileMap() {
 			set_line(bg_map, x * 8, j + y * 8, hi, lo);
 		}
 	}
+}
 
+uint8_t PPU::getSCY() {
+	return bus->read(0xFF42);
+}
+
+uint8_t PPU::getSCX() {
+	return bus->read(0xFF43);
 }
