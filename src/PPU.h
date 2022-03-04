@@ -21,13 +21,16 @@ public:
 
 	olc::Sprite* getScreen();
 	olc::Sprite* getTileData(int block_num);
+	olc::Sprite* getTileMap(int map_num);
 
 	void clock();
 	void updateLY();
 
 	void updateTileData();
+	void updateTileDataTest();
+	void updateTileMap();
 
-	bool frameComplete();
+	bool frame_complete = false;
 
 private:
 	Bus* bus = nullptr;
@@ -38,11 +41,19 @@ private:
 	olc::Sprite* block1 = new olc::Sprite(128, 64);
 	olc::Sprite* block2 = new olc::Sprite(128, 64);
 
+	olc::Sprite* bg_map = new olc::Sprite(256, 256);
+	olc::Sprite* win_map = new olc::Sprite(256, 256);
+
 	uint16_t cycle = 0;
 	uint8_t scanline = 0;
 
-	bool frame_complete = false;
-
 	bool lcdc4 = false;
+	
+	bool lcdc6 = false;
+	bool lcdc3 = false;
+
+	bool lcdc5 = false;
+
+	bool lcdc7 = false;
 };
 

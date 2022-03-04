@@ -15,6 +15,9 @@ Bus::Bus() {
 	ioRegisters.fill(0x00);
 	hram.fill(0x00);
 	ieRegister.fill(0x00);
+
+	// Set joypad register to high for now
+	ioRegisters[0x0000] = 0xFF;
 }
 
 Bus::~Bus() {
@@ -53,8 +56,13 @@ void Bus::write(uint16_t addr, uint8_t data) {
 		// io registers
 		
 		// Set joypad input to detect no button presses for now
-		if (addr == 0xFF00) {
+		/*if (addr == 0xFF00) {
 			data |= 0x0F;
+		}*/
+		
+		// Set joypad input to read only for now
+		if (addr == 0xFF00) {
+			return;
 		}
 
 		ioRegisters[addr - 0xFF00] = data;
@@ -88,7 +96,7 @@ uint8_t Bus::read(uint16_t addr) {
 	}
 	else if (addr >= 0xE000 && addr <= 0xFDFF) {
 		// echo ram, prohibited
-		return 0x00;
+		return 0xFF;
 	}
 	else if (addr >= 0xFE00 && addr <= 0xFE9F) {
 		// oam ram
@@ -96,7 +104,7 @@ uint8_t Bus::read(uint16_t addr) {
 	}
 	else if (addr >= 0xFEA0 && addr <= 0xFEFF) {
 		// unusable
-		return 0x00;
+		return 0xFF;
 	}
 	else if (addr >= 0xFF00 && addr <= 0xFF7F) {
 		// io registers
@@ -111,7 +119,7 @@ uint8_t Bus::read(uint16_t addr) {
 		return ieRegister[addr - 0xFFFF];
 	}
 
-	return 0x00;
+	return 0xFF;
 }
 
 void Bus::insertCartridge(const std::shared_ptr<Cartridge>& cartridge) {

@@ -186,7 +186,9 @@ public:
 			residual_time += (1.0f / 60.0f) - fElapsedTime;
 			do {
 				dmg.tick();
-			} while (!dmg.bus.ppu.frameComplete());
+			} while (!dmg.bus.ppu.frame_complete);
+			
+			dmg.bus.ppu.frame_complete = false;
 		}
 
 
@@ -196,13 +198,20 @@ public:
 		//DrawCPU(448, 2);
 
 		// Update TileData for testing once per frame
-		dmg.bus.ppu.updateTileData();
+		dmg.bus.ppu.updateTileDataTest();
+		dmg.bus.ppu.updateTileMap();
 
-		DrawSprite(320, 288 - 192, dmg.bus.ppu.getTileData(0), 1);
+		/*DrawSprite(320, 288 - 192, dmg.bus.ppu.getTileData(0), 1);
 		DrawSprite(320, 288 - 128, dmg.bus.ppu.getTileData(1), 1);
 		DrawSprite(320, 288 - 64, dmg.bus.ppu.getTileData(2), 1);
 
-		DrawSprite(0, 0, dmg.bus.ppu.getScreen(), 2);
+		DrawSprite(0, 0, dmg.bus.ppu.getScreen(), 2);*/
+
+		DrawSprite(256, 256 - 192, dmg.bus.ppu.getTileData(0), 1);
+		DrawSprite(256, 256 - 128, dmg.bus.ppu.getTileData(1), 1);
+		DrawSprite(256, 256 - 64, dmg.bus.ppu.getTileData(2), 1);
+		
+		DrawSprite(0, 0, dmg.bus.ppu.getTileMap(0), 1);
 
 		return true;
 	}
