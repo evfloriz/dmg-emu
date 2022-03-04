@@ -51,6 +51,12 @@ void Bus::write(uint16_t addr, uint8_t data) {
 	}
 	else if (addr >= 0xFF00 && addr <= 0xFF7F) {
 		// io registers
+		
+		// Set joypad input to detect no button presses for now
+		if (addr == 0xFF00) {
+			data |= 0x0F;
+		}
+
 		ioRegisters[addr - 0xFF00] = data;
 	}
 	else if (addr >= 0xFF80 && addr <= 0xFFFE) {

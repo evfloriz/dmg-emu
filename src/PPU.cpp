@@ -1,21 +1,26 @@
+#include <iostream>
+
 #include "Bus.h"
 
 #include "PPU.h"
 
 PPU::PPU() {
 	// TODO: check most logical order for these
-	palette_screen[0] = olc::Pixel(15, 56, 15);
-	palette_screen[1] = olc::Pixel(48, 98, 48);
-	palette_screen[2] = olc::Pixel(139, 172, 139);
-	palette_screen[3] = olc::Pixel(155, 188, 155);
+	palette[0] = olc::Pixel(15, 56, 15);
+	palette[1] = olc::Pixel(48, 98, 48);
+	palette[2] = olc::Pixel(139, 172, 139);
+	palette[3] = olc::Pixel(155, 188, 155);
 }
 
 PPU::~PPU() {
+	delete sprite_screen;
 
+	delete block0;
+	delete block1;
+	delete block2;
 }
 
 void PPU::write(uint16_t addr, uint8_t data) {
-	delete sprite_screen;
 }
 
 uint8_t PPU::read(uint16_t addr) {	
@@ -56,14 +61,25 @@ olc::Sprite* PPU::getScreen() {
 	return sprite_screen;
 }
 
+olc::Sprite* PPU::getTileData(int block_num) {
+	if (block_num == 0) {
+		return block0;
+	}
+	else if (block_num == 1) {
+		return block1;
+	}
+	else {
+		return block2;
+	}
+}
+
 void PPU::clock() {
 	int random_colour = rand() % 4;
-	sprite_screen->SetPixel(cycle - 1, scanline, palette_screen[random_colour]);
+	sprite_screen->SetPixel(cycle - 1, scanline, palette[random_colour]);
 	//sprite_screen->SetPixel(cycle - 1, scanline, palette_screen[(rand() % 4)]);
 
 	// Update LY
 	updateLY();
-
 }
 
 void PPU::updateLY() {
@@ -106,4 +122,70 @@ void PPU::updateLY() {
 
 bool PPU::frameComplete() {
 	return frame_complete;
+}
+
+void PPU::updateTileData() {
+	// First check LCD mode
+	if (bus->read(0xFF40) & (1 << 4)) {
+		lcdc4 = true;
+	}
+
+	// If lcdc4 = 1, block0 is 0-127 and block1 is 128-255
+	// If lcdc4 = 0, block2 is 0-127 and block1 is 128-255
+	uint16_t block0_start = 0x8000;
+	uint16_t block1_start = 0x8800;
+	uint16_t block2_start = 0x9000;
+
+	auto set_line = [&](olc::Sprite* block, uint8_t x, uint8_t y, uint8_t hi, uint8_t lo) {
+		// Get palette index from leftmost to rightmost pixel
+		block->SetPixel(x, y,		palette[((hi >> 6) & (1 << 1)) | ((lo >> 7) & 1)]);
+		block->SetPixel(x + 1, y,	palette[((hi >> 5) & (1 << 1)) | ((lo >> 6) & 1)]);
+		block->SetPixel(x + 2, y,	palette[((hi >> 4) & (1 << 1)) | ((lo >> 5) & 1)]);
+		block->SetPixel(x + 3, y,	palette[((hi >> 3) & (1 << 1)) | ((lo >> 4) & 1)]);
+
+		block->SetPixel(x + 4, y,	palette[((hi >> 2) & (1 << 1)) | ((lo >> 3) & 1)]);
+		block->SetPixel(x + 5, y,	palette[((hi >> 1) & (1 << 1)) | ((lo >> 2) & 1)]);
+		block->SetPixel(x + 6, y,	palette[((hi >> 0) & (1 << 1)) | ((lo >> 1) & 1)]);
+		block->SetPixel(x + 7, y,	palette[((hi << 1) & (1 << 1)) | ((lo >> 0) & 1)]);
+	};
+
+	uint8_t y_base = 0;
+	uint8_t y = y_base;
+	uint8_t x = 0;
+
+
+	for (int i = 0; i < 0x0800; i += 2) {
+		uint8_t lo0 = bus->read(block0_start + i);
+		uint8_t hi0 = bus->read(block0_start + i + 1);
+
+		uint8_t lo1 = bus->read(block1_start + i);
+		uint8_t hi1 = bus->read(block1_start + i + 1);
+
+		uint8_t lo2 = bus->read(block2_start + i);
+		uint8_t hi2 = bus->read(block2_start + i + 1);
+
+		// Set the line of pixels
+		//std::cout << "writing x, y: " << x * 8 << ", " << y + y_base << std::endl;
+		set_line(block0, x * 8, y + y_base, hi0, lo0);
+		set_line(block1, x * 8, y + y_base, hi1, lo1);
+		set_line(block2, x * 8, y + y_base, hi2, lo1);
+
+		// TODO: refactor counting logic
+		
+		// Increment y after every line
+		y++;
+
+		// If y exceeds 8, the tile is done so increment x by 8 and set y to 0
+		if (y > 7) {
+			x++;
+			y = 0;
+		}
+
+		// If x exceeds 16, row of tiles is done so increment y_base and reset x to 0
+		if (x > 15) {
+			x = 0;
+			y_base += 8;
+		}
+	}
+
 }

@@ -72,6 +72,8 @@ public:
 		};
 		std::string romName = "test-roms/" + test_roms[test_num];
 
+		//romName = "roms/tetris.gb";
+
 		// Create cartridge
 		cart = std::make_shared<Cartridge>(romName);
 		bus.insertCartridge(cart);
@@ -79,7 +81,7 @@ public:
 		std::cout << "Beginning execution of " << romName << std::endl;
 
 		bus.cpu.print_toggle = false;
-		bus.cpu.log_toggle = true;
+		bus.cpu.log_toggle = false;
 		bus.cpu.log_file = "log/l" + std::to_string(test_num) + ".txt";
 
 		// Initialize output file
@@ -112,9 +114,11 @@ class Demo : public olc::PixelGameEngine {
 public:
 	DMG dmg;
 	Bus& bus = dmg.bus;
+
+	float residual_time = 0.0f;
 	
 	Demo() {
-		sAppName = "dmg cpu demonstration";
+		sAppName = "DMG";
 	}
 
 	std::string hex(uint32_t n, uint8_t d) {
@@ -174,14 +178,29 @@ public:
 			dmg.tick();
 		}*/
 
-		do {
-			dmg.tick();
-		} while (!dmg.bus.ppu.frameComplete());
+		// Implement timer
+		if (residual_time > 0.0f) {
+			residual_time -= fElapsedTime;
+		}
+		else {
+			residual_time += (1.0f / 60.0f) - fElapsedTime;
+			do {
+				dmg.tick();
+			} while (!dmg.bus.ppu.frameComplete());
+		}
+
 
 		// TODO: what exactly should I draw?
 		//DrawRam(2, 2, 0x0000, 16, 16);
 		//DrawRam(2, 182, 0xFF00, 16, 16);
 		//DrawCPU(448, 2);
+
+		// Update TileData for testing once per frame
+		dmg.bus.ppu.updateTileData();
+
+		DrawSprite(320, 288 - 192, dmg.bus.ppu.getTileData(0), 1);
+		DrawSprite(320, 288 - 128, dmg.bus.ppu.getTileData(1), 1);
+		DrawSprite(320, 288 - 64, dmg.bus.ppu.getTileData(2), 1);
 
 		DrawSprite(0, 0, dmg.bus.ppu.getScreen(), 2);
 
@@ -195,6 +214,7 @@ int main() {
 	if (graphics) {
 		Demo demo;
 		demo.Construct(680, 480, 2, 2);
+		//demo.Construct(320, 288, 2, 2);
 		demo.Start();
 	}
 	else {
