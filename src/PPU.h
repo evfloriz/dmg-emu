@@ -27,7 +27,6 @@ public:
 	void updateLY();
 
 	void updateTileData();
-	void updateTileDataTest();
 	void updateTileMap();
 
 	uint8_t getSCY();

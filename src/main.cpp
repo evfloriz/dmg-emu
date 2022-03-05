@@ -174,10 +174,6 @@ public:
 	bool OnUserUpdate(float fElapsedTime) {
 		Clear(olc::DARK_BLUE);
 
-		/*if (GetKey(olc::Key::SPACE).bPressed) {
-			dmg.tick();
-		}*/
-
 		// Implement timer
 		if (residual_time > 0.0f) {
 			residual_time -= fElapsedTime;
@@ -191,21 +187,9 @@ public:
 			dmg.bus.ppu.frame_complete = false;
 		}
 
-
-		// TODO: what exactly should I draw?
-		//DrawRam(2, 2, 0x0000, 16, 16);
-		//DrawRam(2, 182, 0xFF00, 16, 16);
-		//DrawCPU(448, 2);
-
 		// Update TileData for testing once per frame
-		dmg.bus.ppu.updateTileDataTest();
+		dmg.bus.ppu.updateTileData();
 		dmg.bus.ppu.updateTileMap();
-
-		/*DrawSprite(320, 288 - 192, dmg.bus.ppu.getTileData(0), 1);
-		DrawSprite(320, 288 - 128, dmg.bus.ppu.getTileData(1), 1);
-		DrawSprite(320, 288 - 64, dmg.bus.ppu.getTileData(2), 1);
-
-		DrawSprite(0, 0, dmg.bus.ppu.getScreen(), 2);*/
 
 		int x = 160;
 		int y = 144;
@@ -215,7 +199,6 @@ public:
 		DrawSprite(x * scale, y * scale - 128, dmg.bus.ppu.getTileData(1), 1);
 		DrawSprite(x * scale, y * scale - 64, dmg.bus.ppu.getTileData(2), 1);
 		
-		//DrawSprite(0, 0, dmg.bus.ppu.getTileMap(0), 1);
 		// TODO: figure out a better scroll method
 		DrawPartialSprite(0, 0, dmg.bus.ppu.getTileMap(0), dmg.bus.ppu.getSCX(), dmg.bus.ppu.getSCY(), x, y, scale);
 
