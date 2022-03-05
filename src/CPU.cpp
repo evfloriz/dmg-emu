@@ -348,6 +348,9 @@ uint8_t CPU::read(uint16_t addr) {
 }
 
 void CPU::clock() {
+	// Handle interrupts
+	interrupt_handler();
+
 	// If cycles remaining for an instruction is 0, read next byte
 	if (cycles == 0 && !halt_state) {
 		opcode = read(pc);
@@ -396,6 +399,11 @@ void CPU::clock() {
 	if (halt_state) {
 		cycles = halt_cycle();
 	}
+
+	// Execute timer function
+	// TODO: when should this be? I think it just needs to be "before" the interrupt handler
+	// so that it catches the overflow before the next instruction occurs.
+	timer();
 
 	global_cycles++;
 
@@ -1974,39 +1982,6 @@ uint8_t CPU::SWAP() {
 	setFlag(C, 0);
 
 	return 0;
-}
-
-void CPU::simLY() {
-	// First check if screen is off and reset everything if so
-	if (!(bus->read(0xFF40) & 0x80)) {
-		// LCD off
-		bus->write(0xFF44, 0x00);
-		scanline_clock = 0;
-
-		return;
-	}
-	
-	bool inc = false;
-	
-	// Increment every 456 real clock cycles
-	scanline_clock++;
-	if (scanline_clock > 455) {
-		scanline_clock = 0;
-		
-		inc = true;
-	}
-
-	if (inc) {
-		uint8_t value = bus->read(0xFF44);
-
-		// reset after 154 cycles
-		value++;
-		if (value > 153) {
-			value = 0x00;
-		}
-
-		bus->write(0xFF44, value);
-	}
 }
 
 uint8_t CPU::interrupt_handler() {

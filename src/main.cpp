@@ -48,13 +48,13 @@
 class DMG {
 public:
 	Bus bus;
+	std::shared_ptr<Cartridge> cart;
 
 	bool init() {
 		// Passing 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, instr_timing
-		size_t test_num = 1;
+		size_t test_num = 2;
 		
-		// Load boot rom
-		unsigned char memory[0x10000];
+		// Get rom name
 		std::string test_roms[] = {
 			"cpu_instrs.gb",
 			"01-special.gb",
@@ -70,25 +70,18 @@ public:
 			"11-op a,(hl).gb",
 			"instr_timing.gb"
 		};
-		std::string rom = "test-roms/" + test_roms[test_num];
-		FILE* file = fopen(rom.c_str(), "rb");
-		int pos = 0;
-		while (fread(&memory[pos], 1, 1, file)) {
-			pos++;
-		}
-		fclose(file);
+		std::string romName = "test-roms/" + test_roms[test_num];
 
-		// Copy bootrom into memory
-		pos = 0;
-		for (auto m : memory) {
-			bus.write(pos, m);
-			pos++;
-		}
+		romName = "roms/tetris.gb";
 
-		std::cout << "Beginning execution of " << rom << std::endl;
+		// Create cartridge
+		cart = std::make_shared<Cartridge>(romName);
+		bus.insertCartridge(cart);
+
+		std::cout << "Beginning execution of " << romName << std::endl;
 
 		bus.cpu.print_toggle = false;
-		bus.cpu.log_toggle = true;
+		bus.cpu.log_toggle = false;
 		bus.cpu.log_file = "log/l" + std::to_string(test_num) + ".txt";
 
 		// Initialize output file
@@ -110,18 +103,7 @@ public:
 
 	bool tick() {
 		do {
-			// Handle interrupts
-			bus.cpu.interrupt_handler();
-			
-			// Execute one clock cycle
-			bus.cpu.clock();
-			
-			// Increment LY to simulate vblank
-			bus.cpu.simLY();
-
-			// Execute timer function
-			bus.cpu.timer();
-
+			bus.clock();
 		} while (!bus.cpu.complete());
 
 		return true;
@@ -132,9 +114,11 @@ class Demo : public olc::PixelGameEngine {
 public:
 	DMG dmg;
 	Bus& bus = dmg.bus;
+
+	float residual_time = 0.0f;
 	
 	Demo() {
-		sAppName = "dmg cpu demonstration";
+		sAppName = "DMG";
 	}
 
 	std::string hex(uint32_t n, uint8_t d) {
@@ -190,25 +174,45 @@ public:
 	bool OnUserUpdate(float fElapsedTime) {
 		Clear(olc::DARK_BLUE);
 
-		if (GetKey(olc::Key::SPACE).bPressed) {
-			dmg.tick();
+		// Implement timer
+		if (residual_time > 0.0f) {
+			residual_time -= fElapsedTime;
+		}
+		else {
+			residual_time += (1.0f / 60.0f) - fElapsedTime;
+			do {
+				dmg.tick();
+			} while (!dmg.bus.ppu.frame_complete);
+			
+			dmg.bus.ppu.frame_complete = false;
 		}
 
-		// TODO: what exactly should I draw?
-		DrawRam(2, 2, 0x0000, 16, 16);
-		DrawRam(2, 182, 0xFF00, 16, 16);
-		DrawCPU(448, 2);
+		// Update TileData for testing once per frame
+		dmg.bus.ppu.updateTileData();
+		dmg.bus.ppu.updateTileMap();
+
+		int x = 160;
+		int y = 144;
+		int scale = 2;
+
+		DrawSprite(x * scale, y * scale - 192, dmg.bus.ppu.getTileData(0), 1);
+		DrawSprite(x * scale, y * scale - 128, dmg.bus.ppu.getTileData(1), 1);
+		DrawSprite(x * scale, y * scale - 64, dmg.bus.ppu.getTileData(2), 1);
+		
+		// TODO: figure out a better scroll method
+		DrawPartialSprite(0, 0, dmg.bus.ppu.getTileMap(0), dmg.bus.ppu.getSCX(), dmg.bus.ppu.getSCY(), x, y, scale);
 
 		return true;
 	}
 };
 
 int main() {
-	bool graphics = false;
+	bool graphics = true;
 	
 	if (graphics) {
 		Demo demo;
 		demo.Construct(680, 480, 2, 2);
+		//demo.Construct(320, 288, 2, 2);
 		demo.Start();
 	}
 	else {
