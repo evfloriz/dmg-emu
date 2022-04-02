@@ -45,6 +45,8 @@
 #include "CPU.h"
 #include "olcPixelGameEngine.h"
 
+#include <SDL.h>
+
 class DMG {
 public:
 	Bus bus;
@@ -206,7 +208,7 @@ public:
 	}
 };
 
-int main() {
+int main(int argc, char **argv) {
 	bool graphics = true;
 	
 	if (graphics) {
