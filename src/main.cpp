@@ -209,6 +209,11 @@ public:
 };*/
 
 class Demo {
+	
+	// Helpful resources:
+	//	https://github.com/DOOMReboot/PixelPusher/blob/master/PixelPusher.cpp
+	//	LazyFoo tutorials
+
 public:
 	Demo() {
 	}
@@ -218,17 +223,32 @@ public:
 			std::cout << "SDL could not initialize. SDL_Error: " << SDL_GetError() << std::endl;
 			return -1;
 		}
-		else {
-			window = SDL_CreateWindow("SDL Tutorial", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN);
-			if (window == NULL) {
-				std::cout << "Window could not be created. SDL_Error: " << SDL_GetError() << std::endl;
-				return -1;
-			}
-			else {
-				screenSurface = SDL_GetWindowSurface(window);
-				SDL_FillRect(screenSurface, NULL, SDL_MapRGB(screenSurface->format, 0xFF, 0xFF, 0xFF));
-			}
+		
+		window = SDL_CreateWindow("SDL Tutorial", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN);
+		if (window == NULL) {
+			std::cout << "Window could not be created. SDL_Error: " << SDL_GetError() << std::endl;
+			close();
+			return -1;
 		}
+
+		// Should be good to use hardware acceleration exclusively for now
+		renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+		if (renderer == NULL) {
+			std::cout << "Renderer could not be created. SDL_Error: " << SDL_GetError() << std::endl;
+			close();
+			return -1;
+		}
+
+		//texture = SDL_CreateTexture(renderer, SDL_GetWindowPixelFormat(window), SDL_TEXTUREACCESS_STREAMING, SCREEN_WIDTH, SCREEN_HEIGHT);
+		texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ABGR8888, SDL_TEXTUREACCESS_STREAMING, DMG_WIDTH, DMG_HEIGHT);
+		if (texture == NULL) {
+			std::cout << "Texture could not be created. SDL_Error: " << SDL_GetError() << std::endl;
+			close();
+			return -1;
+		}
+
+		//screenSurface = SDL_GetWindowSurface(window);
+		//SDL_FillRect(screenSurface, NULL, SDL_MapRGB(screenSurface->format, 0xFF, 0xFF, 0xFF));
 
 		return 0;
 	}
@@ -242,49 +262,108 @@ public:
 				if (e.type == SDL_QUIT) {
 					quit = true;
 				}
-				else if (e.type == SDL_KEYDOWN) {
+				/*else if (e.type == SDL_KEYDOWN) {
 					switch (e.key.keysym.sym) {
 					case SDLK_UP:
-						SDL_FillRect(screenSurface, NULL, SDL_MapRGB(screenSurface->format, 0xFF, 0xFF, 0x00));
+						//SDL_FillRect(screenSurface, NULL, SDL_MapRGB(screenSurface->format, 0xFF, 0xFF, 0x00));
 						break;
 					
 					case SDLK_DOWN:
-						SDL_FillRect(screenSurface, NULL, SDL_MapRGB(screenSurface->format, 0xFF, 0x00, 0x00));
+						//SDL_FillRect(screenSurface, NULL, SDL_MapRGB(screenSurface->format, 0xFF, 0x00, 0x00));
 						break;
 
 					case SDLK_LEFT:
-						SDL_FillRect(screenSurface, NULL, SDL_MapRGB(screenSurface->format, 0x00, 0xFF, 0x00));
+						//SDL_FillRect(screenSurface, NULL, SDL_MapRGB(screenSurface->format, 0x00, 0xFF, 0x00));
 						break;
 
 					case SDLK_RIGHT:
-						SDL_FillRect(screenSurface, NULL, SDL_MapRGB(screenSurface->format, 0x00, 0x00, 0xFF));
+						//SDL_FillRect(screenSurface, NULL, SDL_MapRGB(screenSurface->format, 0x00, 0x00, 0xFF));
 						break;
 
 					default:
-						SDL_FillRect(screenSurface, NULL, SDL_MapRGB(screenSurface->format, 0xFF, 0xFF, 0xFF));
+						//SDL_FillRect(screenSurface, NULL, SDL_MapRGB(screenSurface->format, 0xFF, 0xFF, 0xFF));
 					}
-				}
+				}*/
 			}
 
-			SDL_UpdateWindowSurface(window);
+			render();
+
+			//SDL_UpdateWindowSurface(window);
 
 			//SDL_Delay(2000);
 		}
 		return 0;
 	}
 
+	int render() {
+		int pitch = 0;
+
+		// Set up pixel format
+		/*uint32_t format;
+		SDL_QueryTexture(texture, &format, nullptr, nullptr, nullptr);
+		SDL_PixelFormat pixelFormat;
+		pixelFormat.format = format;*/
+		
+		uint32_t* pixelBuffer = nullptr;
+
+		if (SDL_LockTexture(texture, nullptr, (void**)&pixelBuffer, &pitch)) {
+			std::cout << "Texture could not be locked. SDL_Error: " << SDL_GetError() << std::endl;
+			return -1;
+		}
+
+		pitch /= sizeof(uint32_t);
+
+		for (uint32_t i = 0; i < DMG_WIDTH * DMG_HEIGHT; i++) {
+			uint32_t color = ARGB(rand() % 256, rand() % 256, rand() % 256, 255);
+			pixelBuffer[i] = color;
+		}
+
+		SDL_UnlockTexture(texture);
+
+		SDL_RenderCopy(renderer, texture, nullptr, nullptr);
+
+		SDL_RenderPresent(renderer);
+
+		return 0;
+	}
+
+	uint32_t ARGB(uint32_t red, uint32_t green, uint32_t blue, uint32_t alpha) {
+		return (alpha << 24) | (red << 16) | (green << 8) | blue;
+	}
+
 	void close() {
-		SDL_DestroyWindow(window);
+		if (texture) {
+			SDL_DestroyTexture(texture);
+			texture = nullptr;
+		}
+
+		if (renderer) {
+			SDL_DestroyRenderer(renderer);
+			renderer = nullptr;
+		}
+
+		if (window) {
+			SDL_DestroyWindow(window);
+			window = nullptr;
+		}
+		
 		SDL_Quit();
 	}
 
 
 private:
-	const int SCREEN_WIDTH = 640;
-	const int SCREEN_HEIGHT = 480;
+	const int SCREEN_SCALE = 4;
 
-	SDL_Window* window = NULL;
-	SDL_Surface* screenSurface = NULL;
+	const int DMG_WIDTH = 160;
+	const int DMG_HEIGHT = 144;
+
+	const int SCREEN_WIDTH = DMG_WIDTH * SCREEN_SCALE;
+	const int SCREEN_HEIGHT = DMG_HEIGHT * SCREEN_SCALE;
+
+	SDL_Window* window = nullptr;
+	SDL_Renderer* renderer = nullptr;
+	SDL_Texture* texture = nullptr;
+	//SDL_Surface* screenSurface = NULL;
 
 };
 
