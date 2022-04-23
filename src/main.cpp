@@ -361,8 +361,8 @@ public:
 		SDL_Rect debugDestRect;
 		debugDestRect.x = DMG_WIDTH * SCREEN_SCALE;
 		debugDestRect.y = 0;
-		debugDestRect.w = DEBUG_WIDTH;
-		debugDestRect.h = DEBUG_HEIGHT;
+		debugDestRect.w = DEBUG_WIDTH * SCREEN_SCALE;
+		debugDestRect.h = DEBUG_HEIGHT * SCREEN_SCALE;
 
 		if (SDL_LockTexture(texture, nullptr, (void**)&pixelBuffer, &pitch_1)) {
 			std::cout << "Texture could not be locked. SDL_Error: " << SDL_GetError() << std::endl;

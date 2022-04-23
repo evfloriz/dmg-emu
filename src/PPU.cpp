@@ -169,7 +169,7 @@ void PPU::updateTileData(uint32_t* tileDataBuffer) {
 		tileDataBuffer[y * 256 + x + 7] = palette[((hi << 1) & (1 << 1)) | ((lo >> 0) & 1)];
 	};
 
-	for (int i = 0; i < 0x0100; i++) {
+	for (int i = 0; i < 0x0080; i++) {
 		uint8_t x = i % 16;
 		uint8_t y = i / 16;
 
@@ -183,9 +183,9 @@ void PPU::updateTileData(uint32_t* tileDataBuffer) {
 			uint8_t lo2 = bus->read(block2_start + i * 16 + j * 2);
 			uint8_t hi2 = bus->read(block2_start + i * 16 + j * 2 + 1);
 
-			//set_line(x * 8, j + y * 8, hi0, lo0);
-			//set_line(x * 8, 128 + j + y * 8, hi1, lo1);
-			set_line(x * 8, 256 + j + y * 8, hi2, lo1);
+			set_line(x * 8, j + y * 8, hi0, lo0);
+			set_line(x * 8, 64 + j + y * 8, hi1, lo1);
+			set_line(x * 8, 128 + j + y * 8, hi2, lo2);
 		}
 	}
 }
