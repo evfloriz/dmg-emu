@@ -286,6 +286,8 @@ public:
 				}*/
 			}
 
+			//dmg
+
 			render();
 
 			//SDL_UpdateWindowSurface(window);
@@ -296,14 +298,9 @@ public:
 	}
 
 	int render() {
-		int pitch = 0;
-
-		// Set up pixel format
-		/*uint32_t format;
-		SDL_QueryTexture(texture, &format, nullptr, nullptr, nullptr);
-		SDL_PixelFormat pixelFormat;
-		pixelFormat.format = format;*/
+		uint64_t start = SDL_GetPerformanceCounter();
 		
+		int pitch = 0;		
 		uint32_t* pixelBuffer = nullptr;
 
 		if (SDL_LockTexture(texture, nullptr, (void**)&pixelBuffer, &pitch)) {
@@ -314,15 +311,19 @@ public:
 		pitch /= sizeof(uint32_t);
 
 		for (uint32_t i = 0; i < DMG_WIDTH * DMG_HEIGHT; i++) {
-			uint32_t color = ARGB(rand() % 256, rand() % 256, rand() % 256, 255);
+			//uint32_t color = ARGB(rand() % 256, rand() % 256, rand() % 256, 255);
+			uint32_t color = ARGB(255, 255, 255, 255);
 			pixelBuffer[i] = color;
 		}
 
 		SDL_UnlockTexture(texture);
-
 		SDL_RenderCopy(renderer, texture, nullptr, nullptr);
-
 		SDL_RenderPresent(renderer);
+
+		uint64_t end = SDL_GetPerformanceCounter();
+		float elapsed = (end - start) / (float)SDL_GetPerformanceFrequency();
+
+		std::cout << "FPS: " << std::to_string((int)(1.0f / elapsed)) << "\r" << std::flush;
 
 		return 0;
 	}
@@ -364,6 +365,8 @@ private:
 	SDL_Renderer* renderer = nullptr;
 	SDL_Texture* texture = nullptr;
 	//SDL_Surface* screenSurface = NULL;
+
+	//DMG dmg;
 
 };
 
