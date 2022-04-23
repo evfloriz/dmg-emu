@@ -110,6 +110,19 @@ public:
 
 		return true;
 	}
+
+	bool tick_frame() {
+		do {
+			tick();
+		} while (!bus.ppu.frame_complete);
+
+		bus.ppu.frame_complete = false;
+
+		//bus.ppu.updateTileData();
+		//bus.ppu.updateTileMap();
+
+		return true;
+	}
 };
 
 /*class Demo : public olc::PixelGameEngine {
@@ -250,6 +263,8 @@ public:
 		//screenSurface = SDL_GetWindowSurface(window);
 		//SDL_FillRect(screenSurface, NULL, SDL_MapRGB(screenSurface->format, 0xFF, 0xFF, 0xFF));
 
+		dmg.init();
+
 		return 0;
 	}
 
@@ -288,6 +303,8 @@ public:
 
 			//dmg
 
+			dmg.tick_frame();
+			
 			render();
 
 			//SDL_UpdateWindowSurface(window);
@@ -300,8 +317,10 @@ public:
 	int render() {
 		uint64_t start = SDL_GetPerformanceCounter();
 		
-		int pitch = 0;		
-		uint32_t* pixelBuffer = nullptr;
+		int pitch = 0;
+
+		// Use the pixel buffer on the ppu for SDL_LockTexture
+		uint32_t* pixelBuffer = dmg.bus.ppu.getPixelBuffer();
 
 		if (SDL_LockTexture(texture, nullptr, (void**)&pixelBuffer, &pitch)) {
 			std::cout << "Texture could not be locked. SDL_Error: " << SDL_GetError() << std::endl;
@@ -310,14 +329,32 @@ public:
 
 		pitch /= sizeof(uint32_t);
 
-		for (uint32_t i = 0; i < DMG_WIDTH * DMG_HEIGHT; i++) {
+		/*for (uint32_t i = 0; i < DMG_WIDTH * DMG_HEIGHT; i++) {
 			//uint32_t color = ARGB(rand() % 256, rand() % 256, rand() % 256, 255);
 			uint32_t color = ARGB(255, 255, 255, 255);
 			pixelBuffer[i] = color;
-		}
+		}*/
+
+		dmg.bus.ppu.updateTileMap(pixelBuffer);
+
+		//pixelBuffer = dmg.bus.ppu.getPixelBuffer();
+		
+		// Create source and destination rectangle to place texture on the renderer
+		SDL_Rect srcRect;
+		srcRect.x = 0;
+		srcRect.y = 0;
+		srcRect.w = DMG_WIDTH;
+		srcRect.h = DMG_HEIGHT;
+
+		SDL_Rect destRect;
+		destRect.x = 0;
+		destRect.y = 0;
+		destRect.w = DMG_WIDTH * SCREEN_SCALE;
+		destRect.h = DMG_HEIGHT * SCREEN_SCALE;
+
 
 		SDL_UnlockTexture(texture);
-		SDL_RenderCopy(renderer, texture, nullptr, nullptr);
+		SDL_RenderCopy(renderer, texture, &srcRect, &destRect);
 		SDL_RenderPresent(renderer);
 
 		uint64_t end = SDL_GetPerformanceCounter();
@@ -353,20 +390,22 @@ public:
 
 
 private:
-	const int SCREEN_SCALE = 4;
+	const int SCREEN_SCALE = 2;
 
-	const int DMG_WIDTH = 160;
-	const int DMG_HEIGHT = 144;
+	//const int DMG_WIDTH = 160;
+	//const int DMG_HEIGHT = 144;
+	const int DMG_WIDTH = 256;
+	const int DMG_HEIGHT = 256;
 
-	const int SCREEN_WIDTH = DMG_WIDTH * SCREEN_SCALE;
-	const int SCREEN_HEIGHT = DMG_HEIGHT * SCREEN_SCALE;
+	const int SCREEN_WIDTH = 1000;
+	const int SCREEN_HEIGHT = 800;
 
 	SDL_Window* window = nullptr;
 	SDL_Renderer* renderer = nullptr;
 	SDL_Texture* texture = nullptr;
 	//SDL_Surface* screenSurface = NULL;
 
-	//DMG dmg;
+	DMG dmg;
 
 };
 

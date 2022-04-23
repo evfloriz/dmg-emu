@@ -27,16 +27,20 @@ public:
 	void updateLY();
 
 	void updateTileData();
-	void updateTileMap();
+	//void updateTileMap();
+	void updateTileMap(uint32_t* pixelBuffer);
 
 	uint8_t getSCY();
 	uint8_t getSCX();
+
+	uint32_t* getPixelBuffer();
 
 	bool frame_complete = false;
 
 private:
 	Bus* bus = nullptr;
-	olc::Pixel palette[4];
+	//olc::Pixel palette[4];
+	uint32_t palette[4];
 	olc::Sprite* sprite_screen = new olc::Sprite(160, 144);
 	
 	olc::Sprite* block0 = new olc::Sprite(128, 64);
@@ -49,12 +53,11 @@ private:
 	uint16_t cycle = 0;
 	uint8_t scanline = 0;
 
-	bool lcdc4 = false;
-	
-	bool lcdc6 = false;
 	bool lcdc3 = false;
-
+	bool lcdc4 = false;
 	bool lcdc5 = false;
-
+	bool lcdc6 = false;
 	bool lcdc7 = false;
+
+	uint32_t* pixelBuffer = nullptr;
 };
