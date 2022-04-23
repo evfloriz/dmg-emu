@@ -141,12 +141,12 @@ void PPU::updateLY() {
 	}
 }
 
-void PPU::updateTileData() {
+void PPU::updateTileData(uint32_t* tileDataBuffer) {
 	uint16_t block0_start = 0x8000;
 	uint16_t block1_start = 0x8800;
 	uint16_t block2_start = 0x9000;
 
-	auto set_line = [&](olc::Sprite* block, uint8_t x, uint8_t y, uint8_t hi, uint8_t lo) {
+	auto set_line = [&](uint8_t x, uint8_t y, uint8_t hi, uint8_t lo) {
 		// Get palette index from leftmost to rightmost pixel
 		/*block->SetPixel(x,		y, palette[((hi >> 6) & (1 << 1)) | ((lo >> 7) & 1)]);
 		block->SetPixel(x + 1,	y, palette[((hi >> 5) & (1 << 1)) | ((lo >> 6) & 1)]);
@@ -158,15 +158,15 @@ void PPU::updateTileData() {
 		block->SetPixel(x + 6,	y, palette[((hi >> 0) & (1 << 1)) | ((lo >> 1) & 1)]);
 		block->SetPixel(x + 7,	y, palette[((hi << 1) & (1 << 1)) | ((lo >> 0) & 1)]);*/
 
-		/*pixelBuffer[y * 160 + x    ] = palette[((hi >> 6) & (1 << 1)) | ((lo >> 7) & 1)];
-		pixelBuffer[y * 160 + x + 1] = palette[((hi >> 5) & (1 << 1)) | ((lo >> 6) & 1)];
-		pixelBuffer[y * 160 + x + 2] = palette[((hi >> 4) & (1 << 1)) | ((lo >> 5) & 1)];
-		pixelBuffer[y * 160 + x + 3] = palette[((hi >> 3) & (1 << 1)) | ((lo >> 4) & 1)];
+		tileDataBuffer[y * 256 + x    ] = palette[((hi >> 6) & (1 << 1)) | ((lo >> 7) & 1)];
+		tileDataBuffer[y * 256 + x + 1] = palette[((hi >> 5) & (1 << 1)) | ((lo >> 6) & 1)];
+		tileDataBuffer[y * 256 + x + 2] = palette[((hi >> 4) & (1 << 1)) | ((lo >> 5) & 1)];
+		tileDataBuffer[y * 256 + x + 3] = palette[((hi >> 3) & (1 << 1)) | ((lo >> 4) & 1)];
 
-		pixelBuffer[y * 160 + x + 4] = palette[((hi >> 2) & (1 << 1)) | ((lo >> 3) & 1)];
-		pixelBuffer[y * 160 + x + 5] = palette[((hi >> 1) & (1 << 1)) | ((lo >> 2) & 1)];
-		pixelBuffer[y * 160 + x + 6] = palette[((hi >> 0) & (1 << 1)) | ((lo >> 1) & 1)];
-		pixelBuffer[y * 160 + x + 7] = palette[((hi << 1) & (1 << 1)) | ((lo >> 0) & 1)];*/
+		tileDataBuffer[y * 256 + x + 4] = palette[((hi >> 2) & (1 << 1)) | ((lo >> 3) & 1)];
+		tileDataBuffer[y * 256 + x + 5] = palette[((hi >> 1) & (1 << 1)) | ((lo >> 2) & 1)];
+		tileDataBuffer[y * 256 + x + 6] = palette[((hi >> 0) & (1 << 1)) | ((lo >> 1) & 1)];
+		tileDataBuffer[y * 256 + x + 7] = palette[((hi << 1) & (1 << 1)) | ((lo >> 0) & 1)];
 	};
 
 	for (int i = 0; i < 0x0100; i++) {
@@ -183,9 +183,9 @@ void PPU::updateTileData() {
 			uint8_t lo2 = bus->read(block2_start + i * 16 + j * 2);
 			uint8_t hi2 = bus->read(block2_start + i * 16 + j * 2 + 1);
 
-			set_line(block0, x * 8, j + y * 8, hi0, lo0);
-			set_line(block1, x * 8, j + y * 8, hi1, lo1);
-			set_line(block2, x * 8, j + y * 8, hi2, lo1);
+			//set_line(x * 8, j + y * 8, hi0, lo0);
+			//set_line(x * 8, 128 + j + y * 8, hi1, lo1);
+			set_line(x * 8, 256 + j + y * 8, hi2, lo1);
 		}
 	}
 }
@@ -217,7 +217,7 @@ void PPU::updateTileMap(uint32_t* pixelBuffer) {
 	// Optimization: Use scaleX and scaleY to set the start offset, and then only add the actual screens pixels
 	// to pixelbuffer. Treat it like the screen rather than the background map
 	
-	auto set_line = [&](olc::Sprite* map, uint8_t x, uint8_t y, uint8_t hi, uint8_t lo) {
+	auto set_line = [&](uint8_t x, uint8_t y, uint8_t hi, uint8_t lo) {
 		// Get palette index from leftmost to rightmost pixel
 		/*map->SetPixel(x, y,		palette[((hi >> 6) & (1 << 1)) | ((lo >> 7) & 1)]);
 		map->SetPixel(x + 1, y, palette[((hi >> 5) & (1 << 1)) | ((lo >> 6) & 1)]);
@@ -229,15 +229,15 @@ void PPU::updateTileMap(uint32_t* pixelBuffer) {
 		map->SetPixel(x + 6, y, palette[((hi >> 0) & (1 << 1)) | ((lo >> 1) & 1)]);
 		map->SetPixel(x + 7, y, palette[((hi << 1) & (1 << 1)) | ((lo >> 0) & 1)]);*/
 
-		pixelBuffer[y * 160 + x    ] = palette[((hi >> 6) & (1 << 1)) | ((lo >> 7) & 1)];
-		pixelBuffer[y * 160 + x + 1] = palette[((hi >> 5) & (1 << 1)) | ((lo >> 6) & 1)];
-		pixelBuffer[y * 160 + x + 2] = palette[((hi >> 4) & (1 << 1)) | ((lo >> 5) & 1)];
-		pixelBuffer[y * 160 + x + 3] = palette[((hi >> 3) & (1 << 1)) | ((lo >> 4) & 1)];
+		pixelBuffer[y * 256 + x    ] = palette[((hi >> 6) & (1 << 1)) | ((lo >> 7) & 1)];
+		pixelBuffer[y * 256 + x + 1] = palette[((hi >> 5) & (1 << 1)) | ((lo >> 6) & 1)];
+		pixelBuffer[y * 256 + x + 2] = palette[((hi >> 4) & (1 << 1)) | ((lo >> 5) & 1)];
+		pixelBuffer[y * 256 + x + 3] = palette[((hi >> 3) & (1 << 1)) | ((lo >> 4) & 1)];
 
-		pixelBuffer[y * 160 + x + 4] = palette[((hi >> 2) & (1 << 1)) | ((lo >> 3) & 1)];
-		pixelBuffer[y * 160 + x + 5] = palette[((hi >> 1) & (1 << 1)) | ((lo >> 2) & 1)];
-		pixelBuffer[y * 160 + x + 6] = palette[((hi >> 0) & (1 << 1)) | ((lo >> 1) & 1)];
-		pixelBuffer[y * 160 + x + 7] = palette[((hi << 1) & (1 << 1)) | ((lo >> 0) & 1)];
+		pixelBuffer[y * 256 + x + 4] = palette[((hi >> 2) & (1 << 1)) | ((lo >> 3) & 1)];
+		pixelBuffer[y * 256 + x + 5] = palette[((hi >> 1) & (1 << 1)) | ((lo >> 2) & 1)];
+		pixelBuffer[y * 256 + x + 6] = palette[((hi >> 0) & (1 << 1)) | ((lo >> 1) & 1)];
+		pixelBuffer[y * 256 + x + 7] = palette[((hi << 1) & (1 << 1)) | ((lo >> 0) & 1)];
 	};
 
 	for (int i = 0; i < 0x0400; i++) {
@@ -253,7 +253,7 @@ void PPU::updateTileMap(uint32_t* pixelBuffer) {
 			uint8_t lo = bus->read(start + (index % 128) * 16 + j * 2);
 			uint8_t hi = bus->read(start + (index % 128) * 16 + j * 2 + 1);
 
-			set_line(bg_map, x * 8, j + y * 8, hi, lo);
+			set_line(x * 8, j + y * 8, hi, lo);
 		}
 	}
 }
@@ -268,4 +268,8 @@ uint8_t PPU::getSCX() {
 
 uint32_t* PPU::getPixelBuffer() {
 	return pixelBuffer;
+}
+
+uint32_t* PPU::getTileDataBuffer() {
+	return tileDataBuffer;
 }

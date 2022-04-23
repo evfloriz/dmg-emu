@@ -26,7 +26,8 @@ public:
 	void clock();
 	void updateLY();
 
-	void updateTileData();
+	//void updateTileData();
+	void updateTileData(uint32_t* tileDataBuffer);
 	//void updateTileMap();
 	void updateTileMap(uint32_t* pixelBuffer);
 
@@ -34,6 +35,7 @@ public:
 	uint8_t getSCX();
 
 	uint32_t* getPixelBuffer();
+	uint32_t* getTileDataBuffer();
 
 	bool frame_complete = false;
 
@@ -60,4 +62,5 @@ private:
 	bool lcdc7 = false;
 
 	uint32_t* pixelBuffer = nullptr;
+	uint32_t* tileDataBuffer = nullptr;
 };

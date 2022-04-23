@@ -260,6 +260,13 @@ public:
 			return -1;
 		}
 
+		debugTexture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ABGR8888, SDL_TEXTUREACCESS_STREAMING, DEBUG_WIDTH, DEBUG_HEIGHT);
+		if (debugTexture == NULL) {
+			std::cout << "Texture could not be created. SDL_Error: " << SDL_GetError() << std::endl;
+			close();
+			return -1;
+		}
+
 		//screenSurface = SDL_GetWindowSurface(window);
 		//SDL_FillRect(screenSurface, NULL, SDL_MapRGB(screenSurface->format, 0xFF, 0xFF, 0xFF));
 
@@ -303,9 +310,16 @@ public:
 
 			//dmg
 
+			uint64_t start = SDL_GetPerformanceCounter();
+
 			dmg.tick_frame();
 			
 			render();
+
+			uint64_t end = SDL_GetPerformanceCounter();
+			float elapsed = (end - start) / (float)SDL_GetPerformanceFrequency();
+
+			std::cout << "FPS: " << std::to_string((int)(1.0f / elapsed)) << "\r" << std::flush;
 
 			//SDL_UpdateWindowSurface(window);
 
@@ -315,31 +329,17 @@ public:
 	}
 
 	int render() {
-		uint64_t start = SDL_GetPerformanceCounter();
-		
-		int pitch = 0;
+		// multiple pitches?
+		int pitch_1 = 0;
+		int pitch_2 = 0;
 
 		// Use the pixel buffer on the ppu for SDL_LockTexture
 		uint32_t* pixelBuffer = dmg.bus.ppu.getPixelBuffer();
 
-		if (SDL_LockTexture(texture, nullptr, (void**)&pixelBuffer, &pitch)) {
-			std::cout << "Texture could not be locked. SDL_Error: " << SDL_GetError() << std::endl;
-			return -1;
-		}
+		// Use the tile data buffer on the ppu
+		uint32_t* tileDataBuffer = dmg.bus.ppu.getTileDataBuffer();
 
-		pitch /= sizeof(uint32_t);
-
-		/*for (uint32_t i = 0; i < DMG_WIDTH * DMG_HEIGHT; i++) {
-			//uint32_t color = ARGB(rand() % 256, rand() % 256, rand() % 256, 255);
-			uint32_t color = ARGB(255, 255, 255, 255);
-			pixelBuffer[i] = color;
-		}*/
-
-		dmg.bus.ppu.updateTileMap(pixelBuffer);
-
-		//pixelBuffer = dmg.bus.ppu.getPixelBuffer();
-		
-		// Create source and destination rectangle to place texture on the renderer
+		// Initialize rects for various rendering textures
 		SDL_Rect srcRect;
 		srcRect.x = 0;
 		srcRect.y = 0;
@@ -352,15 +352,46 @@ public:
 		destRect.w = DMG_WIDTH * SCREEN_SCALE;
 		destRect.h = DMG_HEIGHT * SCREEN_SCALE;
 
+		SDL_Rect debugSrcRect;
+		debugSrcRect.x = 0;
+		debugSrcRect.y = 0;
+		debugSrcRect.w = DEBUG_WIDTH;
+		debugSrcRect.h = DEBUG_HEIGHT;
 
+		SDL_Rect debugDestRect;
+		debugDestRect.x = DMG_WIDTH * SCREEN_SCALE;
+		debugDestRect.y = 0;
+		debugDestRect.w = DEBUG_WIDTH;
+		debugDestRect.h = DEBUG_HEIGHT;
+
+		if (SDL_LockTexture(texture, nullptr, (void**)&pixelBuffer, &pitch_1)) {
+			std::cout << "Texture could not be locked. SDL_Error: " << SDL_GetError() << std::endl;
+			return -1;
+		}
+
+		pitch_1 /= sizeof(uint32_t);
+		dmg.bus.ppu.updateTileMap(pixelBuffer);		
+		
+		// Unlock and draw to screen
 		SDL_UnlockTexture(texture);
 		SDL_RenderCopy(renderer, texture, &srcRect, &destRect);
+
+		// Process debug texture (tile data)
+		if (SDL_LockTexture(debugTexture, nullptr, (void**)&tileDataBuffer, &pitch_2)) {
+			std::cout << "Texture could not be locked. SDL_Error: " << SDL_GetError() << std::endl;
+			return -1;
+		}
+
+		pitch_2 /= sizeof(uint32_t);
+		dmg.bus.ppu.updateTileData(tileDataBuffer);
+
+		SDL_UnlockTexture(debugTexture);
+		SDL_RenderCopy(renderer, debugTexture, &debugSrcRect, &debugDestRect);
+		
+		
 		SDL_RenderPresent(renderer);
 
-		uint64_t end = SDL_GetPerformanceCounter();
-		float elapsed = (end - start) / (float)SDL_GetPerformanceFrequency();
-
-		std::cout << "FPS: " << std::to_string((int)(1.0f / elapsed)) << "\r" << std::flush;
+		
 
 		return 0;
 	}
@@ -397,12 +428,17 @@ private:
 	const int DMG_WIDTH = 256;
 	const int DMG_HEIGHT = 256;
 
+	// Used for the tile data
+	const int DEBUG_WIDTH = 256;
+	const int DEBUG_HEIGHT = 384;
+
 	const int SCREEN_WIDTH = 1000;
 	const int SCREEN_HEIGHT = 800;
 
 	SDL_Window* window = nullptr;
 	SDL_Renderer* renderer = nullptr;
 	SDL_Texture* texture = nullptr;
+	SDL_Texture* debugTexture = nullptr;
 	//SDL_Surface* screenSurface = NULL;
 
 	DMG dmg;
