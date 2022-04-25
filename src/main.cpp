@@ -1,9 +1,4 @@
 
-// TODO: Figure out if I still need these (for printf I think)
-//#ifdef _WIN32
-//#define _CRT_SECURE_NO_WARNINGS
-//#endif
-
 #include <iostream>
 
 #include "Bus.h"
