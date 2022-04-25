@@ -120,13 +120,13 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>$(ProjectDir)SDL2-2.0.20\include;$(IncludePath)</IncludePath>
-    <LibraryPath>$(ProjectDir)SDL2-2.0.20\lib\x64;$(LibraryPath)</LibraryPath>
+    <IncludePath>C:\vclib\SDL2-2.0.20\include;$(IncludePath)</IncludePath>
+    <LibraryPath>C:\vclib\SDL2-2.0.20\lib\x64;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='SDL-Release|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>$(ProjectDir)SDL2-2.0.20\include;$(IncludePath)</IncludePath>
-    <LibraryPath>$(ProjectDir)SDL2-2.0.20\lib\x64;$(LibraryPath)</LibraryPath>
+    <IncludePath>C:\vclib\SDL2-2.0.20\include;$(IncludePath)</IncludePath>
+    <LibraryPath>C:\vclib\SDL2-2.0.20\lib\x64;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
