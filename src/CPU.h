@@ -36,9 +36,6 @@ public:
 	uint8_t interrupt_handler();
 	uint8_t halt_cycle();
 
-	// LY incrementer for testing
-	void simLY();
-
 	// Signal that instruction is complete
 	bool complete();
 

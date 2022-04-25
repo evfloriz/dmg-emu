@@ -38,9 +38,6 @@
     <ClInclude Include="src\CPU.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\olcPixelGameEngine.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="src\Cartridge.h">
       <Filter>Header Files</Filter>
     </ClInclude>
