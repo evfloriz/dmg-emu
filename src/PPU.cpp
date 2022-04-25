@@ -4,17 +4,12 @@
 
 #include "PPU.h"
 
-// TODO: make a util class
+// TODO: Make a util class.
 uint32_t ARGB(uint32_t red, uint32_t green, uint32_t blue, uint32_t alpha = 255) {
 	return (alpha << 24) | (red << 16) | (green << 8) | blue;
 }
 
 PPU::PPU() {
-	/*palette[0] = olc::Pixel(155, 188, 155);
-	palette[1] = olc::Pixel(139, 172, 139);
-	palette[2] = olc::Pixel(48, 98, 48);
-	palette[3] = olc::Pixel(15, 56, 15);*/
-
 	palette[0] = ARGB(155, 188, 155);
 	palette[1] = ARGB(139, 172, 139);
 	palette[2] = ARGB(48, 98, 48);
@@ -22,11 +17,6 @@ PPU::PPU() {
 }
 
 PPU::~PPU() {
-	delete sprite_screen;
-
-	delete block0;
-	delete block1;
-	delete block2;
 }
 
 void PPU::write(uint16_t addr, uint8_t data) {
@@ -35,7 +25,7 @@ void PPU::write(uint16_t addr, uint8_t data) {
 uint8_t PPU::read(uint16_t addr) {	
 	uint8_t data = 0x00;
 
-	// handle data in each of the 12 registers of the ppu
+	// Handle data in each of the 12 registers of the ppu
 	switch (addr) {
 	case 0xFF40:
 		break;
@@ -66,36 +56,7 @@ uint8_t PPU::read(uint16_t addr) {
 	return data;
 }
 
-olc::Sprite* PPU::getScreen() {
-	return sprite_screen;
-}
-
-olc::Sprite* PPU::getTileData(int block_num) {
-	if (block_num == 0) {
-		return block0;
-	}
-	else if (block_num == 1) {
-		return block1;
-	}
-	else {
-		return block2;
-	}
-}
-
-olc::Sprite* PPU::getTileMap(int map_num) {
-	if (map_num == 0) {
-		return bg_map;
-	}
-	else {
-		return win_map;
-	}
-}
-
 void PPU::clock() {
-	//int random_colour = rand() % 4;
-	//sprite_screen->SetPixel(cycle - 1, scanline, palette[random_colour]);
-	//sprite_screen->SetPixel(cycle - 1, scanline, palette_screen[(rand() % 4)]);
-
 	// Update LY
 	updateLY();
 }
@@ -148,16 +109,6 @@ void PPU::updateTileData(uint32_t* tileDataBuffer) {
 
 	auto set_line = [&](uint8_t x, uint8_t y, uint8_t hi, uint8_t lo) {
 		// Get palette index from leftmost to rightmost pixel
-		/*block->SetPixel(x,		y, palette[((hi >> 6) & (1 << 1)) | ((lo >> 7) & 1)]);
-		block->SetPixel(x + 1,	y, palette[((hi >> 5) & (1 << 1)) | ((lo >> 6) & 1)]);
-		block->SetPixel(x + 2,	y, palette[((hi >> 4) & (1 << 1)) | ((lo >> 5) & 1)]);
-		block->SetPixel(x + 3,	y, palette[((hi >> 3) & (1 << 1)) | ((lo >> 4) & 1)]);
-
-		block->SetPixel(x + 4,	y, palette[((hi >> 2) & (1 << 1)) | ((lo >> 3) & 1)]);
-		block->SetPixel(x + 5,	y, palette[((hi >> 1) & (1 << 1)) | ((lo >> 2) & 1)]);
-		block->SetPixel(x + 6,	y, palette[((hi >> 0) & (1 << 1)) | ((lo >> 1) & 1)]);
-		block->SetPixel(x + 7,	y, palette[((hi << 1) & (1 << 1)) | ((lo >> 0) & 1)]);*/
-
 		tileDataBuffer[y * 256 + x    ] = palette[((hi >> 6) & (1 << 1)) | ((lo >> 7) & 1)];
 		tileDataBuffer[y * 256 + x + 1] = palette[((hi >> 5) & (1 << 1)) | ((lo >> 6) & 1)];
 		tileDataBuffer[y * 256 + x + 2] = palette[((hi >> 4) & (1 << 1)) | ((lo >> 5) & 1)];
@@ -219,16 +170,6 @@ void PPU::updateTileMap(uint32_t* pixelBuffer) {
 	
 	auto set_line = [&](uint8_t x, uint8_t y, uint8_t hi, uint8_t lo) {
 		// Get palette index from leftmost to rightmost pixel
-		/*map->SetPixel(x, y,		palette[((hi >> 6) & (1 << 1)) | ((lo >> 7) & 1)]);
-		map->SetPixel(x + 1, y, palette[((hi >> 5) & (1 << 1)) | ((lo >> 6) & 1)]);
-		map->SetPixel(x + 2, y, palette[((hi >> 4) & (1 << 1)) | ((lo >> 5) & 1)]);
-		map->SetPixel(x + 3, y, palette[((hi >> 3) & (1 << 1)) | ((lo >> 4) & 1)]);
-
-		map->SetPixel(x + 4, y, palette[((hi >> 2) & (1 << 1)) | ((lo >> 3) & 1)]);
-		map->SetPixel(x + 5, y, palette[((hi >> 1) & (1 << 1)) | ((lo >> 2) & 1)]);
-		map->SetPixel(x + 6, y, palette[((hi >> 0) & (1 << 1)) | ((lo >> 1) & 1)]);
-		map->SetPixel(x + 7, y, palette[((hi << 1) & (1 << 1)) | ((lo >> 0) & 1)]);*/
-
 		pixelBuffer[y * 256 + x    ] = palette[((hi >> 6) & (1 << 1)) | ((lo >> 7) & 1)];
 		pixelBuffer[y * 256 + x + 1] = palette[((hi >> 5) & (1 << 1)) | ((lo >> 6) & 1)];
 		pixelBuffer[y * 256 + x + 2] = palette[((hi >> 4) & (1 << 1)) | ((lo >> 5) & 1)];
