@@ -302,31 +302,10 @@ private:
 };
 
 int main(int argc, char **argv) {
-	/*bool graphics = true;
-	
-	if (graphics) {
-		Demo demo;
-		demo.Construct(680, 480, 2, 2);
-		//demo.Construct(320, 288, 2, 2);
-		demo.Start();
-	}
-	else {
-		DMG dmg;
-		dmg.init();
-		int i = 0;
-		int max = 1000000;
-		int count = 0;
-		do {
-			dmg.tick();			
-		} while (true);
-	}*/
-
 	Demo demo;
 
 	demo.init();
-
 	demo.execute();
-
 	demo.close();
 
     return 0;
