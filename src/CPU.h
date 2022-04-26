@@ -119,10 +119,14 @@ private:
 	};
 
 	// Lookup tables for opcodes
-	std::map<uint8_t, INSTRUCTION> lookup;
-	std::map<uint8_t, INSTRUCTION> cb_lookup;
+	std::map<uint8_t, INSTRUCTION> lookup_map;
+	std::map<uint8_t, INSTRUCTION> cb_lookup_map;
+	std::map<uint8_t, std::string> name_lookup_map;
 
-	std::map<uint8_t, std::string> name_lookup;
+	std::vector<INSTRUCTION> lookup;
+	std::vector<INSTRUCTION> cb_lookup;
+	std::vector<std::string> name_lookup;
+	
 
 private:
 	// Opcodes
@@ -235,5 +239,5 @@ public:
 
 	FILE* file;
 	
-	uint16_t global_cycles = 0;
+	uint64_t global_cycles = 0;
 };

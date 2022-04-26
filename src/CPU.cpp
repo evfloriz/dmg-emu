@@ -2,10 +2,11 @@
 
 #include "Bus.h"
 #include <iostream>
+#include <chrono>
 
 CPU::CPU() {
 
-	lookup = {
+	lookup_map = {
 		{0x00, {&CPU::NOP,			1}},					{0x08, {&CPU::LD_a16_SP,	5}},
 		{0x01, {&CPU::LD_r16,		3,		&b, &c}},		{0x09, {&CPU::ADD_r16,		2,		&b, &c}},
 		{0x02, {&CPU::LD_p16_r8,	2,		&b, &c, &a}},	{0x0A, {&CPU::LD_r8_p16,	2,		&a, &b, &c}},
@@ -126,18 +127,18 @@ CPU::CPU() {
 		{0xD0, {&CPU::RET,			2,		&i_NC}},		{0xD8, {&CPU::RET,			2,		&i_C}},
 		{0xD1, {&CPU::POP_r16,		3,		&d, &e}},		{0xD9, {&CPU::RETI,			4,		&i_N}},				
 		{0xD2, {&CPU::JP,			3,		&i_NC}},		{0xDA, {&CPU::JP,			3,		&i_C}},		
-		/*{0xD3}*/											/*{0xDB}*/
+		{0xD3, {/* Empty */}},								{0xDB, {/* Empty */}},
 		{0xD4, {&CPU::CALL,			3,		&i_NC}},		{0xDC, {&CPU::CALL,			3,		&i_C}},
-		{0xD5, {&CPU::PUSH_r16,		4,		&d, &e}},		/*{0xDC}*/
+		{0xD5, {&CPU::PUSH_r16,		4,		&d, &e}},		{0xDD, {/* Empty */}},
 		{0xD6, {&CPU::SUB,			2,		&a}},			{0xDE, {&CPU::SBC,			2,		&a}},
 		{0xD7, {&CPU::RST,			4,		&rst[1]}},		{0xDF, {&CPU::RST,			4,		&rst[5]}},
 		
 		{0xE0, {&CPU::LDH_p8_A,		3}},					{0xE8, {&CPU::ADD_SP_o8,	4}},
 		{0xE1, {&CPU::POP_r16,		3,		&h, &l}},		{0xE9, {&CPU::JP,			0,		&i_N, &h, &l}},
 		{0xE2, {&CPU::LDH_p8_A,		2,		&c}},			{0xEA, {&CPU::LD_a16_A,		4}},
-		/*{0xE3}*/											/*{0xEB}*/
-		/*{0xE4}*/											/*{0xEC}*/
-		{0xE5, {&CPU::PUSH_r16,		4,		&h, &l}},		/*{0xED}*/
+		{0xE3, {/* Empty */}},								{0xEB, {/* Empty */}},
+		{0xE4, {/* Empty */}},								{0xEC, {/* Empty */}},
+		{0xE5, {&CPU::PUSH_r16,		4,		&h, &l}},		{0xED, {/* Empty */}},
 		{0xE6, {&CPU::AND,			2,		&a}},			{0xEE, {&CPU::XOR,			2,		&a}},
 		{0xE7, {&CPU::RST,			4,		&rst[2]}},		{0xEF, {&CPU::RST,			4,		&rst[6]}},
 		
@@ -145,13 +146,13 @@ CPU::CPU() {
 		{0xF1, {&CPU::POP_AF,		3,		&a, &f}},		{0xF9, {&CPU::LD_SP,		2,		&h, &l}},
 		{0xF2, {&CPU::LDH_A_p8,		2,		&c}},			{0xFA, {&CPU::LD_A_a16,		4}},
 		{0xF3, {&CPU::DI,			1}},					{0xFB, {&CPU::EI,			1}},
-		/*{0xF4}*/											/*{0xFC}*/
-		{0xF5, {&CPU::PUSH_AF,		4,		&a, &f}},		/*{0xFD}*/
+		{0xF4, {/* Empty */}},								{0xFC, {/* Empty */}},
+		{0xF5, {&CPU::PUSH_AF,		4,		&a, &f}},		{0xFD, {/* Empty */}},
 		{0xF6, {&CPU::OR,			2,		&a}},			{0xFE, {&CPU::CP,			2,		&a}},
 		{0xF7, {&CPU::RST,			4,		&rst[3]}},		{0xFF, {&CPU::RST,			4,		&rst[7]}},
 	};
 
-	cb_lookup = {
+	cb_lookup_map = {
 		{0x00, {&CPU::RLC,			2,		&b}},			{0x08, {&CPU::RRC,			2,		&b}},
 		{0x01, {&CPU::RLC,			2,		&c}},			{0x09, {&CPU::RRC,			2,		&c}},
 		{0x02, {&CPU::RLC,			2,		&d}},			{0x0A, {&CPU::RRC,			2,		&d}},
@@ -297,7 +298,7 @@ CPU::CPU() {
 		{0xF7, {&CPU::SET,			2,	&bit[6], &a}},		{0xFF, {&CPU::SET,			2,	&bit[7], &a}},
 	};
 
-	name_lookup = {
+	name_lookup_map = {
 		{0x00, "NOP"			}, {0x01, "LD BC, d16"	}, {0x02, "LD (BC), A"	}, {0x03, "INC BC"		}, {0x04, "INC B"		}, {0x05, "DEC B"		}, {0x06, "LD B, d8"	}, {0x07, "RLCA"		},
 		{0x10, "STOP"			}, {0x11, "LD DE, d16"	}, {0x12, "LD (DE), A"	}, {0x13, "INC DE"		}, {0x14, "INC D"		}, {0x15, "DEC D"		}, {0x16, "LD D, d8"	}, {0x17, "RLA"			},
 		{0x20, "JR NZ, r8"		}, {0x21, "LD HL, d16"	}, {0x22, "LD (HL+), A"	}, {0x23, "INC HL"		}, {0x24, "INC H"		}, {0x25, "DEC H"		}, {0x26, "LD H, d8"	}, {0x27, "DAA"			},
@@ -334,6 +335,18 @@ CPU::CPU() {
 		{0xE8, "ADD SP, r8"		}, {0xE9, "JP HL"		}, {0xEA, "LD (a16), A"	}, {0xEB, "NULL"		}, {0xEC, "NULL"		}, {0xED, "NULL"		}, {0xEE, "XOR d8"		}, {0xEF, "RST 28H"		},
 		{0xF8, "LD HL, SP + r8"	}, {0xF9, "LD SP, HL, "	}, {0xFA, "LD A, (a16)"	}, {0xFB, "EI"			}, {0xFC, "NULL"		}, {0xFD, "NULL"		}, {0xFE, "CP d8"		}, {0xFF, "RST 38H"		},
 	};
+
+	for (auto& pair : lookup_map) {
+		lookup.push_back(pair.second);
+	}
+
+	for (auto& pair : cb_lookup_map) {
+		cb_lookup.push_back(pair.second);
+	}
+
+	for (auto& pair : name_lookup_map) {
+		name_lookup.push_back(pair.second);
+	}
 }
 
 CPU::~CPU() {
@@ -367,7 +380,7 @@ void CPU::clock() {
 
 		pc++;
 
-		if (lookup.count(opcode)) {
+		if (lookup[opcode].operate) {
 			
 			// Set cycles to number of cycles
 			cycles = lookup[opcode].cycles;
@@ -408,7 +421,7 @@ void CPU::clock() {
 	global_cycles++;
 
 	// Print Blargg test rom output
-	print_test();
+	//print_test();
 }
 
 void CPU::print_test() {
@@ -2068,6 +2081,10 @@ uint8_t CPU::interrupt_handler() {
 }
 
 uint8_t CPU::timer() {
+	//std::chrono::high_resolution_clock::time_point begin = std::chrono::high_resolution_clock::now();
+	//std::chrono::high_resolution_clock::time_point end = std::chrono::high_resolution_clock::now();
+	//long time = std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count();
+	
 	// Divider
 	// 16384 Hz is every 256 cycles at 4 MHz
 	uint8_t divider = bus->read(0xFF04);

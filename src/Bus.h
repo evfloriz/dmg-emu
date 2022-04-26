@@ -26,7 +26,9 @@ public:
 	std::array<uint8_t, 160> oam;
 	std::array<uint8_t, 128> ioRegisters;
 	std::array<uint8_t, 128> hram;
-	std::array<uint8_t, 1> ieRegister;
+	uint8_t ieRegister;
+
+
 
 public:
 	// Bus read and write

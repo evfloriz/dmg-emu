@@ -14,7 +14,7 @@ Bus::Bus() {
 	oam.fill(0x00);
 	ioRegisters.fill(0x00);
 	hram.fill(0x00);
-	ieRegister.fill(0x00);
+	ieRegister = 0x00;
 
 	// Set joypad register to high for now
 	ioRegisters[0x0000] = 0xFF;
@@ -73,53 +73,55 @@ void Bus::write(uint16_t addr, uint8_t data) {
 	}
 	else if (addr == 0xFFFF) {
 		// ie register
-		ieRegister[addr - 0xFFFF] = data;
+		ieRegister = data;
 	}
 }
 
-uint8_t Bus::read(uint16_t addr) {
+uint8_t Bus::read(uint16_t addr) {	
+	uint8_t data = 0xFF;
+	
 	if (addr >= 0x0000 && addr <= 0x7FFF) {
 		// cartridge, fixed bank
-		return cart->read(addr);
+		data = cart->read(addr);
 	}
 	else if (addr >= 0x8000 && addr <= 0x9FFF) {
 		// video ram
-		return vram[addr - 0x8000];
+		data = vram[addr - 0x8000];
 	}
 	else if (addr >= 0xA000 && addr <= 0xBFFF) {
 		// external ram
-		return externalRam[addr - 0xA000];
+		data = externalRam[addr - 0xA000];
 	}
 	else if (addr >= 0xC000 && addr <= 0xDFFF) {
 		// wram
-		return wram[addr - 0xC000];
+		data = wram[addr - 0xC000];
 	}
 	else if (addr >= 0xE000 && addr <= 0xFDFF) {
 		// echo ram, prohibited
-		return 0xFF;
+		data = 0xFF;
 	}
 	else if (addr >= 0xFE00 && addr <= 0xFE9F) {
 		// oam ram
-		return oam[addr - 0xFE00];
+		data = oam[addr - 0xFE00];
 	}
 	else if (addr >= 0xFEA0 && addr <= 0xFEFF) {
 		// unusable
-		return 0xFF;
+		data = 0xFF;
 	}
 	else if (addr >= 0xFF00 && addr <= 0xFF7F) {
 		// io registers
-		return ioRegisters[addr - 0xFF00];
+		data = ioRegisters[addr - 0xFF00];
 	}
 	else if (addr >= 0xFF80 && addr <= 0xFFFE) {
 		// hram
-		return hram[addr - 0xFF80];
+		data = hram[addr - 0xFF80];
 	}
 	else if (addr == 0xFFFF) {
 		// ie register
-		return ieRegister[addr - 0xFFFF];
+		data = ieRegister;
 	}
-
-	return 0xFF;
+	
+	return data;
 }
 
 void Bus::insertCartridge(const std::shared_ptr<Cartridge>& cartridge) {

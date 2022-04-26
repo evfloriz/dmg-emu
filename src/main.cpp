@@ -1,10 +1,9 @@
 
 #include <iostream>
+#include <SDL.h>
 
 #include "Bus.h"
 #include "CPU.h"
-
-#include <SDL.h>
 
 class DMG {
 public:
@@ -182,7 +181,9 @@ public:
 			// Display fps
 			uint64_t end = SDL_GetPerformanceCounter();
 			float elapsed = (end - start) / (float)SDL_GetPerformanceFrequency();
-			std::cout << "FPS: " << std::to_string((int)(1.0f / elapsed)) << "\r" << std::flush;
+			std::string fps = std::to_string((int)(1.0f / elapsed));
+			std::cout << fps << "\r" << std::flush;
+			//std::cout << dmg.bus.cpu.global_cycles << "\r" << std::flush;
 		}
 		return 0;
 	}
@@ -252,7 +253,7 @@ public:
 		return 0;
 	}
 
-	uint32_t ARGB(uint32_t red, uint32_t green, uint32_t blue, uint32_t alpha) {
+	inline uint32_t ARGB(uint32_t red, uint32_t green, uint32_t blue, uint32_t alpha) {
 		return (alpha << 24) | (red << 16) | (green << 8) | blue;
 	}
 
@@ -295,7 +296,6 @@ private:
 	SDL_Renderer* renderer = nullptr;
 	SDL_Texture* texture = nullptr;
 	SDL_Texture* debugTexture = nullptr;
-	//SDL_Surface* screenSurface = NULL;
 
 	DMG dmg;
 
