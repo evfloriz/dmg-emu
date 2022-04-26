@@ -2087,20 +2087,18 @@ uint8_t CPU::timer() {
 	
 	// Divider
 	// 16384 Hz is every 256 cycles at 4 MHz
-	uint8_t divider = bus->read(0xFF04);
 
 	divider_clock++;
 	if (divider_clock > 255) {
 		divider_clock = 0;
 
 		// Increment divider every 256 cycles
-		// divider will automatically overflow
+		// Divider will automatically overflow
+		uint8_t divider = bus->read(0xFF04);
 		bus->write(0xFF04, divider++);
 	}
 
 	// Timer
-	uint8_t timer_counter = bus->read(0xFF05);
-	uint8_t timer_modulo = bus->read(0xFF06);
 	uint8_t timer_control = bus->read(0xFF07);
 	
 	bool timer_on = timer_control & (1 << 2);
@@ -2111,6 +2109,9 @@ uint8_t CPU::timer() {
 	if (timer_on) {
 		timer_clock++;
 		if (timer_clock > speed - 1) {
+			uint8_t timer_counter = bus->read(0xFF05);
+			uint8_t timer_modulo = bus->read(0xFF06);
+
 			timer_clock = timer_modulo;
 
 			// Increment timer after correct number of cycles

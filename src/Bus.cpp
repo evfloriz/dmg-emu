@@ -8,19 +8,25 @@ Bus::Bus() {
 	ppu.connectBus(this);
 
 	// Initialize data to 0
-	vram.fill(0x00);
+	/*vram.fill(0x00);
 	externalRam.fill(0x00);
 	wram.fill(0x00);
 	oam.fill(0x00);
 	ioRegisters.fill(0x00);
-	hram.fill(0x00);
-	ieRegister = 0x00;
+	hram.fill(0x00);*/
+	//ieRegister = 0x00;
 
 	// Set joypad register to high for now
 	ioRegisters[0x0000] = 0xFF;
 }
 
 Bus::~Bus() {
+	/*delete[] vram;
+	delete[] externalRam;
+	delete[] wram;
+	delete[] oam;
+	delete[] ioRegisters;
+	delete[] hram;*/
 }
 
 void Bus::write(uint16_t addr, uint8_t data) {
@@ -64,8 +70,16 @@ void Bus::write(uint16_t addr, uint8_t data) {
 		if (addr == 0xFF00) {
 			return;
 		}
-
-		ioRegisters[addr - 0xFF00] = data;
+		// Handle frequently used registers for timer and interrupts
+		else if (addr == 0xFF0F) {
+			ifRegister = data;
+		}
+		else if (addr == 0xFF07) {
+			timerControlRegister = data;
+		}
+		else {
+			ioRegisters[addr - 0xFF00] = data;
+		}
 	}
 	else if (addr >= 0xFF80 && addr <= 0xFFFE) {
 		// hram
@@ -110,7 +124,17 @@ uint8_t Bus::read(uint16_t addr) {
 	}
 	else if (addr >= 0xFF00 && addr <= 0xFF7F) {
 		// io registers
-		data = ioRegisters[addr - 0xFF00];
+		
+		// Handle frequently used registers for timer and interrupts
+		if (addr == 0xFF0F) {
+			data = ifRegister;
+		}
+		else if (addr == 0xFF07) {
+			data = timerControlRegister;
+		}
+		else {
+			data = ioRegisters[addr - 0xFF00];
+		}
 	}
 	else if (addr >= 0xFF80 && addr <= 0xFFFE) {
 		// hram
