@@ -14,7 +14,7 @@ public:
 	std::shared_ptr<Cartridge> cart;
 
 	DMG()
-		: bus(&cpu, &ppu)
+		: bus()
 		, cpu(&bus)
 		, ppu(&bus) {}
 
@@ -71,7 +71,8 @@ public:
 
 	bool tick() {
 		do {
-			bus.clock();
+			cpu.clock();
+			ppu.clock();
 		} while (!cpu.complete());
 
 		return true;

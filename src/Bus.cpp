@@ -1,20 +1,11 @@
 #include "Bus.h"
 
-Bus::Bus(CPU* cpu, PPU* ppu) {
-	// Connect CPU to bus
-	this->cpu = cpu;
-
-	// Connect PPU to bus
-	this->ppu = ppu;
-
+Bus::Bus() {
+	
 	// Initialize data to 0
-	/*vram.fill(0x00);
-	externalRam.fill(0x00);
-	wram.fill(0x00);
-	oam.fill(0x00);
-	ioRegisters.fill(0x00);
-	hram.fill(0x00);*/
-	//ieRegister = 0x00;
+	ieRegister = 0x00;
+	ifRegister = 0x00;
+	timerControlRegister = 0x00;
 
 	// Set joypad register to high for now
 	//ioRegisters[0x0000] = 0xFF;
@@ -22,13 +13,6 @@ Bus::Bus(CPU* cpu, PPU* ppu) {
 }
 
 Bus::~Bus() {
-	/*delete[] vram;
-	delete[] externalRam;
-	delete[] wram;
-	delete[] oam;
-	delete[] ioRegisters;
-	delete[] hram;*/
-
 	delete[] memory;
 }
 
@@ -105,11 +89,4 @@ uint8_t Bus::read(uint16_t addr) {
 
 void Bus::insertCartridge(const std::shared_ptr<Cartridge>& cartridge) {
 	this->cart = cartridge;
-}
-
-void Bus::clock() {
-	// Execute one CPU clock cycle
-	cpu->clock();
-
-	ppu->clock();
 }

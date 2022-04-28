@@ -2086,13 +2086,8 @@ uint8_t CPU::interrupt_handler() {
 }
 
 uint8_t CPU::timer() {
-	//std::chrono::high_resolution_clock::time_point begin = std::chrono::high_resolution_clock::now();
-	//std::chrono::high_resolution_clock::time_point end = std::chrono::high_resolution_clock::now();
-	//long time = std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count();
-	
 	// Divider
 	// 16384 Hz is every 256 cycles at 4 MHz
-
 	divider_clock++;
 	if (divider_clock > 255) {
 		divider_clock = 0;

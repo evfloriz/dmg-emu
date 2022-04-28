@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 #include <map>
+#include <chrono>
 
 class Bus;
 
@@ -240,4 +241,13 @@ public:
 	FILE* file;
 	
 	uint64_t global_cycles = 0;
+
+	// Use for simple profiling
+	std::chrono::high_resolution_clock::time_point begin = std::chrono::high_resolution_clock::now();
+	std::chrono::high_resolution_clock::time_point end = std::chrono::high_resolution_clock::now();
+	long long time = std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count();
+	
+	long profile_count = 0;
+	long profile_total_time = 0;
+	long avg = 0;
 };
