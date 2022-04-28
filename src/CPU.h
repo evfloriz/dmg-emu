@@ -6,11 +6,11 @@
 #include <map>
 #include <chrono>
 
-class Bus;
+class MMU;
 
 class CPU {
 public:
-	CPU(Bus* bus);
+	CPU(MMU* mmu);
 	~CPU();
 
 public:
@@ -39,9 +39,6 @@ public:
 
 	// Signal that instruction is complete
 	bool complete();
-
-	// Link CPU to bus
-	void connectBus(Bus* n) { bus = n; };
 
 	// Status register flags
 	enum FLAGS {
@@ -106,8 +103,8 @@ private:
 	uint8_t i_C = CONDITION::c_C;
 	uint8_t i_NC = CONDITION::c_NC;
 
-	// Facilitate link to bus
-	Bus* bus = nullptr;
+	// Facilitate link to mmu
+	MMU* mmu = nullptr;
 	void write(uint16_t addr, uint8_t data);
 	uint8_t read(uint16_t addr);
 

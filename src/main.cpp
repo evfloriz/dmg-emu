@@ -2,21 +2,21 @@
 #include <iostream>
 #include <SDL.h>
 
-#include "Bus.h"
+#include "MMU.h"
 #include "CPU.h"
 #include "PPU.h"
 
 class DMG {
 public:
-	Bus bus;
+	MMU mmu;
 	CPU cpu;
 	PPU ppu;
 	std::shared_ptr<Cartridge> cart;
 
 	DMG()
-		: bus()
-		, cpu(&bus)
-		, ppu(&bus) {}
+		: mmu()
+		, cpu(&mmu)
+		, ppu(&mmu) {}
 
 	bool init() {
 		// Passing tests 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, instr_timing
@@ -44,7 +44,7 @@ public:
 
 		// Create cartridge
 		cart = std::make_shared<Cartridge>(romName);
-		bus.insertCartridge(cart);
+		mmu.insertCartridge(cart);
 
 		std::cout << "Beginning execution of " << romName << std::endl;
 
@@ -58,13 +58,13 @@ public:
 		}
 
 		// Reset LY
-		bus.write(0xFF44, 0x00);
+		mmu.write(0xFF44, 0x00);
 		
 		// Reset divider and timer registers
-		bus.write(0xFF04, 0xAB);
-		bus.write(0xFF05, 0x00);
-		bus.write(0xFF06, 0x00);
-		bus.write(0xFF07, 0xF8);
+		mmu.write(0xFF04, 0xAB);
+		mmu.write(0xFF05, 0x00);
+		mmu.write(0xFF06, 0x00);
+		mmu.write(0xFF07, 0xF8);
 
 		return true;
 	}
@@ -192,7 +192,7 @@ public:
 			float elapsed = (end - start) / (float)SDL_GetPerformanceFrequency();
 			std::string fps = std::to_string((int)(1.0f / elapsed));
 			std::cout << fps << "\r" << std::flush;
-			//std::cout << dmg.bus.cpu.global_cycles << "\r" << std::flush;
+			//std::cout << dmg.mmu.cpu.global_cycles << "\r" << std::flush;
 		}
 		return 0;
 	}

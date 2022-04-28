@@ -1,11 +1,11 @@
 #include "CPU.h"
 
-#include "Bus.h"
+#include "MMU.h"
 #include <iostream>
 #include <chrono>
 
-CPU::CPU(Bus* bus) {
-	this->bus = bus;
+CPU::CPU(MMU* mmu) {
+	this->mmu = mmu;
 
 	lookup_map = {
 		{0x00, {&CPU::NOP,			1}},					{0x08, {&CPU::LD_a16_SP,	5}},
@@ -354,11 +354,11 @@ CPU::~CPU() {
 }
 
 void CPU::write(uint16_t addr, uint8_t data) {
-	bus->write(addr, data);
+	mmu->write(addr, data);
 }
 
 uint8_t CPU::read(uint16_t addr) {
-	return bus->read(addr);
+	return mmu->read(addr);
 }
 
 void CPU::clock() {
@@ -427,10 +427,10 @@ void CPU::clock() {
 
 void CPU::print_test() {
 	// Print the test results from blargg's test rom
-	if (bus->read(0xFF02) == 0x81) {
-		char c = bus->read(0xFF01);
+	if (mmu->read(0xFF02) == 0x81) {
+		char c = mmu->read(0xFF01);
 		printf("%c", c);
-		bus->write(0xFF02, 0x00);
+		mmu->write(0xFF02, 0x00);
 	}
 }
 
@@ -518,9 +518,9 @@ uint8_t CPU::LD_r16() {
 	uint8_t* op1 = lookup[opcode].op1;
 	uint8_t* op2 = lookup[opcode].op2;
 
-	uint8_t lo = bus->read(pc);
+	uint8_t lo = mmu->read(pc);
 	pc++;
-	uint8_t hi = bus->read(pc);
+	uint8_t hi = mmu->read(pc);
 	pc++;
 
 	*op1 = hi;
@@ -545,9 +545,9 @@ uint8_t CPU::LD_SP() {
 	}
 	else {
 		// Get immediate
-		uint8_t lo = bus->read(pc);
+		uint8_t lo = mmu->read(pc);
 		pc++;
-		uint8_t hi = bus->read(pc);
+		uint8_t hi = mmu->read(pc);
 		pc++;
 
 		// Combine and store
@@ -560,9 +560,9 @@ uint8_t CPU::LD_SP() {
 uint8_t CPU::LD_a16_SP() {
 	// Load SP into a16 location
 
-	uint8_t lo = bus->read(pc);
+	uint8_t lo = mmu->read(pc);
 	pc++;
-	uint8_t hi = bus->read(pc);
+	uint8_t hi = mmu->read(pc);
 	pc++;
 	
 	uint16_t addr = (hi << 8) | lo;
@@ -571,8 +571,8 @@ uint8_t CPU::LD_a16_SP() {
 	uint8_t sp_lo = sp & 0xFF;
 	uint8_t sp_hi = (sp >> 8) & 0xFF;
 	
-	bus->write(addr, sp_lo);
-	bus->write(addr + 1, sp_hi);
+	mmu->write(addr, sp_lo);
+	mmu->write(addr + 1, sp_hi);
 
 	return 0;
 }
@@ -581,7 +581,7 @@ uint8_t CPU::LD_HL_SP_o8() {
 	// Load sp with a signed offset into hl
 	
 	// Get signed offset
-	uint16_t offset = bus->read(pc);
+	uint16_t offset = mmu->read(pc);
 	pc++;
 
 	// If highest bit is negative sign, extend to higher 8 bits
@@ -613,7 +613,7 @@ uint8_t CPU::LD_r8_r8() {
 		*op1 = *op2;
 	}
 	else {
-		*op1 = bus->read(pc);
+		*op1 = mmu->read(pc);
 		pc++;
 	}
 
@@ -629,7 +629,7 @@ uint8_t CPU::LD_r8_p16() {
 	uint8_t* op3 = lookup[opcode].op3;
 
 	uint16_t addr = (*op2 << 8) | *op3;
-	*op1 = bus->read(addr);
+	*op1 = mmu->read(addr);
 
 	return 0;
 }
@@ -653,11 +653,11 @@ uint8_t CPU::LD_p16_r8() {
 		data = *op3;
 	}
 	else {
-		data = bus->read(pc);
+		data = mmu->read(pc);
 		pc++;
 	}
 
-	bus->write(addr, data);
+	mmu->write(addr, data);
 
 	return 0;
 }
@@ -666,7 +666,7 @@ uint8_t CPU::LD_HLI_A() {
 	// eg LD (HL+), A
 
 	uint16_t addr = (h << 8) | l;
-	bus->write(addr, a);
+	mmu->write(addr, a);
 	addr++;
 
 	// Convert back to h and l
@@ -680,7 +680,7 @@ uint8_t CPU::LD_HLD_A() {
 	// eg LD (HL-), A
 	
 	uint16_t addr = (h << 8) | l;
-	bus->write(addr, a);
+	mmu->write(addr, a);
 	addr--;
 
 	// Convert back to h and l
@@ -695,7 +695,7 @@ uint8_t CPU::LD_A_HLI() {
 
 	// Note: these are guaranteed to be a, h, and l
 	uint16_t addr = (h << 8) | l;
-	a = bus->read(addr);
+	a = mmu->read(addr);
 	addr++;
 
 	// Convert back to h and l
@@ -709,7 +709,7 @@ uint8_t CPU::LD_A_HLD() {
 	// eg LD A, (HL+)
 
 	uint16_t addr = (h << 8) | l;
-	a = bus->read(addr);
+	a = mmu->read(addr);
 	addr--;
 
 	// Convert back to h and l
@@ -734,13 +734,13 @@ uint8_t CPU::LDH_A_p8() {
 	}
 	else {
 		// Load from immediate address
-		offset = bus->read(pc);
+		offset = mmu->read(pc);
 		pc++;
 	}
 
 	uint16_t addr = 0xFF00 + offset;
 	
-	a = bus->read(addr);
+	a = mmu->read(addr);
 
 	return 0;
 }
@@ -760,14 +760,14 @@ uint8_t CPU::LDH_p8_A() {
 	}
 	else {
 		// Load from immediate address
-		offset = bus->read(pc);
+		offset = mmu->read(pc);
 		pc++;
 	}
 
 	uint16_t addr = 0xFF00 + offset;
 
 	// Write A to address
-	bus->write(addr, a);
+	mmu->write(addr, a);
 
 	return 0;
 }
@@ -775,14 +775,14 @@ uint8_t CPU::LDH_p8_A() {
 uint8_t CPU::LD_a16_A() {
 	// Load A into a16 location
 
-	uint8_t lo = bus->read(pc);
+	uint8_t lo = mmu->read(pc);
 	pc++;
-	uint8_t hi = bus->read(pc);
+	uint8_t hi = mmu->read(pc);
 	pc++;
 
 	uint16_t addr = (hi << 8) | lo;
 
-	bus->write(addr, a);
+	mmu->write(addr, a);
 
 	return 0;
 }
@@ -790,14 +790,14 @@ uint8_t CPU::LD_a16_A() {
 uint8_t CPU::LD_A_a16() {
 	// Load data at a16 location into A
 
-	uint8_t lo = bus->read(pc);
+	uint8_t lo = mmu->read(pc);
 	pc++;
-	uint8_t hi = bus->read(pc);
+	uint8_t hi = mmu->read(pc);
 	pc++;
 
 	uint16_t addr = (hi << 8) | lo;
 
-	a = bus->read(addr);
+	a = mmu->read(addr);
 
 	return 0;
 }
@@ -810,9 +810,9 @@ uint8_t CPU::PUSH_r16() {
 	uint8_t* op2 = lookup[opcode].op2;
 
 	sp--;
-	bus->write(sp, *op1);
+	mmu->write(sp, *op1);
 	sp--;
-	bus->write(sp, *op2);
+	mmu->write(sp, *op2);
 
 	return 0;
 }
@@ -824,9 +824,9 @@ uint8_t CPU::PUSH_AF() {
 	uint8_t* op2 = lookup[opcode].op2;
 
 	sp--;
-	bus->write(sp, *op1);
+	mmu->write(sp, *op1);
 	sp--;
-	bus->write(sp, *op2);
+	mmu->write(sp, *op2);
 
 	return 0;
 }
@@ -838,9 +838,9 @@ uint8_t CPU::POP_r16() {
 	uint8_t* op1 = lookup[opcode].op1;
 	uint8_t* op2 = lookup[opcode].op2;
 
-	*op2 = bus->read(sp);
+	*op2 = mmu->read(sp);
 	sp++;
-	*op1 = bus->read(sp);
+	*op1 = mmu->read(sp);
 	sp++;
 
 	return 0;
@@ -849,9 +849,9 @@ uint8_t CPU::POP_r16() {
 uint8_t CPU::POP_AF() {
 	// f only cares about upper 4 bits
 
-	f = bus->read(sp) & 0xF0;
+	f = mmu->read(sp) & 0xF0;
 	sp++;
-	a = bus->read(sp);
+	a = mmu->read(sp);
 	sp++;
 
 	return 0;
@@ -869,7 +869,7 @@ uint8_t CPU::ADD() {
 	if (op3) {
 		// Add from address
 		uint16_t addr = (*op2 << 8) | *op3;
-		val2 = bus->read(addr);			
+		val2 = mmu->read(addr);			
 	}
 	else if (op2) {
 		// Add from register
@@ -877,7 +877,7 @@ uint8_t CPU::ADD() {
 	}
 	else {
 		// Add from immediate
-		val2 = bus->read(pc);
+		val2 = mmu->read(pc);
 		pc++;
 	}
 
@@ -905,7 +905,7 @@ uint8_t CPU::ADC() {
 	if (op3) {
 		// Add from address
 		uint16_t addr = (*op2 << 8) | *op3;
-		val2 = bus->read(addr);
+		val2 = mmu->read(addr);
 	}
 	else if (op2) {
 		// Add from register
@@ -913,7 +913,7 @@ uint8_t CPU::ADC() {
 	}
 	else {
 		// Add from immediate
-		val2 = bus->read(pc);
+		val2 = mmu->read(pc);
 		pc++;
 	}
 
@@ -944,7 +944,7 @@ uint8_t CPU::SUB() {
 	if (op3) {
 		// Address case
 		uint16_t addr = (*op2 << 8) | *op3;
-		val2 = bus->read(addr);
+		val2 = mmu->read(addr);
 	}
 	else if (op2) {
 		// Register case
@@ -952,7 +952,7 @@ uint8_t CPU::SUB() {
 	}
 	else {
 		// Immediate case
-		val2 = bus->read(pc);
+		val2 = mmu->read(pc);
 		pc++;
 	}
 
@@ -983,7 +983,7 @@ uint8_t CPU::SBC() {
 	if (op3) {
 		// Address case
 		uint16_t addr = (*op2 << 8) | *op3;
-		val2 = bus->read(addr);
+		val2 = mmu->read(addr);
 	}
 	else if (op2) {
 		// Register case
@@ -991,7 +991,7 @@ uint8_t CPU::SBC() {
 	}
 	else {
 		// Immediate case
-		val2 = bus->read(pc);
+		val2 = mmu->read(pc);
 		pc++;
 	}
 
@@ -1033,7 +1033,7 @@ uint8_t CPU::AND() {
 	if (op3) {
 		// Address case
 		uint16_t addr = (*op2 << 8) | *op3;
-		val2 = bus->read(addr);
+		val2 = mmu->read(addr);
 	}
 	else if (op2) {
 		// Register case
@@ -1041,7 +1041,7 @@ uint8_t CPU::AND() {
 	}
 	else {
 		// Immediate case
-		val2 = bus->read(pc);
+		val2 = mmu->read(pc);
 		pc++;
 	}
 
@@ -1069,7 +1069,7 @@ uint8_t CPU::XOR() {
 	if (op3) {
 		// Address case
 		uint16_t addr = (*op2 << 8) | *op3;
-		val2 = bus->read(addr);
+		val2 = mmu->read(addr);
 	}
 	else if (op2) {
 		// Register case
@@ -1077,7 +1077,7 @@ uint8_t CPU::XOR() {
 	}
 	else {
 		// Immediate case
-		val2 = bus->read(pc);
+		val2 = mmu->read(pc);
 		pc++;
 	}
 
@@ -1105,7 +1105,7 @@ uint8_t CPU::OR() {
 	if (op3) {
 		// Address case
 		uint16_t addr = (*op2 << 8) | *op3;
-		val2 = bus->read(addr);
+		val2 = mmu->read(addr);
 	}
 	else if (op2) {
 		// Register case
@@ -1113,7 +1113,7 @@ uint8_t CPU::OR() {
 	}
 	else {
 		// Immediate case
-		val2 = bus->read(pc);
+		val2 = mmu->read(pc);
 		pc++;
 	}
 
@@ -1141,7 +1141,7 @@ uint8_t CPU::CP() {
 	if (op3) {
 		// Address case
 		uint16_t addr = (*op2 << 8) | *op3;
-		val2 = bus->read(addr);
+		val2 = mmu->read(addr);
 	}
 	else if (op2) {
 		// Register case
@@ -1149,7 +1149,7 @@ uint8_t CPU::CP() {
 	}
 	else {
 		// Immediate case
-		val2 = bus->read(pc);
+		val2 = mmu->read(pc);
 		pc++;
 	}
 
@@ -1179,9 +1179,9 @@ uint8_t CPU::INC() {
 	if (op2) {
 		// Get byte from address
 		uint16_t addr = (*op1 << 8) | *op2;
-		temp = bus->read(addr);
+		temp = mmu->read(addr);
 		result = (temp + 0x0001) & 0xFF;
-		bus->write(addr, result);
+		mmu->write(addr, result);
 	}
 	else {
 		// Get byte from register
@@ -1209,9 +1209,9 @@ uint8_t CPU::DEC() {
 	if (op2) {
 		// Get byte from address
 		uint16_t addr = (*op1 << 8) | *op2;
-		temp = bus->read(addr);
+		temp = mmu->read(addr);
 		result = (temp - 0x0001) & 0xFF;
-		bus->write(addr, result);
+		mmu->write(addr, result);
 	}
 	else {
 		// Get byte from register
@@ -1299,9 +1299,9 @@ uint8_t CPU::JP() {
 	}
 	else {
 		// Get from imm
-		uint8_t lo = bus->read(pc);
+		uint8_t lo = mmu->read(pc);
 		pc++;
-		uint8_t hi = bus->read(pc);
+		uint8_t hi = mmu->read(pc);
 		pc++;
 
 		addr = (hi << 8) | lo;
@@ -1322,7 +1322,7 @@ uint8_t CPU::JR() {
 	uint8_t* op1 = lookup[opcode].op1;
 	
 	// Get signed offset in 16-bits for easier math
-	uint16_t offset = bus->read(pc);
+	uint16_t offset = mmu->read(pc);
 	pc++;
 
 	// If highest bit is negative sign, extend to higher 8 bits
@@ -1352,14 +1352,14 @@ uint8_t CPU::CALL() {
 		
 		// Push the hi byte first in order to preserve endianness (since stack grows downward)
 		sp--;
-		bus->write(sp, next_hi);
+		mmu->write(sp, next_hi);
 		sp--;
-		bus->write(sp, next_lo);
+		mmu->write(sp, next_lo);
 
 		// Get address from imm
-		uint8_t lo = bus->read(pc);
+		uint8_t lo = mmu->read(pc);
 		pc++;
-		uint8_t hi = bus->read(pc);
+		uint8_t hi = mmu->read(pc);
 		pc++;
 		
 		// Execute jump
@@ -1380,9 +1380,9 @@ uint8_t CPU::RET() {
 
 	if (checkCondition(*op1)) {
 		// Pop address off the stack and set pc
-		uint8_t lo = bus->read(sp);
+		uint8_t lo = mmu->read(sp);
 		sp++;
-		uint8_t hi = bus->read(sp);
+		uint8_t hi = mmu->read(sp);
 		sp++;
 
 		pc = (hi << 8) | lo;
@@ -1401,9 +1401,9 @@ uint8_t CPU::RET() {
 
 uint8_t CPU::RETI() {
 	// Pop address off the stack and set pc
-	uint8_t lo = bus->read(sp);
+	uint8_t lo = mmu->read(sp);
 	sp++;
-	uint8_t hi = bus->read(sp);
+	uint8_t hi = mmu->read(sp);
 	sp++;
 
 	pc = (hi << 8) | lo;
@@ -1424,9 +1424,9 @@ uint8_t CPU::RST() {
 	uint8_t next_hi = (next >> 8) & 0xFF;
 
 	sp--;
-	bus->write(sp, next_hi);
+	mmu->write(sp, next_hi);
 	sp--;
-	bus->write(sp, next_lo);
+	mmu->write(sp, next_lo);
 
 	// Execute jump to vec value in op1
 	pc = *op1;
@@ -1481,7 +1481,7 @@ uint8_t CPU::ADD_SP_o8() {
 	// eg ADD SP, o8
 
 	// Get signed offset
-	uint16_t offset = bus->read(pc);
+	uint16_t offset = mmu->read(pc);
 	pc++;
 
 	// If highest bit is negative sign, extend to higher 8 bits
@@ -1567,8 +1567,8 @@ uint8_t CPU::STOP() {
 }
 
 uint8_t CPU::HALT() {	
-	uint8_t IE = bus->read(0xFFFF);
-	uint8_t IF = bus->read(0xFF0F);
+	uint8_t IE = mmu->read(0xFFFF);
+	uint8_t IF = mmu->read(0xFF0F);
 	
 	// Keep track if there was an interrupt pending as soon as halt was called
 	initial_pending_interrupt = IE & IF;
@@ -1581,7 +1581,7 @@ uint8_t CPU::HALT() {
 
 uint8_t CPU::CB() {
 	// Read next opcode
-	cb_opcode = bus->read(pc);
+	cb_opcode = mmu->read(pc);
 	pc++;
 
 	// Set cycles to number of cycles in next opcode
@@ -1606,7 +1606,7 @@ uint8_t CPU::BIT() {
 	if (op3) {
 		// (HL) case
 		uint16_t addr = (*op2 << 8) | *op3;
-		value = bus->read(addr);
+		value = mmu->read(addr);
 	}
 	else {
 		// Register case
@@ -1632,8 +1632,8 @@ uint8_t CPU::RES() {
 	if (op3) {
 		// (HL) case
 		uint16_t addr = (*op2 << 8) | *op3;
-		uint8_t value = bus->read(addr);
-		bus->write(addr, value & ~(1 << *op1));
+		uint8_t value = mmu->read(addr);
+		mmu->write(addr, value & ~(1 << *op1));
 	}
 	else {
 		// Register case
@@ -1652,8 +1652,8 @@ uint8_t CPU::SET() {
 	if (op3) {
 		// (HL) case
 		uint16_t addr = (*op2 << 8) | *op3;
-		uint8_t value = bus->read(addr);
-		bus->write(addr, value | (1 << *op1));
+		uint8_t value = mmu->read(addr);
+		mmu->write(addr, value | (1 << *op1));
 	}
 	else {
 		// Register case
@@ -1761,8 +1761,8 @@ uint8_t CPU::RLC() {
 	
 	if (op2) {
 		uint16_t addr = (*op1 << 8) | *op2;
-		uint8_t data = bus->read(addr);
-		bus->write(addr, shift(data));
+		uint8_t data = mmu->read(addr);
+		mmu->write(addr, shift(data));
 	}
 	else {
 		*op1 = shift(*op1);
@@ -1792,8 +1792,8 @@ uint8_t CPU::RRC() {
 
 	if (op2) {
 		uint16_t addr = (*op1 << 8) | *op2;
-		uint8_t data = bus->read(addr);
-		bus->write(addr, shift(data));
+		uint8_t data = mmu->read(addr);
+		mmu->write(addr, shift(data));
 	}
 	else {
 		*op1 = shift(*op1);
@@ -1825,8 +1825,8 @@ uint8_t CPU::RL() {
 
 	if (op2) {
 		uint16_t addr = (*op1 << 8) | *op2;
-		uint8_t data = bus->read(addr);
-		bus->write(addr, shift(data));
+		uint8_t data = mmu->read(addr);
+		mmu->write(addr, shift(data));
 	}
 	else {
 		*op1 = shift(*op1);
@@ -1858,8 +1858,8 @@ uint8_t CPU::RR() {
 
 	if (op2) {
 		uint16_t addr = (*op1 << 8) | *op2;
-		uint8_t data = bus->read(addr);
-		bus->write(addr, shift(data));
+		uint8_t data = mmu->read(addr);
+		mmu->write(addr, shift(data));
 	}
 	else {
 		*op1 = shift(*op1);
@@ -1889,8 +1889,8 @@ uint8_t CPU::SLA() {
 
 	if (op2) {
 		uint16_t addr = (*op1 << 8) | *op2;
-		uint8_t data = bus->read(addr);
-		bus->write(addr, shift(data));
+		uint8_t data = mmu->read(addr);
+		mmu->write(addr, shift(data));
 	}
 	else {
 		*op1 = shift(*op1);
@@ -1920,8 +1920,8 @@ uint8_t CPU::SRL() {
 
 	if (op2) {
 		uint16_t addr = (*op1 << 8) | *op2;
-		uint8_t data = bus->read(addr);
-		bus->write(addr, shift(data));
+		uint8_t data = mmu->read(addr);
+		mmu->write(addr, shift(data));
 	}
 	else {
 		*op1 = shift(*op1);
@@ -1953,8 +1953,8 @@ uint8_t CPU::SRA() {
 
 	if (op2) {
 		uint16_t addr = (*op1 << 8) | *op2;
-		uint8_t data = bus->read(addr);
-		bus->write(addr, shift(data));
+		uint8_t data = mmu->read(addr);
+		mmu->write(addr, shift(data));
 	}
 	else {
 		*op1 = shift(*op1);
@@ -1984,8 +1984,8 @@ uint8_t CPU::SWAP() {
 	
 	if (op2) {
 		uint16_t addr = (*op1 << 8) | *op2;
-		uint8_t data = bus->read(addr);
-		bus->write(addr, swap(data));
+		uint8_t data = mmu->read(addr);
+		mmu->write(addr, swap(data));
 	}
 	else {
 		*op1 = swap(*op1);
@@ -2004,8 +2004,8 @@ uint8_t CPU::interrupt_handler() {
 		return 0;
 	}
 
-	uint8_t IE = bus->read(0xFFFF);
-	uint8_t IF = bus->read(0xFF0F);
+	uint8_t IE = mmu->read(0xFFFF);
+	uint8_t IF = mmu->read(0xFF0F);
 
 	if (IE == 0 || IF == 0) {
 		return 0;
@@ -2020,9 +2020,9 @@ uint8_t CPU::interrupt_handler() {
 		uint8_t next_hi = (next >> 8) & 0xFF;
 
 		sp--;
-		bus->write(sp, next_hi);
+		mmu->write(sp, next_hi);
 		sp--;
-		bus->write(sp, next_lo);
+		mmu->write(sp, next_lo);
 	};
 
 	// Priority is order of if statements
@@ -2031,7 +2031,7 @@ uint8_t CPU::interrupt_handler() {
 		IF &= ~(1 << 0);
 		IME = 0;
 
-		bus->write(0xFF0F, IF);
+		mmu->write(0xFF0F, IF);
 		push_pc();
 
 		pc = 0x0040;
@@ -2042,7 +2042,7 @@ uint8_t CPU::interrupt_handler() {
 		IF &= ~(1 << 1);
 		IME = 0;
 
-		bus->write(0xFF0F, IF);
+		mmu->write(0xFF0F, IF);
 		push_pc();
 
 		pc = 0x0048;
@@ -2053,7 +2053,7 @@ uint8_t CPU::interrupt_handler() {
 		IF &= ~(1 << 2);
 		IME = 0;
 
-		bus->write(0xFF0F, IF);
+		mmu->write(0xFF0F, IF);
 		push_pc();
 		
 		pc = 0x0050;
@@ -2064,7 +2064,7 @@ uint8_t CPU::interrupt_handler() {
 		IF &= ~(1 << 3);
 		IME = 0;
 
-		bus->write(0xFF0F, IF);
+		mmu->write(0xFF0F, IF);
 		push_pc();
 		
 		pc = 0x0058;
@@ -2075,7 +2075,7 @@ uint8_t CPU::interrupt_handler() {
 		IF &= ~(1 << 4);
 		IME = 0;
 
-		bus->write(0xFF0F, IF);
+		mmu->write(0xFF0F, IF);
 		push_pc();
 		
 		pc = 0x0060;
@@ -2094,12 +2094,12 @@ uint8_t CPU::timer() {
 
 		// Increment divider every 256 cycles
 		// Divider will automatically overflow
-		uint8_t divider = bus->read(0xFF04);
-		bus->write(0xFF04, divider++);
+		uint8_t divider = mmu->read(0xFF04);
+		mmu->write(0xFF04, divider++);
 	}
 
 	// Timer
-	uint8_t timer_control = bus->read(0xFF07);
+	uint8_t timer_control = mmu->read(0xFF07);
 	
 	bool timer_on = timer_control & (1 << 2);
 
@@ -2113,8 +2113,8 @@ uint8_t CPU::timer() {
 	if (timer_on) {
 		timer_clock++;
 		if (timer_clock > speed - 1) {
-			uint8_t timer_counter = bus->read(0xFF05);
-			uint8_t timer_modulo = bus->read(0xFF06);
+			uint8_t timer_counter = mmu->read(0xFF05);
+			uint8_t timer_modulo = mmu->read(0xFF06);
 
 			timer_clock = timer_modulo;
 
@@ -2122,9 +2122,9 @@ uint8_t CPU::timer() {
 			timer_counter++;
 			if (timer_counter == 0) {
 				// Set timer interrupt if overflow occurred
-				bus->write(0xFF0F, (1 << 2));
+				mmu->write(0xFF0F, (1 << 2));
 			}
-			bus->write(0xFF05, timer_counter);
+			mmu->write(0xFF05, timer_counter);
 		}
 	}
 
@@ -2135,8 +2135,8 @@ uint8_t CPU::halt_cycle() {
 	// Cycle that executes when CPU is in halt state
 	// TODO: test halt bug
 
-	uint8_t IE = bus->read(0xFFFF);
-	uint8_t IF = bus->read(0xFF0F);
+	uint8_t IE = mmu->read(0xFFFF);
+	uint8_t IF = mmu->read(0xFF0F);
 
 	// Early out cpu should remain in halt state, otherwise wake up
 	if (!(IE & IF)) {

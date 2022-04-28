@@ -6,13 +6,13 @@
 
 #include "Cartridge.h"
 
-class Bus {
+class MMU {
 public:
-	Bus();
-	~Bus();
+	MMU();
+	~MMU();
 
 public:
-	// Devices on bus
+	// Devices on mmu
 	std::shared_ptr<Cartridge> cart;
 
 	// Main memory, needs to be offset by 0x7FFF for proper addressing.
@@ -25,7 +25,7 @@ public:
 
 
 public:
-	// Bus read and write
+	// MMU read and write
 	// Should be 16 bit addresses with 8 bit data, read one register at a time I think
 	void write(uint16_t addr, uint8_t data);
 	uint8_t read(uint16_t addr);

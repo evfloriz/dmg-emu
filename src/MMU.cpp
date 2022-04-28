@@ -1,6 +1,6 @@
-#include "Bus.h"
+#include "MMU.h"
 
-Bus::Bus() {
+MMU::MMU() {
 	
 	// Initialize data to 0
 	ieRegister = 0x00;
@@ -12,11 +12,11 @@ Bus::Bus() {
 	memory[0xFF00 - 0x7FFF] = 0xFF;
 }
 
-Bus::~Bus() {
+MMU::~MMU() {
 	delete[] memory;
 }
 
-void Bus::write(uint16_t addr, uint8_t data) {
+void MMU::write(uint16_t addr, uint8_t data) {
 	if (addr >= 0x0000 && addr <= 0x7FFF) {
 		// cartridge, invalid to write to
 		return;
@@ -50,7 +50,7 @@ void Bus::write(uint16_t addr, uint8_t data) {
 	}
 }
 
-uint8_t Bus::read(uint16_t addr) {	
+uint8_t MMU::read(uint16_t addr) {	
 	uint8_t data = 0xFF;
 	
 	if (addr >= 0x0000 && addr <= 0x7FFF) {
@@ -87,6 +87,6 @@ uint8_t Bus::read(uint16_t addr) {
 	return data;
 }
 
-void Bus::insertCartridge(const std::shared_ptr<Cartridge>& cartridge) {
+void MMU::insertCartridge(const std::shared_ptr<Cartridge>& cartridge) {
 	this->cart = cartridge;
 }
