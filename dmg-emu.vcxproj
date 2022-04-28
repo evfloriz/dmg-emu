@@ -19,6 +19,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\DMG.cpp" />
     <ClCompile Include="src\Cartridge.cpp" />
     <ClCompile Include="src\PPU.cpp" />
     <ClCompile Include="src\MMU.cpp" />
@@ -26,6 +27,7 @@
     <ClCompile Include="src\main.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\DMG.h" />
     <ClInclude Include="src\Cartridge.h" />
     <ClInclude Include="src\PPU.h" />
     <ClInclude Include="src\MMU.h" />
