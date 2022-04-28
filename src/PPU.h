@@ -8,7 +8,7 @@ class Bus;
 
 class PPU {
 public:
-	PPU();
+	PPU(Bus* bus);
 	~PPU();
 
 public:

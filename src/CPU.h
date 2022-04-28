@@ -9,7 +9,7 @@ class Bus;
 
 class CPU {
 public:
-	CPU();
+	CPU(Bus* bus);
 	~CPU();
 
 public:

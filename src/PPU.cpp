@@ -10,7 +10,9 @@ uint32_t ARGB(uint32_t red, uint32_t green, uint32_t blue, uint32_t alpha = 255)
 	return (alpha << 24) | (red << 16) | (green << 8) | blue;
 }
 
-PPU::PPU() {
+PPU::PPU(Bus* bus) {
+	this->bus = bus;
+
 	palette[0] = ARGB(155, 188, 155);
 	palette[1] = ARGB(139, 172, 139);
 	palette[2] = ARGB(48, 98, 48);

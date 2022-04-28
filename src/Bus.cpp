@@ -1,11 +1,11 @@
 #include "Bus.h"
 
-Bus::Bus() {
+Bus::Bus(CPU* cpu, PPU* ppu) {
 	// Connect CPU to bus
-	cpu.connectBus(this);
+	this->cpu = cpu;
 
 	// Connect PPU to bus
-	ppu.connectBus(this);
+	this->ppu = ppu;
 
 	// Initialize data to 0
 	/*vram.fill(0x00);
@@ -17,7 +17,8 @@ Bus::Bus() {
 	//ieRegister = 0x00;
 
 	// Set joypad register to high for now
-	ioRegisters[0x0000] = 0xFF;
+	//ioRegisters[0x0000] = 0xFF;
+	memory[0xFF00 - 0x7FFF] = 0xFF;
 }
 
 Bus::~Bus() {
@@ -27,6 +28,8 @@ Bus::~Bus() {
 	delete[] oam;
 	delete[] ioRegisters;
 	delete[] hram;*/
+
+	delete[] memory;
 }
 
 void Bus::write(uint16_t addr, uint8_t data) {
@@ -34,60 +37,32 @@ void Bus::write(uint16_t addr, uint8_t data) {
 		// cartridge, invalid to write to
 		return;
 	}
-	else if (addr >= 0x8000 && addr <= 0x9FFF) {
-		// video ram
-		vram[addr - 0x8000] = data;
-	}
-	else if (addr >= 0xA000 && addr <= 0xBFFF) {
-		// external ram
-		externalRam[addr - 0xA000] = data;
-	}
-	else if (addr >= 0xC000 && addr <= 0xDFFF) {
-		// wram
-		wram[addr - 0xC000] = data;
-	}
 	else if (addr >= 0xE000 && addr <= 0xFDFF) {
 		// echo ram, prohibited
 		return;
-	}
-	else if (addr >= 0xFE00 && addr <= 0xFE9F) {
-		// oam ram
-		oam[addr - 0xFE00] = data;
 	}
 	else if (addr >= 0xFEA0 && addr <= 0xFEFF) {
 		// unusable
 		return;
 	}
-	else if (addr >= 0xFF00 && addr <= 0xFF7F) {
-		// io registers
-		
-		// Set joypad input to detect no button presses for now
-		/*if (addr == 0xFF00) {
-			data |= 0x0F;
-		}*/
-		
+	else if (addr == 0xFF00) {
 		// Set joypad input to read only for now
-		if (addr == 0xFF00) {
-			return;
-		}
-		// Handle frequently used registers for timer and interrupts
-		else if (addr == 0xFF0F) {
-			ifRegister = data;
-		}
-		else if (addr == 0xFF07) {
-			timerControlRegister = data;
-		}
-		else {
-			ioRegisters[addr - 0xFF00] = data;
-		}
+		return;
 	}
-	else if (addr >= 0xFF80 && addr <= 0xFFFE) {
-		// hram
-		hram[addr - 0xFF80] = data;
+	// Handle frequently used registers for timer and interrupts
+	else if (addr == 0xFF07) {
+		timerControlRegister = data;
 	}
+	else if (addr == 0xFF0F) {
+		ifRegister = data;
+	}	
 	else if (addr == 0xFFFF) {
 		// ie register
 		ieRegister = data;
+	}
+	else {
+		// hram
+		memory[addr - 0x7FFF] = data;
 	}
 }
 
@@ -98,51 +73,31 @@ uint8_t Bus::read(uint16_t addr) {
 		// cartridge, fixed bank
 		data = cart->read(addr);
 	}
-	else if (addr >= 0x8000 && addr <= 0x9FFF) {
-		// video ram
-		data = vram[addr - 0x8000];
-	}
-	else if (addr >= 0xA000 && addr <= 0xBFFF) {
-		// external ram
-		data = externalRam[addr - 0xA000];
-	}
-	else if (addr >= 0xC000 && addr <= 0xDFFF) {
-		// wram
-		data = wram[addr - 0xC000];
-	}
-	else if (addr >= 0xE000 && addr <= 0xFDFF) {
-		// echo ram, prohibited
-		data = 0xFF;
-	}
-	else if (addr >= 0xFE00 && addr <= 0xFE9F) {
-		// oam ram
-		data = oam[addr - 0xFE00];
-	}
-	else if (addr >= 0xFEA0 && addr <= 0xFEFF) {
-		// unusable
-		data = 0xFF;
-	}
-	else if (addr >= 0xFF00 && addr <= 0xFF7F) {
-		// io registers
+	else {
 		
-		// Handle frequently used registers for timer and interrupts
-		if (addr == 0xFF0F) {
-			data = ifRegister;
+		if (addr >= 0xE000 && addr <= 0xFDFF) {
+			// echo ram, prohibited
+			data = 0xFF;
+		}
+		else if (addr >= 0xFEA0 && addr <= 0xFEFF) {
+			// unusable
+			data = 0xFF;
 		}
 		else if (addr == 0xFF07) {
+			// Handle frequently used registers for timer and interrupts
 			data = timerControlRegister;
 		}
-		else {
-			data = ioRegisters[addr - 0xFF00];
+		else if (addr == 0xFF0F) {	
+			data = ifRegister;
 		}
-	}
-	else if (addr >= 0xFF80 && addr <= 0xFFFE) {
-		// hram
-		data = hram[addr - 0xFF80];
-	}
-	else if (addr == 0xFFFF) {
-		// ie register
-		data = ieRegister;
+		
+		else if (addr == 0xFFFF) {
+			// ie register
+			data = ieRegister;
+		}
+		else {
+			data = memory[addr - 0x7FFF];
+		}
 	}
 	
 	return data;
@@ -154,7 +109,7 @@ void Bus::insertCartridge(const std::shared_ptr<Cartridge>& cartridge) {
 
 void Bus::clock() {
 	// Execute one CPU clock cycle
-	cpu.clock();
+	cpu->clock();
 
-	ppu.clock();
+	ppu->clock();
 }

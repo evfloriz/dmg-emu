@@ -4,11 +4,19 @@
 
 #include "Bus.h"
 #include "CPU.h"
+#include "PPU.h"
 
 class DMG {
 public:
 	Bus bus;
+	CPU cpu;
+	PPU ppu;
 	std::shared_ptr<Cartridge> cart;
+
+	DMG()
+		: bus(&cpu, &ppu)
+		, cpu(&bus)
+		, ppu(&bus) {}
 
 	bool init() {
 		// Passing tests 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, instr_timing
@@ -40,13 +48,13 @@ public:
 
 		std::cout << "Beginning execution of " << romName << std::endl;
 
-		bus.cpu.print_toggle = false;
-		bus.cpu.log_toggle = false;
-		bus.cpu.log_file = "log/l" + std::to_string(test_num) + ".txt";
+		cpu.print_toggle = false;
+		cpu.log_toggle = false;
+		cpu.log_file = "log/l" + std::to_string(test_num) + ".txt";
 
 		// Initialize output file
-		if (bus.cpu.log_toggle) {
-			bus.cpu.file = fopen(bus.cpu.log_file.c_str(), "w");
+		if (cpu.log_toggle) {
+			cpu.file = fopen(cpu.log_file.c_str(), "w");
 		}
 
 		// Reset LY
@@ -64,7 +72,7 @@ public:
 	bool tick() {
 		do {
 			bus.clock();
-		} while (!bus.cpu.complete());
+		} while (!cpu.complete());
 
 		return true;
 	}
@@ -72,9 +80,9 @@ public:
 	bool tick_frame() {
 		do {
 			tick();
-		} while (!bus.ppu.frame_complete);
+		} while (!ppu.frame_complete);
 
-		bus.ppu.frame_complete = false;
+		ppu.frame_complete = false;
 
 		return true;
 	}
@@ -194,10 +202,10 @@ public:
 		int pitch_2 = 0;
 
 		// Use the pixel buffer on the ppu for SDL_LockTexture
-		uint32_t* pixelBuffer = dmg.bus.ppu.getPixelBuffer();
+		uint32_t* pixelBuffer = dmg.ppu.getPixelBuffer();
 
 		// Use the tile data buffer on the ppu
-		uint32_t* tileDataBuffer = dmg.bus.ppu.getTileDataBuffer();
+		uint32_t* tileDataBuffer = dmg.ppu.getTileDataBuffer();
 
 		// Initialize rects for various rendering textures
 		SDL_Rect srcRect;
@@ -231,7 +239,7 @@ public:
 		}
 
 		pitch_1 /= sizeof(uint32_t);
-		dmg.bus.ppu.updateTileMap(pixelBuffer);		
+		dmg.ppu.updateTileMap(pixelBuffer);		
 		
 		SDL_UnlockTexture(texture);
 		SDL_RenderCopy(renderer, texture, &srcRect, &destRect);
@@ -243,7 +251,7 @@ public:
 		}
 
 		pitch_2 /= sizeof(uint32_t);
-		dmg.bus.ppu.updateTileData(tileDataBuffer);
+		dmg.ppu.updateTileData(tileDataBuffer);
 
 		SDL_UnlockTexture(debugTexture);
 		SDL_RenderCopy(renderer, debugTexture, &debugSrcRect, &debugDestRect);

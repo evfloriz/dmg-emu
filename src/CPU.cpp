@@ -4,7 +4,8 @@
 #include <iostream>
 #include <chrono>
 
-CPU::CPU() {
+CPU::CPU(Bus* bus) {
+	this->bus = bus;
 
 	lookup_map = {
 		{0x00, {&CPU::NOP,			1}},					{0x08, {&CPU::LD_a16_SP,	5}},
@@ -2006,6 +2007,10 @@ uint8_t CPU::interrupt_handler() {
 	uint8_t IE = bus->read(0xFFFF);
 	uint8_t IF = bus->read(0xFF0F);
 
+	if (IE == 0 || IF == 0) {
+		return 0;
+	}
+
 	uint8_t int_cycles = 5;
 
 	// Push current pc to stack
@@ -2102,6 +2107,10 @@ uint8_t CPU::timer() {
 	uint8_t timer_control = bus->read(0xFF07);
 	
 	bool timer_on = timer_control & (1 << 2);
+
+	if (!timer_on) {
+		return 0;
+	}
 	
 	uint16_t speeds[] = { 1024, 16, 64, 256 };
 	uint16_t speed = speeds[timer_control & 0x03];

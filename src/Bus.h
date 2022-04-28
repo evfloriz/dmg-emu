@@ -10,13 +10,13 @@
 
 class Bus {
 public:
-	Bus();
+	Bus(CPU* cpu, PPU* ppu);
 	~Bus();
 
 public:
 	// Devices on bus
-	CPU cpu;
-	PPU ppu;
+	CPU *cpu;
+	PPU *ppu;
 	std::shared_ptr<Cartridge> cart;
 
 	// Sections of memory (excluding rom which is on cartridge)
@@ -27,12 +27,13 @@ public:
 	std::array<uint8_t, 128> ioRegisters;
 	std::array<uint8_t, 128> hram;*/
 
-	uint8_t vram[8 * 1024];
+	/*uint8_t vram[8 * 1024];
 	uint8_t externalRam[8 * 1024];
 	uint8_t wram[8 * 1024];
 	uint8_t oam[160];
 	uint8_t ioRegisters[128];
-	uint8_t hram[128];
+	uint8_t hram[128];*/
+	uint8_t* memory = new uint8_t[32 * 1024];
 
 	/*uint8_t *vram = new uint8_t[8 * 1024];
 	uint8_t *externalRam = new uint8_t[8 * 1024];
