@@ -5,8 +5,7 @@
 #include "PPU.h"
 
 // TODO: Make a util class.
-
-uint32_t ARGB(uint32_t red, uint32_t green, uint32_t blue, uint32_t alpha = 255) {
+inline uint32_t ARGB(uint32_t red, uint32_t green, uint32_t blue, uint32_t alpha = 255) {
 	return (alpha << 24) | (red << 16) | (green << 8) | blue;
 }
 

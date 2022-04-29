@@ -2014,7 +2014,7 @@ uint8_t CPU::interrupt_handler() {
 		return 0;
 	}
 
-	uint8_t int_cycles = 5;
+	uint8_t interrupt_cycles = 5;
 
 	// Push current pc to stack
 	auto push_pc = [&]() {
@@ -2038,7 +2038,7 @@ uint8_t CPU::interrupt_handler() {
 		push_pc();
 
 		pc = 0x0040;
-		return int_cycles;
+		return interrupt_cycles;
 	}
 	else if ((IE & (1 << 1)) && (IF & (1 << 1))) {
 		// bit 1, LCD STAT
@@ -2049,7 +2049,7 @@ uint8_t CPU::interrupt_handler() {
 		push_pc();
 
 		pc = 0x0048;
-		return int_cycles;
+		return interrupt_cycles;
 	}
 	else if ((IE & (1 << 2)) && (IF & (1 << 2))) {
 		// bit 2, Timer
@@ -2060,7 +2060,7 @@ uint8_t CPU::interrupt_handler() {
 		push_pc();
 		
 		pc = 0x0050;
-		return int_cycles;
+		return interrupt_cycles;
 	}
 	else if ((IE & (1 << 3)) && (IF & (1 << 3))) {
 		// bit 3, Serial
@@ -2071,7 +2071,7 @@ uint8_t CPU::interrupt_handler() {
 		push_pc();
 		
 		pc = 0x0058;
-		return int_cycles;
+		return interrupt_cycles;
 	}
 	else if ((IE & (1 << 4)) && (IF & (1 << 4))) {
 		// bit 4, Joypad
@@ -2082,7 +2082,7 @@ uint8_t CPU::interrupt_handler() {
 		push_pc();
 		
 		pc = 0x0060;
-		return int_cycles;
+		return interrupt_cycles;
 	}
 	
 	return 0;

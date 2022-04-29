@@ -176,10 +176,6 @@ public:
 		return 0;
 	}
 
-	inline uint32_t ARGB(uint32_t red, uint32_t green, uint32_t blue, uint32_t alpha) {
-		return (alpha << 24) | (red << 16) | (green << 8) | blue;
-	}
-
 	void close() {
 		if (texture) {
 			SDL_DestroyTexture(texture);
