@@ -15,20 +15,18 @@ public:
 	// Devices on mmu
 	std::shared_ptr<Cartridge> cart;
 
-	// Main memory, needs to be offset by 0x7FFF for proper addressing.
-	uint8_t* memory = new uint8_t[32 * 1024];
-	
-	// Implement frequently used registers as ints for quicker access
-	uint8_t ieRegister;
-	uint8_t ifRegister;
-	uint8_t timerControlRegister;
-
+	// Main memory, bottom half is unused but simplifies addressing
+	uint8_t* memory = new uint8_t[64 * 1024];
 
 public:
 	// MMU read and write
 	// Should be 16 bit addresses with 8 bit data, read one register at a time I think
 	void write(uint16_t addr, uint8_t data);
 	uint8_t read(uint16_t addr);
+
+	// Lower overhead direct MMU read and write
+	void directWrite(uint16_t addr, uint8_t data);
+	uint8_t directRead(uint16_t addr);
 
 	void insertCartridge(const std::shared_ptr<Cartridge>& cartridge);
 };

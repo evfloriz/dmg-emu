@@ -423,18 +423,19 @@ void CPU::clock() {
 
 	global_cycles++;
 
+	// NOTE: Shouldn't need this anymore now that I have graphics.
 	// Print Blargg test rom output
 	//print_test();
 }
 
-void CPU::print_test() {
+/*void CPU::print_test() {
 	// Print the test results from blargg's test rom
 	if (mmu->read(0xFF02) == 0x81) {
 		char c = mmu->read(0xFF01);
 		printf("%c", c);
 		mmu->write(0xFF02, 0x00);
 	}
-}
+}*/
 
 bool CPU::complete() {
 	return (cycles == 0);
@@ -1569,8 +1570,8 @@ uint8_t CPU::STOP() {
 }
 
 uint8_t CPU::HALT() {	
-	uint8_t IE = mmu->read(0xFFFF);
-	uint8_t IF = mmu->read(0xFF0F);
+	uint8_t IE = mmu->directRead(0xFFFF);
+	uint8_t IF = mmu->directRead(0xFF0F);
 	
 	// Keep track if there was an interrupt pending as soon as halt was called
 	initial_pending_interrupt = IE & IF;
@@ -2006,8 +2007,8 @@ uint8_t CPU::interrupt_handler() {
 		return 0;
 	}
 
-	uint8_t IE = mmu->read(0xFFFF);
-	uint8_t IF = mmu->read(0xFF0F);
+	uint8_t IE = mmu->directRead(0xFFFF);
+	uint8_t IF = mmu->directRead(0xFF0F);
 
 	if (IE == 0 || IF == 0) {
 		return 0;
@@ -2033,7 +2034,7 @@ uint8_t CPU::interrupt_handler() {
 		IF &= ~(1 << 0);
 		IME = 0;
 
-		mmu->write(0xFF0F, IF);
+		mmu->directWrite(0xFF0F, IF);
 		push_pc();
 
 		pc = 0x0040;
@@ -2044,7 +2045,7 @@ uint8_t CPU::interrupt_handler() {
 		IF &= ~(1 << 1);
 		IME = 0;
 
-		mmu->write(0xFF0F, IF);
+		mmu->directWrite(0xFF0F, IF);
 		push_pc();
 
 		pc = 0x0048;
@@ -2055,7 +2056,7 @@ uint8_t CPU::interrupt_handler() {
 		IF &= ~(1 << 2);
 		IME = 0;
 
-		mmu->write(0xFF0F, IF);
+		mmu->directWrite(0xFF0F, IF);
 		push_pc();
 		
 		pc = 0x0050;
@@ -2066,7 +2067,7 @@ uint8_t CPU::interrupt_handler() {
 		IF &= ~(1 << 3);
 		IME = 0;
 
-		mmu->write(0xFF0F, IF);
+		mmu->directWrite(0xFF0F, IF);
 		push_pc();
 		
 		pc = 0x0058;
@@ -2077,7 +2078,7 @@ uint8_t CPU::interrupt_handler() {
 		IF &= ~(1 << 4);
 		IME = 0;
 
-		mmu->write(0xFF0F, IF);
+		mmu->directWrite(0xFF0F, IF);
 		push_pc();
 		
 		pc = 0x0060;
@@ -2097,12 +2098,12 @@ uint8_t CPU::timer() {
 
 		// Increment divider every 64 cycles
 		// Divider will automatically overflow
-		uint8_t divider = mmu->read(0xFF04);
-		mmu->write(0xFF04, divider++);
+		uint8_t divider = mmu->directRead(0xFF04);
+		mmu->directWrite(0xFF04, divider++);
 	}
 
 	// Timer
-	uint8_t timer_control = mmu->read(0xFF07);
+	uint8_t timer_control = mmu->directRead(0xFF07);
 	
 	bool timer_on = timer_control & (1 << 2);
 
@@ -2117,8 +2118,8 @@ uint8_t CPU::timer() {
 		timer_clock++;
 		// Divide speeds by 4 to count M-cycles
 		if (timer_clock > speed / 4 - 1) {
-			uint8_t timer_counter = mmu->read(0xFF05);
-			uint8_t timer_modulo = mmu->read(0xFF06);
+			uint8_t timer_counter = mmu->directRead(0xFF05);
+			uint8_t timer_modulo = mmu->directRead(0xFF06);
 
 			timer_clock = timer_modulo;
 
@@ -2126,9 +2127,9 @@ uint8_t CPU::timer() {
 			timer_counter++;
 			if (timer_counter == 0) {
 				// Set timer interrupt if overflow occurred
-				mmu->write(0xFF0F, (1 << 2));
+				mmu->directWrite(0xFF0F, (1 << 2));
 			}
-			mmu->write(0xFF05, timer_counter);
+			mmu->directWrite(0xFF05, timer_counter);
 		}
 	}
 
@@ -2139,8 +2140,8 @@ uint8_t CPU::halt_cycle() {
 	// Cycle that executes when CPU is in halt state
 	// TODO: test halt bug
 
-	uint8_t IE = mmu->read(0xFFFF);
-	uint8_t IF = mmu->read(0xFF0F);
+	uint8_t IE = mmu->directRead(0xFFFF);
+	uint8_t IF = mmu->directRead(0xFF0F);
 
 	// Early out cpu should remain in halt state, otherwise wake up
 	if (!(IE & IF)) {

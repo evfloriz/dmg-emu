@@ -67,9 +67,9 @@ void PPU::clock() {
 void PPU::updateLY() {
 	// TODO: does it make sense for the PPU to read random areas of memory other than vram and oam?
 	// First check if screen is off and reset everything if so
-	if (!(mmu->read(0xFF40) & 0x80)) {
+	if (!(mmu->directRead(0xFF40) & 0x80)) {
 		// LCD off
-		mmu->write(0xFF44, 0x00);
+		mmu->directWrite(0xFF44, 0x00);
 		cycle = 0;
 
 		return;
@@ -87,14 +87,14 @@ void PPU::updateLY() {
 	}
 
 	if (inc) {
-		scanline = mmu->read(0xFF44);
+		scanline = mmu->directRead(0xFF44);
 
 		// Reset after 154 cycles
 		scanline++;
 		
 		// Set VBLANK interrupt flag when LY is 144
 		if (scanline == 144) {
-			mmu->write(0xFF0F, (1 << 0));
+			mmu->directWrite(0xFF0F, (1 << 0));
 		}
 
 		if (scanline > 153) {
@@ -102,7 +102,7 @@ void PPU::updateLY() {
 			frame_complete = true;
 		}
 
-		mmu->write(0xFF44, scanline);
+		mmu->directWrite(0xFF44, scanline);
 	}
 }
 
@@ -147,11 +147,11 @@ void PPU::updateTileData(uint32_t* tileDataBuffer) {
 
 void PPU::updateTileMap(uint32_t* pixelBuffer) {
 	// Check LCD control
-	lcdc4 = mmu->read(0xFF40) & (1 << 4);
-	lcdc6 = mmu->read(0xFF40) & (1 << 6);
-	lcdc3 = mmu->read(0xFF40) & (1 << 3);
-	lcdc5 = mmu->read(0xFF40) & (1 << 5);
-	lcdc7 = mmu->read(0xFF40) & (1 << 7);
+	lcdc4 = mmu->directRead(0xFF40) & (1 << 4);
+	lcdc6 = mmu->directRead(0xFF40) & (1 << 6);
+	lcdc3 = mmu->directRead(0xFF40) & (1 << 3);
+	lcdc5 = mmu->directRead(0xFF40) & (1 << 5);
+	lcdc7 = mmu->directRead(0xFF40) & (1 << 7);
 
 	// Early out if LCD is off
 	if (!lcdc7) {
@@ -204,11 +204,11 @@ void PPU::updateTileMap(uint32_t* pixelBuffer) {
 }
 
 uint8_t PPU::getSCY() {
-	return mmu->read(0xFF42);
+	return mmu->directRead(0xFF42);
 }
 
 uint8_t PPU::getSCX() {
-	return mmu->read(0xFF43);
+	return mmu->directRead(0xFF43);
 }
 
 uint32_t* PPU::getPixelBuffer() {
