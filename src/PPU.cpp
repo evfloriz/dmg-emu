@@ -1,15 +1,17 @@
 #include <iostream>
 
-#include "Bus.h"
+#include "MMU.h"
 
 #include "PPU.h"
 
 // TODO: Make a util class.
-uint32_t ARGB(uint32_t red, uint32_t green, uint32_t blue, uint32_t alpha = 255) {
+inline uint32_t ARGB(uint32_t red, uint32_t green, uint32_t blue, uint32_t alpha = 255) {
 	return (alpha << 24) | (red << 16) | (green << 8) | blue;
 }
 
-PPU::PPU() {
+PPU::PPU(MMU* mmu) {
+	this->mmu = mmu;
+
 	palette[0] = ARGB(155, 188, 155);
 	palette[1] = ARGB(139, 172, 139);
 	palette[2] = ARGB(48, 98, 48);
@@ -64,9 +66,9 @@ void PPU::clock() {
 void PPU::updateLY() {
 	// TODO: does it make sense for the PPU to read random areas of memory other than vram and oam?
 	// First check if screen is off and reset everything if so
-	if (!(bus->read(0xFF40) & 0x80)) {
+	if (!(mmu->directRead(0xFF40) & 0x80)) {
 		// LCD off
-		bus->write(0xFF44, 0x00);
+		mmu->directWrite(0xFF44, 0x00);
 		cycle = 0;
 
 		return;
@@ -75,22 +77,23 @@ void PPU::updateLY() {
 	bool inc = false;
 
 	// Increment every 456 real clock cycles
+	// Or 114 M-cycles
 	cycle++;
-	if (cycle > 455) {
+	if (cycle > 113) {
 		cycle = 0;
 
 		inc = true;
 	}
 
 	if (inc) {
-		scanline = bus->read(0xFF44);
+		scanline = mmu->directRead(0xFF44);
 
 		// Reset after 154 cycles
 		scanline++;
 		
 		// Set VBLANK interrupt flag when LY is 144
 		if (scanline == 144) {
-			bus->write(0xFF0F, (1 << 0));
+			mmu->directWrite(0xFF0F, (1 << 0));
 		}
 
 		if (scanline > 153) {
@@ -98,7 +101,7 @@ void PPU::updateLY() {
 			frame_complete = true;
 		}
 
-		bus->write(0xFF44, scanline);
+		mmu->directWrite(0xFF44, scanline);
 	}
 }
 
@@ -125,14 +128,14 @@ void PPU::updateTileData(uint32_t* tileDataBuffer) {
 		uint8_t y = i / 16;
 
 		for (int j = 0; j < 8; j++) {
-			uint8_t lo0 = bus->read(block0_start + i * 16 + j * 2);
-			uint8_t hi0 = bus->read(block0_start + i * 16 + j * 2 + 1);
+			uint8_t lo0 = mmu->read(block0_start + i * 16 + j * 2);
+			uint8_t hi0 = mmu->read(block0_start + i * 16 + j * 2 + 1);
 
-			uint8_t lo1 = bus->read(block1_start + i * 16 + j * 2);
-			uint8_t hi1 = bus->read(block1_start + i * 16 + j * 2 + 1);
+			uint8_t lo1 = mmu->read(block1_start + i * 16 + j * 2);
+			uint8_t hi1 = mmu->read(block1_start + i * 16 + j * 2 + 1);
 
-			uint8_t lo2 = bus->read(block2_start + i * 16 + j * 2);
-			uint8_t hi2 = bus->read(block2_start + i * 16 + j * 2 + 1);
+			uint8_t lo2 = mmu->read(block2_start + i * 16 + j * 2);
+			uint8_t hi2 = mmu->read(block2_start + i * 16 + j * 2 + 1);
 
 			set_line(x * 8, j + y * 8, hi0, lo0);
 			set_line(x * 8, 64 + j + y * 8, hi1, lo1);
@@ -143,11 +146,11 @@ void PPU::updateTileData(uint32_t* tileDataBuffer) {
 
 void PPU::updateTileMap(uint32_t* pixelBuffer) {
 	// Check LCD control
-	lcdc4 = bus->read(0xFF40) & (1 << 4);
-	lcdc6 = bus->read(0xFF40) & (1 << 6);
-	lcdc3 = bus->read(0xFF40) & (1 << 3);
-	lcdc5 = bus->read(0xFF40) & (1 << 5);
-	lcdc7 = bus->read(0xFF40) & (1 << 7);
+	lcdc4 = mmu->directRead(0xFF40) & (1 << 4);
+	lcdc6 = mmu->directRead(0xFF40) & (1 << 6);
+	lcdc3 = mmu->directRead(0xFF40) & (1 << 3);
+	lcdc5 = mmu->directRead(0xFF40) & (1 << 5);
+	lcdc7 = mmu->directRead(0xFF40) & (1 << 7);
 
 	// Early out if LCD is off
 	if (!lcdc7) {
@@ -185,14 +188,14 @@ void PPU::updateTileMap(uint32_t* pixelBuffer) {
 		uint8_t x = i % 32;
 		uint8_t y = i / 32;
 
-		uint8_t index = bus->read(bg_start + i);
+		uint8_t index = mmu->read(bg_start + i);
 		uint16_t start = (index > 127) ? second_half_start : first_half_start;
 		
 		// TODO: clean up logic
 		// Read each pair of bytes and set each of the 8 lines of pixels
 		for (int j = 0; j < 8; j++) {
-			uint8_t lo = bus->read(start + (index % 128) * 16 + j * 2);
-			uint8_t hi = bus->read(start + (index % 128) * 16 + j * 2 + 1);
+			uint8_t lo = mmu->read(start + (index % 128) * 16 + j * 2);
+			uint8_t hi = mmu->read(start + (index % 128) * 16 + j * 2 + 1);
 
 			set_line(x * 8, j + y * 8, hi, lo);
 		}
@@ -200,11 +203,11 @@ void PPU::updateTileMap(uint32_t* pixelBuffer) {
 }
 
 uint8_t PPU::getSCY() {
-	return bus->read(0xFF42);
+	return mmu->directRead(0xFF42);
 }
 
 uint8_t PPU::getSCX() {
-	return bus->read(0xFF43);
+	return mmu->directRead(0xFF43);
 }
 
 uint32_t* PPU::getPixelBuffer() {

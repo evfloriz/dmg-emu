@@ -4,12 +4,13 @@
 #include <string>
 #include <vector>
 #include <map>
+#include <chrono>
 
-class Bus;
+class MMU;
 
 class CPU {
 public:
-	CPU();
+	CPU(MMU* mmu);
 	~CPU();
 
 public:
@@ -38,9 +39,6 @@ public:
 
 	// Signal that instruction is complete
 	bool complete();
-
-	// Link CPU to bus
-	void connectBus(Bus* n) { bus = n; };
 
 	// Status register flags
 	enum FLAGS {
@@ -105,8 +103,8 @@ private:
 	uint8_t i_C = CONDITION::c_C;
 	uint8_t i_NC = CONDITION::c_NC;
 
-	// Facilitate link to bus
-	Bus* bus = nullptr;
+	// Facilitate link to mmu
+	MMU* mmu = nullptr;
 	void write(uint16_t addr, uint8_t data);
 	uint8_t read(uint16_t addr);
 
@@ -119,10 +117,14 @@ private:
 	};
 
 	// Lookup tables for opcodes
-	std::map<uint8_t, INSTRUCTION> lookup;
-	std::map<uint8_t, INSTRUCTION> cb_lookup;
+	std::map<uint8_t, INSTRUCTION> lookup_map;
+	std::map<uint8_t, INSTRUCTION> cb_lookup_map;
+	std::map<uint8_t, std::string> name_lookup_map;
 
-	std::map<uint8_t, std::string> name_lookup;
+	std::vector<INSTRUCTION> lookup;
+	std::vector<INSTRUCTION> cb_lookup;
+	std::vector<std::string> name_lookup;
+	
 
 private:
 	// Opcodes
@@ -235,5 +237,14 @@ public:
 
 	FILE* file;
 	
-	uint16_t global_cycles = 0;
+	uint64_t global_cycles = 0;
+
+	// Use for simple profiling
+	std::chrono::high_resolution_clock::time_point begin = std::chrono::high_resolution_clock::now();
+	std::chrono::high_resolution_clock::time_point end = std::chrono::high_resolution_clock::now();
+	long long time = std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count();
+	
+	long profile_count = 0;
+	long profile_total_time = 0;
+	long avg = 0;
 };

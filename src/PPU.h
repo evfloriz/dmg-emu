@@ -4,15 +4,14 @@
 
 #include "Cartridge.h"
 
-class Bus;
+class MMU;
 
 class PPU {
 public:
-	PPU();
+	PPU(MMU* mmu);
 	~PPU();
 
 public:
-	void connectBus(Bus* n) { bus = n; };
 	void write(uint16_t addr, uint8_t data);
 	uint8_t read(uint16_t addr);
 
@@ -31,7 +30,7 @@ public:
 	bool frame_complete = false;
 
 private:
-	Bus* bus = nullptr;
+	MMU* mmu = nullptr;
 	uint32_t palette[4];
 
 	uint16_t cycle = 0;

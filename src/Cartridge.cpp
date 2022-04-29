@@ -4,20 +4,17 @@
 
 
 Cartridge::Cartridge(const std::string& fileName) {	
-	// Initialize with 0s
-	rom.fill(0x00);
-
 	// Load file into rom array
 	std::ifstream ifs;
 	ifs.open(fileName, std::ifstream::binary);
 	if (ifs.is_open()) {
-		ifs.read((char*)rom.data(), rom.size());
+		ifs.read((char*)rom, 32 * 1024);
 		ifs.close();
 	}
 }
 
 Cartridge::~Cartridge() {
-
+	delete[] rom;
 }
 
 uint8_t Cartridge::read(uint16_t addr) {

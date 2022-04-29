@@ -1,86 +1,8 @@
 
 #include <iostream>
-
-#include "Bus.h"
-#include "CPU.h"
-
 #include <SDL.h>
 
-class DMG {
-public:
-	Bus bus;
-	std::shared_ptr<Cartridge> cart;
-
-	bool init() {
-		// Passing tests 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, instr_timing
-		size_t test_num = 2;
-		
-		// Get rom name
-		std::string test_roms[] = {
-			"cpu_instrs.gb",
-			"01-special.gb",
-			"02-interrupts.gb",
-			"03-op sp,hl.gb",
-			"04-op r,imm.gb",
-			"05-op rp.gb",
-			"06-ld r,r.gb",
-			"07-jr,jp,call,ret,rst.gb",
-			"08-misc instrs.gb",
-			"09-op r,r.gb",
-			"10-bit ops.gb",
-			"11-op a,(hl).gb",
-			"instr_timing.gb"
-		};
-		std::string romName = "test-roms/" + test_roms[test_num];
-
-		romName = "roms/tetris.gb";
-
-		// Create cartridge
-		cart = std::make_shared<Cartridge>(romName);
-		bus.insertCartridge(cart);
-
-		std::cout << "Beginning execution of " << romName << std::endl;
-
-		bus.cpu.print_toggle = false;
-		bus.cpu.log_toggle = false;
-		bus.cpu.log_file = "log/l" + std::to_string(test_num) + ".txt";
-
-		// Initialize output file
-		if (bus.cpu.log_toggle) {
-			bus.cpu.file = fopen(bus.cpu.log_file.c_str(), "w");
-		}
-
-		// Reset LY
-		bus.write(0xFF44, 0x00);
-		
-		// Reset divider and timer registers
-		bus.write(0xFF04, 0xAB);
-		bus.write(0xFF05, 0x00);
-		bus.write(0xFF06, 0x00);
-		bus.write(0xFF07, 0xF8);
-
-		return true;
-	}
-
-	bool tick() {
-		do {
-			bus.clock();
-		} while (!bus.cpu.complete());
-
-		return true;
-	}
-
-	bool tick_frame() {
-		do {
-			tick();
-		} while (!bus.ppu.frame_complete);
-
-		bus.ppu.frame_complete = false;
-
-		return true;
-	}
-};
-
+#include "DMG.h"
 
 class Demo {
 	
@@ -182,7 +104,9 @@ public:
 			// Display fps
 			uint64_t end = SDL_GetPerformanceCounter();
 			float elapsed = (end - start) / (float)SDL_GetPerformanceFrequency();
-			std::cout << "FPS: " << std::to_string((int)(1.0f / elapsed)) << "\r" << std::flush;
+			std::string fps = std::to_string((int)(1.0f / elapsed));
+			std::cout << fps << "\r" << std::flush;
+			//std::cout << dmg.mmu.cpu.global_cycles << "\r" << std::flush;
 		}
 		return 0;
 	}
@@ -193,10 +117,10 @@ public:
 		int pitch_2 = 0;
 
 		// Use the pixel buffer on the ppu for SDL_LockTexture
-		uint32_t* pixelBuffer = dmg.bus.ppu.getPixelBuffer();
+		uint32_t* pixelBuffer = dmg.ppu.getPixelBuffer();
 
 		// Use the tile data buffer on the ppu
-		uint32_t* tileDataBuffer = dmg.bus.ppu.getTileDataBuffer();
+		uint32_t* tileDataBuffer = dmg.ppu.getTileDataBuffer();
 
 		// Initialize rects for various rendering textures
 		SDL_Rect srcRect;
@@ -230,7 +154,7 @@ public:
 		}
 
 		pitch_1 /= sizeof(uint32_t);
-		dmg.bus.ppu.updateTileMap(pixelBuffer);		
+		dmg.ppu.updateTileMap(pixelBuffer);		
 		
 		SDL_UnlockTexture(texture);
 		SDL_RenderCopy(renderer, texture, &srcRect, &destRect);
@@ -242,7 +166,7 @@ public:
 		}
 
 		pitch_2 /= sizeof(uint32_t);
-		dmg.bus.ppu.updateTileData(tileDataBuffer);
+		dmg.ppu.updateTileData(tileDataBuffer);
 
 		SDL_UnlockTexture(debugTexture);
 		SDL_RenderCopy(renderer, debugTexture, &debugSrcRect, &debugDestRect);
@@ -250,10 +174,6 @@ public:
 		SDL_RenderPresent(renderer);
 
 		return 0;
-	}
-
-	uint32_t ARGB(uint32_t red, uint32_t green, uint32_t blue, uint32_t alpha) {
-		return (alpha << 24) | (red << 16) | (green << 8) | blue;
 	}
 
 	void close() {
@@ -295,7 +215,6 @@ private:
 	SDL_Renderer* renderer = nullptr;
 	SDL_Texture* texture = nullptr;
 	SDL_Texture* debugTexture = nullptr;
-	//SDL_Surface* screenSurface = NULL;
 
 	DMG dmg;
 

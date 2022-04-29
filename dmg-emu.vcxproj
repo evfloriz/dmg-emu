@@ -19,16 +19,18 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\DMG.cpp" />
     <ClCompile Include="src\Cartridge.cpp" />
     <ClCompile Include="src\PPU.cpp" />
-    <ClCompile Include="src\Bus.cpp" />
+    <ClCompile Include="src\MMU.cpp" />
     <ClCompile Include="src\CPU.cpp" />
     <ClCompile Include="src\main.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\DMG.h" />
     <ClInclude Include="src\Cartridge.h" />
     <ClInclude Include="src\PPU.h" />
-    <ClInclude Include="src\Bus.h" />
+    <ClInclude Include="src\MMU.h" />
     <ClInclude Include="src\CPU.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
@@ -133,6 +135,8 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions);_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <InlineFunctionExpansion>OnlyExplicitInline</InlineFunctionExpansion>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
