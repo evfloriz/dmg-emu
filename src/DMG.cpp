@@ -10,7 +10,7 @@ DMG::DMG()
 
 bool DMG::init() {
 	// Passing tests 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, instr_timing
-	size_t test_num = 2;
+	size_t test_num = 12;
 
 	// Get rom name
 	std::string test_roms[] = {

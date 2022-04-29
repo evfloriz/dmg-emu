@@ -362,9 +362,6 @@ uint8_t CPU::read(uint16_t addr) {
 }
 
 void CPU::clock() {
-	// Handle interrupts
-	interrupt_handler();
-
 	// If cycles remaining for an instruction is 0, read next byte
 	if (cycles == 0 && !halt_state) {
 		opcode = read(pc);
@@ -397,9 +394,6 @@ void CPU::clock() {
 
 			cycles += extra_cycles;
 
-			// Multiply by 4 to convert machine cycles to true clock cycles
-			cycles *= 4;
-
 			// Handle EI setting the IME flag
 			handleEI();
 		}
@@ -412,6 +406,14 @@ void CPU::clock() {
 	// Execute cycle when in halt state
 	if (halt_state) {
 		cycles = halt_cycle();
+	}
+
+	// Handle interrupts
+	// If interrupt_handler returns more than 0 cycles, an interrupt occurred so update cycles accordingly
+	// TODO: reorganize this logic a bit
+	uint8_t interrupt_cycles = interrupt_handler();
+	if (interrupt_cycles) {
+		cycles = interrupt_cycles;
 	}
 
 	// Execute timer function
@@ -2088,11 +2090,12 @@ uint8_t CPU::interrupt_handler() {
 uint8_t CPU::timer() {
 	// Divider
 	// 16384 Hz is every 256 cycles at 4 MHz
+	// Or every 64 cycles at 1 MHz
 	divider_clock++;
-	if (divider_clock > 255) {
+	if (divider_clock > 63) {
 		divider_clock = 0;
 
-		// Increment divider every 256 cycles
+		// Increment divider every 64 cycles
 		// Divider will automatically overflow
 		uint8_t divider = mmu->read(0xFF04);
 		mmu->write(0xFF04, divider++);
@@ -2112,7 +2115,8 @@ uint8_t CPU::timer() {
 
 	if (timer_on) {
 		timer_clock++;
-		if (timer_clock > speed - 1) {
+		// Divide speeds by 4 to count M-cycles
+		if (timer_clock > speed / 4 - 1) {
 			uint8_t timer_counter = mmu->read(0xFF05);
 			uint8_t timer_modulo = mmu->read(0xFF06);
 

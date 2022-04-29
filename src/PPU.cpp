@@ -78,8 +78,9 @@ void PPU::updateLY() {
 	bool inc = false;
 
 	// Increment every 456 real clock cycles
+	// Or 114 M-cycles
 	cycle++;
-	if (cycle > 455) {
+	if (cycle > 113) {
 		cycle = 0;
 
 		inc = true;
