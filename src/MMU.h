@@ -36,5 +36,5 @@ private:
 	uint8_t actionButtons = 0xFF;
 	uint8_t directionButtons = 0xFF;
 	uint8_t buttonsOff = 0xFF;
-	uint8_t* selectedButtons = &actionButtons;
+	uint8_t* selectedButtons = &buttonsOff;
 };

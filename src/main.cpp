@@ -72,15 +72,15 @@ public:
 
 			// TODO: Is this way of handling input overengineered?
 			// 0 is pressed, 1 is unpressed
-			dmg.mmu.writeDirectionButton(0, keyboardState[SDL_SCANCODE_RIGHT]	? 0 : 1);
-			dmg.mmu.writeDirectionButton(1, keyboardState[SDL_SCANCODE_LEFT]	? 0 : 1);
-			dmg.mmu.writeDirectionButton(2, keyboardState[SDL_SCANCODE_UP]		? 0 : 1);
-			dmg.mmu.writeDirectionButton(3, keyboardState[SDL_SCANCODE_DOWN]	? 0 : 1);
+			dmg.mmu.writeDirectionButton(0, !keyboardState[SDL_SCANCODE_RIGHT]);
+			dmg.mmu.writeDirectionButton(1, !keyboardState[SDL_SCANCODE_LEFT]);
+			dmg.mmu.writeDirectionButton(2, !keyboardState[SDL_SCANCODE_UP]);
+			dmg.mmu.writeDirectionButton(3, !keyboardState[SDL_SCANCODE_DOWN]);
 
-			dmg.mmu.writeActionButton(0, keyboardState[SDL_SCANCODE_Z] ? 0 : 1);	// A
-			dmg.mmu.writeActionButton(1, keyboardState[SDL_SCANCODE_X] ? 0 : 1);	// B
-			dmg.mmu.writeActionButton(2, keyboardState[SDL_SCANCODE_S] ? 0 : 1);	// Select
-			dmg.mmu.writeActionButton(3, keyboardState[SDL_SCANCODE_A] ? 0 : 1);	// Start
+			dmg.mmu.writeActionButton(0, !keyboardState[SDL_SCANCODE_Z]);		// A
+			dmg.mmu.writeActionButton(1, !keyboardState[SDL_SCANCODE_X]);		// B
+			dmg.mmu.writeActionButton(2, !keyboardState[SDL_SCANCODE_S]);		// Select
+			dmg.mmu.writeActionButton(3, !keyboardState[SDL_SCANCODE_A]);		// Start
 
 			// Keep track of performance for fps display
 			uint64_t start = SDL_GetPerformanceCounter();
@@ -95,8 +95,7 @@ public:
 			uint64_t end = SDL_GetPerformanceCounter();
 			float elapsed = (end - start) / (float)SDL_GetPerformanceFrequency();
 			std::string fps = std::to_string((int)(1.0f / elapsed));
-			//std::cout << fps << "\r" << std::flush;
-			//std::cout << dmg.mmu.cpu.global_cycles << "\r" << std::flush;
+			std::cout << fps << "\r" << std::flush;
 		}
 		return 0;
 	}

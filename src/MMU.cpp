@@ -35,11 +35,9 @@ void MMU::write(uint16_t addr, uint8_t data) {
 			// TODO: Double check that this is the correct behaviour.
 			selectedButtons = &buttonsOff;
 		}
-		return;
 	}
 	else {
 		memory[addr] = data;
-		return;
 	}
 }
 
@@ -59,7 +57,7 @@ uint8_t MMU::read(uint16_t addr) {
 			return 0xFF;
 		}
 		else if (addr == 0xFF00) {
-			// Return the int that selected_buttons currently points to based on previous write
+			// Return the int that selectedButtons currently points to based on the previous write
 			return *selectedButtons;
 		}
 		else {
@@ -89,7 +87,7 @@ void MMU::writeDirectionButton(uint8_t pos, uint8_t value) {
 }
 
 void MMU::writeButton(uint8_t* buttons, uint8_t pos, uint8_t value) {
-	// Create mask for pos, then or with value
+	// Create mask for the bit at pos, then or with the value at pos
 	*buttons &= ~(1 << pos);
 	*buttons |= (value << pos);
 }
