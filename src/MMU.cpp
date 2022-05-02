@@ -23,11 +23,23 @@ void MMU::write(uint16_t addr, uint8_t data) {
 		return;
 	}
 	else if (addr == 0xFF00) {
-		// Set joypad input to read only for now
+		// Change which set of buttons is selected to be read from
+		if (~data & (1 << 5)) {
+			selectedButtons = &actionButtons;
+		}
+		else if (~data & (1 << 4)) {
+			selectedButtons = &directionButtons;
+		}
+		else {
+			// Set selected buttons to off, always 0xFF
+			// TODO: Double check that this is the correct behaviour.
+			selectedButtons = &buttonsOff;
+		}
 		return;
 	}
 	else {
 		memory[addr] = data;
+		return;
 	}
 }
 
@@ -46,6 +58,10 @@ uint8_t MMU::read(uint16_t addr) {
 			// unusable
 			return 0xFF;
 		}
+		else if (addr == 0xFF00) {
+			// Return the int that selected_buttons currently points to based on previous write
+			return *selectedButtons;
+		}
 		else {
 			return memory[addr];
 		}
@@ -62,4 +78,18 @@ uint8_t MMU::directRead(uint16_t addr) {
 
 void MMU::insertCartridge(const std::shared_ptr<Cartridge>& cartridge) {
 	this->cart = cartridge;
+}
+
+void MMU::writeActionButton(uint8_t pos, uint8_t value) {
+	writeButton(&actionButtons, pos, value);
+}
+
+void MMU::writeDirectionButton(uint8_t pos, uint8_t value) {
+	writeButton(&directionButtons, pos, value);
+}
+
+void MMU::writeButton(uint8_t* buttons, uint8_t pos, uint8_t value) {
+	// Create mask for pos, then or with value
+	*buttons &= ~(1 << pos);
+	*buttons |= (value << pos);
 }
