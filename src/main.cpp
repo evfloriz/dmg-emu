@@ -59,36 +59,41 @@ public:
 
 	int execute() {
 		SDL_Event e;
+		const uint8_t* keyboardState = SDL_GetKeyboardState(NULL);
 		
 		bool quit = false;
-		while (!quit) {			
+		while (!quit) {
+			// Individual inputs
 			while (SDL_PollEvent(&e) != 0) {
 				if (e.type == SDL_QUIT) {
 					quit = true;
 				}
-				// TODO: Use this as an example for actual input.
-				/*else if (e.type == SDL_KEYDOWN) {
-					switch (e.key.keysym.sym) {
-					case SDLK_UP:
-						//SDL_FillRect(screenSurface, NULL, SDL_MapRGB(screenSurface->format, 0xFF, 0xFF, 0x00));
-						break;
-					
-					case SDLK_DOWN:
-						//SDL_FillRect(screenSurface, NULL, SDL_MapRGB(screenSurface->format, 0xFF, 0x00, 0x00));
-						break;
+			}
 
-					case SDLK_LEFT:
-						//SDL_FillRect(screenSurface, NULL, SDL_MapRGB(screenSurface->format, 0x00, 0xFF, 0x00));
-						break;
-
-					case SDLK_RIGHT:
-						//SDL_FillRect(screenSurface, NULL, SDL_MapRGB(screenSurface->format, 0x00, 0x00, 0xFF));
-						break;
-
-					default:
-						//SDL_FillRect(screenSurface, NULL, SDL_MapRGB(screenSurface->format, 0xFF, 0xFF, 0xFF));
-					}
-				}*/
+			// Continuous inputs
+			if (keyboardState[SDL_SCANCODE_UP]) {
+				std::cout << "up" << std::endl;
+			}
+			if (keyboardState[SDL_SCANCODE_DOWN]) {
+				std::cout << "down" << std::endl;
+			}
+			if (keyboardState[SDL_SCANCODE_LEFT]) {
+				std::cout << "left" << std::endl;
+			}
+			if (keyboardState[SDL_SCANCODE_RIGHT]) {
+				std::cout << "right" << std::endl;
+			}
+			if (keyboardState[SDL_SCANCODE_Z]) {
+				std::cout << "A" << std::endl;
+			}
+			if (keyboardState[SDL_SCANCODE_X]) {
+				std::cout << "B" << std::endl;
+			}
+			if (keyboardState[SDL_SCANCODE_A]) {
+				std::cout << "start" << std::endl;
+			}
+			if (keyboardState[SDL_SCANCODE_S]) {
+				std::cout << "select" << std::endl;
 			}
 
 
