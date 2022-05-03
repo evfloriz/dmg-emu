@@ -26,4 +26,15 @@ public:
 	uint8_t directRead(uint16_t addr);
 
 	void insertCartridge(const std::shared_ptr<Cartridge>& cartridge);
+
+	// Set the values of the input
+	void writeActionButton(uint8_t pos, uint8_t value);
+	void writeDirectionButton(uint8_t pos, uint8_t value);
+	void writeButton(uint8_t* buttons, uint8_t pos, uint8_t value);
+
+private:
+	uint8_t actionButtons = 0xFF;
+	uint8_t directionButtons = 0xFF;
+	uint8_t buttonsOff = 0xFF;
+	uint8_t* selectedButtons = &buttonsOff;
 };

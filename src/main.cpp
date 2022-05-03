@@ -59,38 +59,28 @@ public:
 
 	int execute() {
 		SDL_Event e;
+		const uint8_t* keyboardState = SDL_GetKeyboardState(NULL);
 		
 		bool quit = false;
-		while (!quit) {			
+		while (!quit) {
+			// Individual inputs
 			while (SDL_PollEvent(&e) != 0) {
 				if (e.type == SDL_QUIT) {
 					quit = true;
 				}
-				// TODO: Use this as an example for actual input.
-				/*else if (e.type == SDL_KEYDOWN) {
-					switch (e.key.keysym.sym) {
-					case SDLK_UP:
-						//SDL_FillRect(screenSurface, NULL, SDL_MapRGB(screenSurface->format, 0xFF, 0xFF, 0x00));
-						break;
-					
-					case SDLK_DOWN:
-						//SDL_FillRect(screenSurface, NULL, SDL_MapRGB(screenSurface->format, 0xFF, 0x00, 0x00));
-						break;
-
-					case SDLK_LEFT:
-						//SDL_FillRect(screenSurface, NULL, SDL_MapRGB(screenSurface->format, 0x00, 0xFF, 0x00));
-						break;
-
-					case SDLK_RIGHT:
-						//SDL_FillRect(screenSurface, NULL, SDL_MapRGB(screenSurface->format, 0x00, 0x00, 0xFF));
-						break;
-
-					default:
-						//SDL_FillRect(screenSurface, NULL, SDL_MapRGB(screenSurface->format, 0xFF, 0xFF, 0xFF));
-					}
-				}*/
 			}
 
+			// TODO: Is this way of handling input overengineered?
+			// 0 is pressed, 1 is unpressed
+			dmg.mmu.writeDirectionButton(0, !keyboardState[SDL_SCANCODE_RIGHT]);
+			dmg.mmu.writeDirectionButton(1, !keyboardState[SDL_SCANCODE_LEFT]);
+			dmg.mmu.writeDirectionButton(2, !keyboardState[SDL_SCANCODE_UP]);
+			dmg.mmu.writeDirectionButton(3, !keyboardState[SDL_SCANCODE_DOWN]);
+
+			dmg.mmu.writeActionButton(0, !keyboardState[SDL_SCANCODE_Z]);		// A
+			dmg.mmu.writeActionButton(1, !keyboardState[SDL_SCANCODE_X]);		// B
+			dmg.mmu.writeActionButton(2, !keyboardState[SDL_SCANCODE_S]);		// Select
+			dmg.mmu.writeActionButton(3, !keyboardState[SDL_SCANCODE_A]);		// Start
 
 			// Keep track of performance for fps display
 			uint64_t start = SDL_GetPerformanceCounter();
@@ -106,7 +96,6 @@ public:
 			float elapsed = (end - start) / (float)SDL_GetPerformanceFrequency();
 			std::string fps = std::to_string((int)(1.0f / elapsed));
 			std::cout << fps << "\r" << std::flush;
-			//std::cout << dmg.mmu.cpu.global_cycles << "\r" << std::flush;
 		}
 		return 0;
 	}
