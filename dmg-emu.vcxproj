@@ -32,6 +32,7 @@
     <ClInclude Include="src\PPU.h" />
     <ClInclude Include="src\MMU.h" />
     <ClInclude Include="src\CPU.h" />
+    <ClInclude Include="src\Util.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>

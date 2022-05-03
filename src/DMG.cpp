@@ -71,9 +71,9 @@ bool DMG::tick() {
 bool DMG::tick_frame() {
 	do {
 		tick();
-	} while (!ppu.frame_complete);
+	} while (!ppu.frameComplete);
 
-	ppu.frame_complete = false;
+	ppu.frameComplete = false;
 
 	return true;
 }

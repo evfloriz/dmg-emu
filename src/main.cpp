@@ -3,6 +3,7 @@
 #include <functional>
 #include <SDL.h>
 
+#include "Util.h"
 
 #include "DMG.h"
 
@@ -73,12 +74,13 @@ public:
 		destScreenRect = { 0, 0, DMG_WIDTH * SCREEN_SCALE, DMG_HEIGHT * SCREEN_SCALE };
 
 		srcTileDataRect = { 0, 0, TILE_DATA_WIDTH, TILE_DATA_HEIGHT };
-		destTileDataRect = { DMG_WIDTH * SCREEN_SCALE, 0, TILE_DATA_WIDTH * SCREEN_SCALE, TILE_DATA_HEIGHT * SCREEN_SCALE };
+		destTileDataRect = { SCREEN_WIDTH - (TILE_DATA_WIDTH * TILE_SCALE), 0, TILE_DATA_WIDTH * TILE_SCALE, TILE_DATA_HEIGHT * TILE_SCALE};
 		
 		srcBackgroundRect = { 0, 0, MAP_WIDTH, MAP_HEIGHT };
-		destBackgroundRect = { 0, DMG_HEIGHT * SCREEN_SCALE, MAP_WIDTH, MAP_HEIGHT };
+		destBackgroundRect = { 0, SCREEN_HEIGHT - MAP_HEIGHT, MAP_WIDTH, MAP_HEIGHT };
+		
 		srcWindowRect = { 0, 0, MAP_WIDTH, MAP_HEIGHT };
-		destWindowRect = { MAP_WIDTH, DMG_HEIGHT * SCREEN_SCALE, MAP_WIDTH, MAP_HEIGHT };
+		destWindowRect = { MAP_WIDTH, SCREEN_HEIGHT - MAP_HEIGHT, MAP_WIDTH, MAP_HEIGHT };
 
 		// Start dmg
 		dmg.init();
@@ -149,14 +151,28 @@ public:
 		};
 		
 		// Process screen texture
-		uint32_t* screenBuffer = dmg.ppu.getScreenBuffer();
-		auto screenUpdate = [&](uint32_t* buffer) {dmg.ppu.updateTileMap(buffer); };
-		renderTexture(screenBuffer, screenTexture, srcScreenRect, destScreenRect, screenUpdate);
+		renderTexture(
+			dmg.ppu.getScreenBuffer(),
+			screenTexture,
+			srcScreenRect,
+			destScreenRect,
+			[&](uint32_t* buffer) {dmg.ppu.updateTileMap(buffer); });
 		
 		// Process tile data texture
-		uint32_t* tileDataBuffer = dmg.ppu.getTileDataBuffer();
-		auto tileDataUpdate = [&](uint32_t* buffer) {dmg.ppu.updateTileData(buffer); };
-		renderTexture(tileDataBuffer, tileDataTexture, srcTileDataRect, destTileDataRect, tileDataUpdate);
+		renderTexture(
+			dmg.ppu.getTileDataBuffer(),
+			tileDataTexture,
+			srcTileDataRect,
+			destTileDataRect,
+			[&](uint32_t* buffer) {dmg.ppu.updateTileData(buffer); });
+
+		// Process background map texture
+		renderTexture(
+			dmg.ppu.getBackgroundBuffer(),
+			backgroundTexture,
+			srcBackgroundRect,
+			destBackgroundRect,
+			[&](uint32_t* buffer) {dmg.ppu.updateTileMap(buffer); });
 		
 		SDL_RenderPresent(renderer);
 
@@ -184,22 +200,6 @@ public:
 
 
 private:
-	const int SCREEN_SCALE = 2;
-
-	const int DMG_WIDTH = 256;
-	const int DMG_HEIGHT = 256;
-	
-	// Used for background and window map
-	const int MAP_WIDTH = 256;
-	const int MAP_HEIGHT = 256;
-
-	// Used for the tile data
-	const int TILE_DATA_WIDTH = 256;
-	const int TILE_DATA_HEIGHT = 384;
-
-	const int SCREEN_WIDTH = 1000;
-	const int SCREEN_HEIGHT = 800;
-
 	SDL_Window* window = nullptr;
 	SDL_Renderer* renderer = nullptr;
 	SDL_Texture* screenTexture = nullptr;

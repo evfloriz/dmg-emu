@@ -28,7 +28,7 @@ public:
 	uint32_t* getTileDataBuffer();
 	uint32_t* getBackgroundBuffer();
 
-	bool frame_complete = false;
+	bool frameComplete = false;
 
 private:
 	MMU* mmu = nullptr;
