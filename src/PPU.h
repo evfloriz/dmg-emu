@@ -24,8 +24,9 @@ public:
 	uint8_t getSCY();
 	uint8_t getSCX();
 
-	uint32_t* getPixelBuffer();
+	uint32_t* getScreenBuffer();
 	uint32_t* getTileDataBuffer();
+	uint32_t* getBackgroundBuffer();
 
 	bool frame_complete = false;
 
@@ -42,6 +43,8 @@ private:
 	bool lcdc6 = false;
 	bool lcdc7 = false;
 
-	uint32_t* pixelBuffer = nullptr;
+	uint32_t* screenBuffer = nullptr;
 	uint32_t* tileDataBuffer = nullptr;
+	uint32_t* backgroundBuffer = nullptr;
+	uint32_t* windowBuffer = nullptr;
 };

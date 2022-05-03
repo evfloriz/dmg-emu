@@ -172,7 +172,10 @@ void PPU::updateTileMap(uint32_t* pixelBuffer) {
 	// to pixelbuffer. Treat it like the screen rather than the background map
 	
 	auto set_line = [&](uint8_t x, uint8_t y, uint8_t hi, uint8_t lo) {
-		// Get palette index from leftmost to rightmost pixel
+		// This sets a row of 8 pixels in a tile from left to right.
+		// The high and low bytes hold the palette reference information.
+		// The y position is adjusted in the loop that calls this function,
+		// as each tile is set a line at a time.
 		pixelBuffer[y * 256 + x    ] = palette[((hi >> 6) & (1 << 1)) | ((lo >> 7) & 1)];
 		pixelBuffer[y * 256 + x + 1] = palette[((hi >> 5) & (1 << 1)) | ((lo >> 6) & 1)];
 		pixelBuffer[y * 256 + x + 2] = palette[((hi >> 4) & (1 << 1)) | ((lo >> 5) & 1)];
@@ -184,15 +187,22 @@ void PPU::updateTileMap(uint32_t* pixelBuffer) {
 		pixelBuffer[y * 256 + x + 7] = palette[((hi << 1) & (1 << 1)) | ((lo >> 0) & 1)];
 	};
 
+	// Iterate through all 32x32 tiles in the background map
 	for (int i = 0; i < 0x0400; i++) {
 		uint8_t x = i % 32;
 		uint8_t y = i / 32;
 
+		// Determine the index of the tile in the data, and determine the correct
+		// starting location for block of tile data given that index
 		uint8_t index = mmu->read(bg_start + i);
 		uint16_t start = (index > 127) ? second_half_start : first_half_start;
 		
 		// TODO: clean up logic
-		// Read each pair of bytes and set each of the 8 lines of pixels
+		// Read each pair of bytes and set each of the 8 lines of pixels.
+		// The correct bytes are found using the start location and index found above,
+		// multiplying the index by 16 since each tile takes up 16 bytes of data.
+		// j is used to iterate through pairs of bytes at a time, as two bytes are
+		// used for each line.
 		for (int j = 0; j < 8; j++) {
 			uint8_t lo = mmu->read(start + (index % 128) * 16 + j * 2);
 			uint8_t hi = mmu->read(start + (index % 128) * 16 + j * 2 + 1);
@@ -210,10 +220,14 @@ uint8_t PPU::getSCX() {
 	return mmu->directRead(0xFF43);
 }
 
-uint32_t* PPU::getPixelBuffer() {
-	return pixelBuffer;
+uint32_t* PPU::getScreenBuffer() {
+	return screenBuffer;
 }
 
 uint32_t* PPU::getTileDataBuffer() {
 	return tileDataBuffer;
+}
+
+uint32_t* PPU::getBackgroundBuffer() {
+	return backgroundBuffer;
 }

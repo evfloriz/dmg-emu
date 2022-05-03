@@ -1,6 +1,8 @@
 
 #include <iostream>
+#include <functional>
 #include <SDL.h>
+
 
 #include "DMG.h"
 
@@ -38,20 +40,47 @@ public:
 		}
 
 		// TODO: What's the advantage of different pixel formats?
-		texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, DMG_WIDTH, DMG_HEIGHT);
-		if (texture == NULL) {
+		screenTexture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, DMG_WIDTH, DMG_HEIGHT);
+		if (screenTexture == NULL) {
 			std::cout << "Texture could not be created. SDL_Error: " << SDL_GetError() << std::endl;
 			close();
 			return -1;
 		}
 
-		debugTexture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, DEBUG_WIDTH, DEBUG_HEIGHT);
-		if (debugTexture == NULL) {
+		tileDataTexture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, TILE_DATA_WIDTH, TILE_DATA_HEIGHT);
+		if (tileDataTexture == NULL) {
 			std::cout << "Texture could not be created. SDL_Error: " << SDL_GetError() << std::endl;
 			close();
 			return -1;
 		}
 
+		backgroundTexture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, MAP_WIDTH, MAP_HEIGHT);
+		if (backgroundTexture == NULL) {
+			std::cout << "Texture could not be created. SDL_Error: " << SDL_GetError() << std::endl;
+			close();
+			return -1;
+		}
+
+		windowTexture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, MAP_WIDTH, MAP_HEIGHT);
+		if (windowTexture == NULL) {
+			std::cout << "Texture could not be created. SDL_Error: " << SDL_GetError() << std::endl;
+			close();
+			return -1;
+		}
+
+		// Initialize rects for various rendering textures
+		srcScreenRect = { 0, 0, DMG_WIDTH, DMG_HEIGHT };
+		destScreenRect = { 0, 0, DMG_WIDTH * SCREEN_SCALE, DMG_HEIGHT * SCREEN_SCALE };
+
+		srcTileDataRect = { 0, 0, TILE_DATA_WIDTH, TILE_DATA_HEIGHT };
+		destTileDataRect = { DMG_WIDTH * SCREEN_SCALE, 0, TILE_DATA_WIDTH * SCREEN_SCALE, TILE_DATA_HEIGHT * SCREEN_SCALE };
+		
+		srcBackgroundRect = { 0, 0, MAP_WIDTH, MAP_HEIGHT };
+		destBackgroundRect = { 0, DMG_HEIGHT * SCREEN_SCALE, MAP_WIDTH, MAP_HEIGHT };
+		srcWindowRect = { 0, 0, MAP_WIDTH, MAP_HEIGHT };
+		destWindowRect = { MAP_WIDTH, DMG_HEIGHT * SCREEN_SCALE, MAP_WIDTH, MAP_HEIGHT };
+
+		// Start dmg
 		dmg.init();
 
 		return 0;
@@ -101,64 +130,33 @@ public:
 	}
 
 	int render() {
-		// TODO: Figure out what exactly pitch does. Should there be multiple pitches?
-		int pitch_1 = 0;
-		int pitch_2 = 0;
+		auto renderTexture = [&](uint32_t* buffer, SDL_Texture* texture, SDL_Rect srcRect, SDL_Rect destRect, std::function<void(uint32_t*)> update) {
+			// TODO: Figure out what exactly pitch does. Should there be multiple pitches?
+			int pitch = 0;
 
-		// Use the pixel buffer on the ppu for SDL_LockTexture
-		uint32_t* pixelBuffer = dmg.ppu.getPixelBuffer();
+			if (SDL_LockTexture(texture, nullptr, (void**)&buffer, &pitch)) {
+				std::cout << "Texture could not be locked. SDL_Error: " << SDL_GetError() << std::endl;
+				return -1;
+			}
 
-		// Use the tile data buffer on the ppu
-		uint32_t* tileDataBuffer = dmg.ppu.getTileDataBuffer();
+			pitch /= sizeof(uint32_t);
+			update(buffer);
 
-		// Initialize rects for various rendering textures
-		SDL_Rect srcRect;
-		srcRect.x = 0;
-		srcRect.y = 0;
-		srcRect.w = DMG_WIDTH;
-		srcRect.h = DMG_HEIGHT;
+			SDL_UnlockTexture(texture);
+			SDL_RenderCopy(renderer, texture, &srcRect, &destRect);
 
-		SDL_Rect destRect;
-		destRect.x = 0;
-		destRect.y = 0;
-		destRect.w = DMG_WIDTH * SCREEN_SCALE;
-		destRect.h = DMG_HEIGHT * SCREEN_SCALE;
-
-		SDL_Rect debugSrcRect;
-		debugSrcRect.x = 0;
-		debugSrcRect.y = 0;
-		debugSrcRect.w = DEBUG_WIDTH;
-		debugSrcRect.h = DEBUG_HEIGHT;
-
-		SDL_Rect debugDestRect;
-		debugDestRect.x = DMG_WIDTH * SCREEN_SCALE;
-		debugDestRect.y = 0;
-		debugDestRect.w = DEBUG_WIDTH * SCREEN_SCALE;
-		debugDestRect.h = DEBUG_HEIGHT * SCREEN_SCALE;
-
-		// Process screen texture
-		if (SDL_LockTexture(texture, nullptr, (void**)&pixelBuffer, &pitch_1)) {
-			std::cout << "Texture could not be locked. SDL_Error: " << SDL_GetError() << std::endl;
-			return -1;
-		}
-
-		pitch_1 /= sizeof(uint32_t);
-		dmg.ppu.updateTileMap(pixelBuffer);		
+			return 0;
+		};
 		
-		SDL_UnlockTexture(texture);
-		SDL_RenderCopy(renderer, texture, &srcRect, &destRect);
-
-		// Process debug texture (tile data)
-		if (SDL_LockTexture(debugTexture, nullptr, (void**)&tileDataBuffer, &pitch_2)) {
-			std::cout << "Texture could not be locked. SDL_Error: " << SDL_GetError() << std::endl;
-			return -1;
-		}
-
-		pitch_2 /= sizeof(uint32_t);
-		dmg.ppu.updateTileData(tileDataBuffer);
-
-		SDL_UnlockTexture(debugTexture);
-		SDL_RenderCopy(renderer, debugTexture, &debugSrcRect, &debugDestRect);
+		// Process screen texture
+		uint32_t* screenBuffer = dmg.ppu.getScreenBuffer();
+		auto screenUpdate = [&](uint32_t* buffer) {dmg.ppu.updateTileMap(buffer); };
+		renderTexture(screenBuffer, screenTexture, srcScreenRect, destScreenRect, screenUpdate);
+		
+		// Process tile data texture
+		uint32_t* tileDataBuffer = dmg.ppu.getTileDataBuffer();
+		auto tileDataUpdate = [&](uint32_t* buffer) {dmg.ppu.updateTileData(buffer); };
+		renderTexture(tileDataBuffer, tileDataTexture, srcTileDataRect, destTileDataRect, tileDataUpdate);
 		
 		SDL_RenderPresent(renderer);
 
@@ -166,9 +164,9 @@ public:
 	}
 
 	void close() {
-		if (texture) {
-			SDL_DestroyTexture(texture);
-			texture = nullptr;
+		if (screenTexture) {
+			SDL_DestroyTexture(screenTexture);
+			screenTexture = nullptr;
 		}
 
 		if (renderer) {
@@ -188,22 +186,36 @@ public:
 private:
 	const int SCREEN_SCALE = 2;
 
-	//const int DMG_WIDTH = 160;
-	//const int DMG_HEIGHT = 144;
 	const int DMG_WIDTH = 256;
 	const int DMG_HEIGHT = 256;
+	
+	// Used for background and window map
+	const int MAP_WIDTH = 256;
+	const int MAP_HEIGHT = 256;
 
 	// Used for the tile data
-	const int DEBUG_WIDTH = 256;
-	const int DEBUG_HEIGHT = 384;
+	const int TILE_DATA_WIDTH = 256;
+	const int TILE_DATA_HEIGHT = 384;
 
 	const int SCREEN_WIDTH = 1000;
 	const int SCREEN_HEIGHT = 800;
 
 	SDL_Window* window = nullptr;
 	SDL_Renderer* renderer = nullptr;
-	SDL_Texture* texture = nullptr;
-	SDL_Texture* debugTexture = nullptr;
+	SDL_Texture* screenTexture = nullptr;
+	SDL_Texture* tileDataTexture = nullptr;
+	SDL_Texture* backgroundTexture = nullptr;
+	SDL_Texture* windowTexture = nullptr;
+
+	SDL_Rect srcScreenRect;
+	SDL_Rect destScreenRect;
+	SDL_Rect srcTileDataRect;
+	SDL_Rect destTileDataRect;
+
+	SDL_Rect srcBackgroundRect;
+	SDL_Rect destBackgroundRect;
+	SDL_Rect srcWindowRect;
+	SDL_Rect destWindowRect;
 
 	DMG dmg;
 
