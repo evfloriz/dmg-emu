@@ -156,7 +156,7 @@ public:
 			screenTexture,
 			srcScreenRect,
 			destScreenRect,
-			[&](uint32_t* buffer) {dmg.ppu.updateTileMap(buffer); });
+			[&](uint32_t* buffer) {dmg.ppu.updateScreen(buffer); });
 		
 		// Process tile data texture
 		renderTexture(
@@ -172,7 +172,14 @@ public:
 			backgroundTexture,
 			srcBackgroundRect,
 			destBackgroundRect,
-			[&](uint32_t* buffer) {dmg.ppu.updateTileMap(buffer); });
+			[&](uint32_t* buffer) {dmg.ppu.updateBackgroundTileMap(buffer); });
+
+		renderTexture(
+			dmg.ppu.getWindowBuffer(),
+			windowTexture,
+			srcWindowRect,
+			destWindowRect,
+			[&](uint32_t* buffer) {dmg.ppu.updateWindowTileMap(buffer); });
 		
 		SDL_RenderPresent(renderer);
 

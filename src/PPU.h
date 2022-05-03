@@ -18,15 +18,16 @@ public:
 	void clock();
 	void updateLY();
 
-	void updateTileData(uint32_t* tileDataBuffer);
-	void updateTileMap(uint32_t* pixelBuffer);
-
-	uint8_t getSCY();
-	uint8_t getSCX();
+	void updateTileData(uint32_t* buffer);
+	void updateTileMap(uint32_t* buffer, uint16_t start);
+	void updateBackgroundTileMap(uint32_t* buffer);
+	void updateWindowTileMap(uint32_t* buffer);
+	void updateScreen(uint32_t* screenBuffer);
 
 	uint32_t* getScreenBuffer();
 	uint32_t* getTileDataBuffer();
 	uint32_t* getBackgroundBuffer();
+	uint32_t* getWindowBuffer();
 
 	bool frameComplete = false;
 

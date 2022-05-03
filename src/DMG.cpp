@@ -30,7 +30,8 @@ bool DMG::init() {
 	};
 	std::string romName = "test-roms/" + test_roms[test_num];
 
-	romName = "roms/tetris.gb";
+	//romName = "roms/tetris.gb";
+	romName = "roms/tennis.gb";
 
 	// Create cartridge
 	cart = std::make_shared<Cartridge>(romName);

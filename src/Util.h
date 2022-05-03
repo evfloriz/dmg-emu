@@ -9,16 +9,14 @@
 const int SCREEN_SCALE = 2;
 const int TILE_SCALE = 2;
 
-const int DMG_WIDTH = 256;
-const int DMG_HEIGHT = 256;
+const int DMG_WIDTH = 160;
+const int DMG_HEIGHT = 144;
 
 // Used for background and window map
 const int MAP_WIDTH = 256;
 const int MAP_HEIGHT = 256;
 
 // Used for the tile data
-//const int TILE_DATA_WIDTH = 256;
-//const int TILE_DATA_HEIGHT = 384;
 const int TILE_DATA_WIDTH = 128;
 const int TILE_DATA_HEIGHT = 192;
 
