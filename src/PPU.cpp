@@ -56,6 +56,7 @@ uint8_t PPU::read(uint16_t addr) {
 
 void PPU::clock() {
 	// Update LY
+	// This function calls the screen updating functions as well
 	updateLY();
 }
 
@@ -70,7 +71,7 @@ void PPU::updateLY() {
 		return;
 	}
 
-	bool inc = false;
+	bool increaseScanline = false;
 
 	// Increment every 456 real clock cycles
 	// Or 114 M-cycles
@@ -78,10 +79,15 @@ void PPU::updateLY() {
 	if (cycle > 113) {
 		cycle = 0;
 
-		inc = true;
+		increaseScanline = true;
 	}
 
-	if (inc) {
+	if (increaseScanline) {
+		// Draw a line of the screen
+		if (scanline < 144) {
+			updateScanline();
+		}
+
 		scanline = mmu->directRead(0xFF44);
 
 		// Reset after 154 cycles
@@ -95,6 +101,10 @@ void PPU::updateLY() {
 		if (scanline > 153) {
 			scanline = 0x00;
 			frameComplete = true;
+
+			// Update the tilemaps at the end of every frame
+			updateTileData();
+			updateTileMaps();
 		}
 
 		mmu->directWrite(0xFF44, scanline);
@@ -144,7 +154,7 @@ void PPU::updateTileData() {
 }
 
 void PPU::updateTileMaps() {
-	lcdc7 = mmu->directRead(0xFF40) & (1 << 7);
+	bool lcdc7 = mmu->directRead(0xFF40) & (1 << 7);
 
 	// Early out if LCD is off
 	if (!lcdc7) {
@@ -153,16 +163,16 @@ void PPU::updateTileMaps() {
 
 	// If lcdc4 = 1, 0-127 starts at 0x8000 and 128-255 starts at 0x8800
 	// If lcdc4 = 0, 0-127 starts at 0x9000 and 128-255 starts at 0x8800
-	lcdc4 = mmu->directRead(0xFF40) & (1 << 4);
+	bool lcdc4 = mmu->directRead(0xFF40) & (1 << 4);
 	uint16_t firstHalfStart = lcdc4 ? 0x8000 : 0x9000;
 	uint16_t secondHalfStart = 0x8800;
 
 	// If lcdc3 = 1, the background map starts at 0x9C00, otherwise 0x9800
-	lcdc3 = mmu->directRead(0xFF40) & (1 << 3);
+	bool lcdc3 = mmu->directRead(0xFF40) & (1 << 3);
 	uint16_t backgroundStart = lcdc3 ? 0x9C00 : 0x9800;
 
 	// If lcdc6 = 1, win map starts at 0x9C00, otherwise 0x9800
-	lcdc6 = mmu->directRead(0xFF40) & (1 << 6);
+	bool lcdc6 = mmu->directRead(0xFF40) & (1 << 6);
 	uint16_t windowStart = lcdc6 ? 0x9C00 : 0x9800;
 
 	auto setLine = [&](uint32_t* buffer, uint8_t x, uint8_t y, uint8_t hi, uint8_t lo) {
@@ -217,7 +227,7 @@ void PPU::updateTileMaps() {
 
 void PPU::updateScreen() {
 	// If lcdc5 = 1, window is enabled
-	lcdc5 = mmu->directRead(0xFF40) & (1 << 5);
+	bool lcdc5 = mmu->directRead(0xFF40) & (1 << 5);
 
 	// With two 32x32 arrays, use the scroll and window position to set the screen buffer
 	
@@ -248,6 +258,48 @@ void PPU::updateScreen() {
 			if (winIndexX >= 0 && winIndexY >= 0) {
 				int winIndex = (winIndexY * 256 + winIndexX);
 				screenBuffer[i] = windowBuffer[winIndex];
+			}
+		}
+	}
+}
+
+void PPU::updateScanline() {
+	// Early out if scanline is greater than 143, shouldn't ever hit this point
+	if (scanline > 143) {
+		return;
+	}
+
+	// If lcdc5 = 1, window is enabled
+	bool lcdc5 = mmu->directRead(0xFF40) & (1 << 5);
+
+	// With two 32x32 arrays, use the scroll and window position to set the screen buffer
+	uint8_t scx = mmu->directRead(0xFF43);
+	uint8_t scy = mmu->directRead(0xFF42);
+	uint8_t wx = mmu->directRead(0xFF4B);
+	uint8_t wy = mmu->directRead(0xFF4A);
+
+	uint16_t screenStart = scy * 32 + scx;
+
+	// Iterate through every pixel on the screen and set to the corresponding value
+	// of the background buffer
+	for (int i = 0; i < 160; i++) {
+		uint8_t x = i;
+		uint8_t y = scanline;
+
+		uint16_t screenIndex = y * 160 + x;
+
+		// Get the current position of the tilemap to set in the screen,
+		// including wrapping around if it would exceed the bounds of the tilemap.
+		uint16_t bgIndex = ((y + scy) * 256 + (x + scx)) % 65536;
+		screenBuffer[screenIndex] = backgroundBuffer[bgIndex];
+
+		// Screen to window tilemap mapping - screen pixel minus wx (or wy), so long as its greater than 0
+		if (lcdc5) {
+			int winIndexY = y - wy;
+			int winIndexX = x - wx + 7;		// wx is window position + 7, see pandocs
+			if (winIndexX >= 0 && winIndexY >= 0) {
+				int winIndex = (winIndexY * 256 + winIndexX);
+				screenBuffer[screenIndex] = windowBuffer[winIndex];
 			}
 		}
 	}

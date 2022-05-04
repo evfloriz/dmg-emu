@@ -30,8 +30,8 @@ bool DMG::init() {
 	};
 	std::string romName = "test-roms/" + test_roms[test_num];
 
-	romName = "roms/tetris.gb";
-	//romName = "roms/tennis.gb";
+	//romName = "roms/tetris.gb";
+	romName = "roms/tennis.gb";
 
 	// Create cartridge
 	cart = std::make_shared<Cartridge>(romName);
@@ -69,7 +69,7 @@ bool DMG::tick() {
 	return true;
 }
 
-bool DMG::tick_frame() {
+bool DMG::tickFrame() {
 	do {
 		tick();
 	} while (!ppu.frameComplete);

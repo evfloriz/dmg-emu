@@ -116,7 +116,7 @@ public:
 			uint64_t start = SDL_GetPerformanceCounter();
 
 			// Execute one full frame of the Game Boy
-			dmg.tick_frame();
+			dmg.tickFrame();
 			
 			// Render the result in the pixel buffer (and debug pixel buffer)
 			render();
@@ -152,10 +152,6 @@ public:
 
 			return 0;
 		};
-
-		dmg.ppu.updateTileData();
-		dmg.ppu.updateTileMaps();
-		dmg.ppu.updateScreen();
 		
 		// Process screen texture
 		renderTexture(

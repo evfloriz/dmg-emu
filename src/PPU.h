@@ -21,6 +21,7 @@ public:
 	void updateTileData();
 	void updateTileMaps();
 	void updateScreen();
+	void updateScanline();
 
 	uint32_t* getScreenBuffer();
 	uint32_t* getTileDataBuffer();
@@ -35,12 +36,6 @@ private:
 
 	uint16_t cycle = 0;
 	uint8_t scanline = 0;
-
-	bool lcdc3 = false;
-	bool lcdc4 = false;
-	bool lcdc5 = false;
-	bool lcdc6 = false;
-	bool lcdc7 = false;
 
 	uint32_t screenBuffer[160 * 144];
 	uint32_t tileDataBuffer[128 * 192];
