@@ -1,6 +1,5 @@
 
 #include <iostream>
-#include <functional>
 #include <SDL.h>
 
 #include "Util.h"
@@ -132,23 +131,31 @@ public:
 	}
 
 	int render() {
-		auto renderTexture = [&](uint32_t* buffer, SDL_Texture* texture, SDL_Rect srcRect, SDL_Rect destRect, std::function<void(uint32_t*)> update) {
+		auto renderTexture = [&](uint32_t* buffer, SDL_Texture* texture, SDL_Rect srcRect, SDL_Rect destRect, uint32_t size) {
 			// TODO: Figure out what exactly pitch does. Should there be multiple pitches?
+			uint32_t* pixels = nullptr;
+			
 			int pitch = 0;
 
-			if (SDL_LockTexture(texture, nullptr, (void**)&buffer, &pitch)) {
+			if (SDL_LockTexture(texture, nullptr, (void**)&pixels, &pitch)) {
 				std::cout << "Texture could not be locked. SDL_Error: " << SDL_GetError() << std::endl;
 				return -1;
 			}
 
 			pitch /= sizeof(uint32_t);
-			update(buffer);
+			//update(buffer);
+			//memcpy(pixels, buffer, buffer.size());
+			std::copy(buffer, buffer + size, pixels);
 
 			SDL_UnlockTexture(texture);
 			SDL_RenderCopy(renderer, texture, &srcRect, &destRect);
 
 			return 0;
 		};
+
+		dmg.ppu.updateTileData();
+		dmg.ppu.updateTileMaps();
+		dmg.ppu.updateScreen();
 		
 		// Process screen texture
 		renderTexture(
@@ -156,7 +163,7 @@ public:
 			screenTexture,
 			srcScreenRect,
 			destScreenRect,
-			[&](uint32_t* buffer) {dmg.ppu.updateScreen(buffer); });
+			DMG_WIDTH * DMG_HEIGHT);
 		
 		// Process tile data texture
 		renderTexture(
@@ -164,7 +171,7 @@ public:
 			tileDataTexture,
 			srcTileDataRect,
 			destTileDataRect,
-			[&](uint32_t* buffer) {dmg.ppu.updateTileData(buffer); });
+			TILE_DATA_WIDTH * TILE_DATA_HEIGHT);
 
 		// Process background map texture
 		renderTexture(
@@ -172,14 +179,14 @@ public:
 			backgroundTexture,
 			srcBackgroundRect,
 			destBackgroundRect,
-			[&](uint32_t* buffer) {dmg.ppu.updateBackgroundTileMap(buffer); });
+			MAP_WIDTH * MAP_HEIGHT);
 
 		renderTexture(
 			dmg.ppu.getWindowBuffer(),
 			windowTexture,
 			srcWindowRect,
 			destWindowRect,
-			[&](uint32_t* buffer) {dmg.ppu.updateWindowTileMap(buffer); });
+			MAP_WIDTH * MAP_HEIGHT);
 		
 		SDL_RenderPresent(renderer);
 

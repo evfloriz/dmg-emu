@@ -101,22 +101,25 @@ void PPU::updateLY() {
 	}
 }
 
-void PPU::updateTileData(uint32_t* buffer) {
+/*
+* This is just for debug use, it shouldn't actually be called.
+*/
+void PPU::updateTileData() {
 	uint16_t block0Start = 0x8000;
 	uint16_t block1Start = 0x8800;
 	uint16_t block2Start = 0x9000;
 
 	auto setLine = [&](uint8_t x, uint8_t y, uint8_t hi, uint8_t lo) {
 		// Get palette index from leftmost to rightmost pixel
-		buffer[y * TILE_DATA_WIDTH + x    ] = palette[((hi >> 6) & (1 << 1)) | ((lo >> 7) & 1)];
-		buffer[y * TILE_DATA_WIDTH + x + 1] = palette[((hi >> 5) & (1 << 1)) | ((lo >> 6) & 1)];
-		buffer[y * TILE_DATA_WIDTH + x + 2] = palette[((hi >> 4) & (1 << 1)) | ((lo >> 5) & 1)];
-		buffer[y * TILE_DATA_WIDTH + x + 3] = palette[((hi >> 3) & (1 << 1)) | ((lo >> 4) & 1)];
+		tileDataBuffer[y * TILE_DATA_WIDTH + x    ] = palette[((hi >> 6) & (1 << 1)) | ((lo >> 7) & 1)];
+		tileDataBuffer[y * TILE_DATA_WIDTH + x + 1] = palette[((hi >> 5) & (1 << 1)) | ((lo >> 6) & 1)];
+		tileDataBuffer[y * TILE_DATA_WIDTH + x + 2] = palette[((hi >> 4) & (1 << 1)) | ((lo >> 5) & 1)];
+		tileDataBuffer[y * TILE_DATA_WIDTH + x + 3] = palette[((hi >> 3) & (1 << 1)) | ((lo >> 4) & 1)];
 
-		buffer[y * TILE_DATA_WIDTH + x + 4] = palette[((hi >> 2) & (1 << 1)) | ((lo >> 3) & 1)];
-		buffer[y * TILE_DATA_WIDTH + x + 5] = palette[((hi >> 1) & (1 << 1)) | ((lo >> 2) & 1)];
-		buffer[y * TILE_DATA_WIDTH + x + 6] = palette[((hi >> 0) & (1 << 1)) | ((lo >> 1) & 1)];
-		buffer[y * TILE_DATA_WIDTH + x + 7] = palette[((hi << 1) & (1 << 1)) | ((lo >> 0) & 1)];
+		tileDataBuffer[y * TILE_DATA_WIDTH + x + 4] = palette[((hi >> 2) & (1 << 1)) | ((lo >> 3) & 1)];
+		tileDataBuffer[y * TILE_DATA_WIDTH + x + 5] = palette[((hi >> 1) & (1 << 1)) | ((lo >> 2) & 1)];
+		tileDataBuffer[y * TILE_DATA_WIDTH + x + 6] = palette[((hi >> 0) & (1 << 1)) | ((lo >> 1) & 1)];
+		tileDataBuffer[y * TILE_DATA_WIDTH + x + 7] = palette[((hi << 1) & (1 << 1)) | ((lo >> 0) & 1)];
 	};
 
 	for (int i = 0; i < 0x0080; i++) {
@@ -140,89 +143,7 @@ void PPU::updateTileData(uint32_t* buffer) {
 	}
 }
 
-void PPU::updateBackgroundTileMap(uint32_t* buffer) {
-	// Check LCD control
-	lcdc3 = mmu->directRead(0xFF40) & (1 << 3);
-	
-	// If lcdc3 = 1, the background map starts at 0x9C00, otherwise 0x9800
-	uint16_t start = lcdc3 ? 0x9C00 : 0x9800;
-
-	updateTileMap(buffer, start);
-}
-
-void PPU::updateWindowTileMap(uint32_t* buffer) {
-	// Check LCD control
-	lcdc6 = mmu->directRead(0xFF40) & (1 << 6);
-
-	// If lcdc6 = 1, win map starts at 0x9C00, otherwise 0x9800
-	uint16_t start = lcdc6 ? 0x9C00 : 0x9800;
-
-	updateTileMap(buffer, start);
-}
-
-void PPU::updateTileMap(uint32_t* buffer, uint16_t start) {
-	lcdc7 = mmu->directRead(0xFF40) & (1 << 7);
-
-	// Early out if LCD is off
-	if (!lcdc7) {
-		return;
-	}
-	
-	// Check LCD control
-	lcdc4 = mmu->directRead(0xFF40) & (1 << 4);
-	lcdc5 = mmu->directRead(0xFF40) & (1 << 5);
-
-	// If lcdc4 = 1, 0-127 starts at 0x8000 and 128-255 starts at 0x8800
-	// If lcdc4 = 0, 0-127 starts at 0x9000 and 128-255 starts at 0x8800
-	uint16_t firstHalfStart = lcdc4 ? 0x8000 : 0x9000;
-	uint16_t secondHalfStart = 0x8800;
-
-	// Optimization: Use scaleX and scaleY to set the start offset, and then only add the actual screens pixels
-	// to pixelbuffer. Treat it like the screen rather than the background map
-	
-	auto setLine = [&](uint8_t x, uint8_t y, uint8_t hi, uint8_t lo) {
-		// This sets a row of 8 pixels in a tile from left to right.
-		// The high and low bytes hold the palette reference information.
-		// The y position is adjusted in the loop that calls this function,
-		// as each tile is set a line at a time.
-		buffer[y * MAP_WIDTH + x    ] = palette[((hi >> 6) & (1 << 1)) | ((lo >> 7) & 1)];
-		buffer[y * MAP_WIDTH + x + 1] = palette[((hi >> 5) & (1 << 1)) | ((lo >> 6) & 1)];
-		buffer[y * MAP_WIDTH + x + 2] = palette[((hi >> 4) & (1 << 1)) | ((lo >> 5) & 1)];
-		buffer[y * MAP_WIDTH + x + 3] = palette[((hi >> 3) & (1 << 1)) | ((lo >> 4) & 1)];
-
-		buffer[y * MAP_WIDTH + x + 4] = palette[((hi >> 2) & (1 << 1)) | ((lo >> 3) & 1)];
-		buffer[y * MAP_WIDTH + x + 5] = palette[((hi >> 1) & (1 << 1)) | ((lo >> 2) & 1)];
-		buffer[y * MAP_WIDTH + x + 6] = palette[((hi >> 0) & (1 << 1)) | ((lo >> 1) & 1)];
-		buffer[y * MAP_WIDTH + x + 7] = palette[((hi << 1) & (1 << 1)) | ((lo >> 0) & 1)];
-	};
-
-	// Iterate through all 32x32 tiles in the background map
-	for (int i = 0; i < 0x0400; i++) {
-		uint8_t x = i % 32;
-		uint8_t y = i / 32;
-
-		// Determine the index of the tile in the data, and determine the correct
-		// starting location for block of tile data given that index
-		uint8_t dataIndex = mmu->read(start + i);
-		uint16_t dataStart = (dataIndex > 127) ? secondHalfStart : firstHalfStart;
-		dataIndex %= 128;
-		
-		// TODO: clean up logic
-		// Read each pair of bytes and set each of the 8 lines of pixels.
-		// The correct bytes are found using the start location and index found above,
-		// multiplying the index by 16 since each tile takes up 16 bytes of data.
-		// j is used to iterate through pairs of bytes at a time, as two bytes are
-		// used for each line.
-		for (int j = 0; j < 8; j++) {
-			uint8_t lo = mmu->read(dataStart + dataIndex * 16 + j * 2);
-			uint8_t hi = mmu->read(dataStart + dataIndex * 16 + j * 2 + 1);
-
-			setLine(x * 8, j + y * 8, hi, lo);
-		}
-	}
-}
-
-void PPU::updateScreen(uint32_t* screenBuffer) {
+void PPU::updateTileMaps() {
 	lcdc7 = mmu->directRead(0xFF40) & (1 << 7);
 
 	// Early out if LCD is off
@@ -244,12 +165,6 @@ void PPU::updateScreen(uint32_t* screenBuffer) {
 	lcdc6 = mmu->directRead(0xFF40) & (1 << 6);
 	uint16_t windowStart = lcdc6 ? 0x9C00 : 0x9800;
 
-	// If lcdc5 = 1, window is enabled
-	lcdc5 = mmu->directRead(0xFF40) & (1 << 5);
-
-	// Optimization: Use scaleX and scaleY to set the start offset, and then only add the actual screens pixels
-	// to pixelbuffer. Treat it like the screen rather than the background map
-
 	auto setLine = [&](uint32_t* buffer, uint8_t x, uint8_t y, uint8_t hi, uint8_t lo) {
 		// This sets a row of 8 pixels in a tile from left to right.
 		// The high and low bytes hold the palette reference information.
@@ -265,9 +180,6 @@ void PPU::updateScreen(uint32_t* screenBuffer) {
 		buffer[y * MAP_WIDTH + x + 6] = palette[((hi >> 0) & (1 << 1)) | ((lo >> 1) & 1)];
 		buffer[y * MAP_WIDTH + x + 7] = palette[((hi << 1) & (1 << 1)) | ((lo >> 0) & 1)];
 	};
-
-	uint32_t bgBuffer[256 * 256];
-	uint32_t winBuffer[256 * 256];
 
 	// Iterate through the 32x32 tiles for the background and window
 	for (int i = 0; i < 0x0400; i++) {
@@ -297,10 +209,15 @@ void PPU::updateScreen(uint32_t* screenBuffer) {
 			uint8_t win_lo = mmu->read(ws + wi * 16 + j * 2);
 			uint8_t win_hi = mmu->read(ws + wi * 16 + j * 2 + 1);
 
-			setLine(bgBuffer, x * 8, j + y * 8, bg_hi, bg_lo);
-			setLine(winBuffer, x * 8, j + y * 8, win_hi, win_lo);
+			setLine(backgroundBuffer, x * 8, j + y * 8, bg_hi, bg_lo);
+			setLine(windowBuffer, x * 8, j + y * 8, win_hi, win_lo);
 		}
 	}
+}
+
+void PPU::updateScreen() {
+	// If lcdc5 = 1, window is enabled
+	lcdc5 = mmu->directRead(0xFF40) & (1 << 5);
 
 	// With two 32x32 arrays, use the scroll and window position to set the screen buffer
 	
@@ -322,7 +239,7 @@ void PPU::updateScreen(uint32_t* screenBuffer) {
 		// Get the current position of the tilemap to set in the screen,
 		// including wrapping around if it would exceed the bounds of the tilemap.
 		uint16_t bgIndex = ((y + scy) * 256 + (x + scx)) % 65536;
-		screenBuffer[i] = bgBuffer[bgIndex];
+		screenBuffer[i] = backgroundBuffer[bgIndex];
 
 		// screen to window tilemap mapping - screen pixel minus wx (or wy), so long as its greater than 0
 		if (lcdc5) {
@@ -330,7 +247,7 @@ void PPU::updateScreen(uint32_t* screenBuffer) {
 			int winIndexX = x - wx + 7;		// wx is window position + 7, see pandocs
 			if (winIndexX >= 0 && winIndexY >= 0) {
 				int winIndex = (winIndexY * 256 + winIndexX);
-				screenBuffer[i] = winBuffer[winIndex];
+				screenBuffer[i] = windowBuffer[winIndex];
 			}
 		}
 	}

@@ -18,11 +18,9 @@ public:
 	void clock();
 	void updateLY();
 
-	void updateTileData(uint32_t* buffer);
-	void updateTileMap(uint32_t* buffer, uint16_t start);
-	void updateBackgroundTileMap(uint32_t* buffer);
-	void updateWindowTileMap(uint32_t* buffer);
-	void updateScreen(uint32_t* screenBuffer);
+	void updateTileData();
+	void updateTileMaps();
+	void updateScreen();
 
 	uint32_t* getScreenBuffer();
 	uint32_t* getTileDataBuffer();
@@ -44,8 +42,8 @@ private:
 	bool lcdc6 = false;
 	bool lcdc7 = false;
 
-	uint32_t* screenBuffer = nullptr;
-	uint32_t* tileDataBuffer = nullptr;
-	uint32_t* backgroundBuffer = nullptr;
-	uint32_t* windowBuffer = nullptr;
+	uint32_t screenBuffer[160 * 144];
+	uint32_t tileDataBuffer[128 * 192];
+	uint32_t backgroundBuffer[256 * 256];
+	uint32_t windowBuffer[256 * 256];
 };
