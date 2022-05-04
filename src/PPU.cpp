@@ -15,6 +15,11 @@ PPU::PPU(MMU* mmu) {
 }
 
 PPU::~PPU() {
+	delete[] screenBuffer;
+	delete[] tileDataBuffer;
+	delete[] backgroundBuffer;
+	delete[] windowBuffer;
+	delete[] objectsBuffer;
 }
 
 void PPU::write(uint16_t addr, uint8_t data) {
@@ -86,6 +91,7 @@ void PPU::updateLY() {
 		// Draw a line of the screen
 		if (scanline < 144) {
 			updateScanline();
+			
 		}
 
 		scanline = mmu->directRead(0xFF44);
@@ -105,6 +111,7 @@ void PPU::updateLY() {
 			// Update the tilemaps at the end of every frame
 			updateTileData();
 			updateTileMaps();
+			updateObjects();
 		}
 
 		mmu->directWrite(0xFF44, scanline);
@@ -137,14 +144,14 @@ void PPU::updateTileData() {
 		uint8_t y = i / 16;
 
 		for (int j = 0; j < 8; j++) {
-			uint8_t lo0 = mmu->read(block0Start + i * 16 + j * 2);
-			uint8_t hi0 = mmu->read(block0Start + i * 16 + j * 2 + 1);
+			uint8_t lo0 = mmu->directRead(block0Start + i * 16 + j * 2);
+			uint8_t hi0 = mmu->directRead(block0Start + i * 16 + j * 2 + 1);
 
-			uint8_t lo1 = mmu->read(block1Start + i * 16 + j * 2);
-			uint8_t hi1 = mmu->read(block1Start + i * 16 + j * 2 + 1);
+			uint8_t lo1 = mmu->directRead(block1Start + i * 16 + j * 2);
+			uint8_t hi1 = mmu->directRead(block1Start + i * 16 + j * 2 + 1);
 
-			uint8_t lo2 = mmu->read(block2Start + i * 16 + j * 2);
-			uint8_t hi2 = mmu->read(block2Start + i * 16 + j * 2 + 1);
+			uint8_t lo2 = mmu->directRead(block2Start + i * 16 + j * 2);
+			uint8_t hi2 = mmu->directRead(block2Start + i * 16 + j * 2 + 1);
 
 			setLine(x * 8, j + y * 8, hi0, lo0);
 			setLine(x * 8, 64 + j + y * 8, hi1, lo1);
@@ -198,11 +205,11 @@ void PPU::updateTileMaps() {
 
 		// Determine the index of the tile in the data, and determine the correct
 		// starting location for block of tile data given that index
-		uint8_t bi = mmu->read(backgroundStart + i);
+		uint8_t bi = mmu->directRead(backgroundStart + i);
 		uint16_t bs = (bi > 127) ? secondHalfStart : firstHalfStart;
 		bi %= 128;
 
-		uint8_t wi = mmu->read(windowStart + i);
+		uint8_t wi = mmu->directRead(windowStart + i);
 		uint16_t ws = (wi > 127) ? secondHalfStart : firstHalfStart;
 		wi %= 128;
 
@@ -213,14 +220,68 @@ void PPU::updateTileMaps() {
 		// j is used to iterate through pairs of bytes at a time, as two bytes are
 		// used for each line.
 		for (int j = 0; j < 8; j++) {
-			uint8_t bg_lo = mmu->read(bs + bi * 16 + j * 2);
-			uint8_t bg_hi = mmu->read(bs + bi * 16 + j * 2 + 1);
+			// TODO: Should these be direct reads?
+			uint8_t bg_lo = mmu->directRead(bs + bi * 16 + j * 2);
+			uint8_t bg_hi = mmu->directRead(bs + bi * 16 + j * 2 + 1);
 
-			uint8_t win_lo = mmu->read(ws + wi * 16 + j * 2);
-			uint8_t win_hi = mmu->read(ws + wi * 16 + j * 2 + 1);
+			uint8_t win_lo = mmu->directRead(ws + wi * 16 + j * 2);
+			uint8_t win_hi = mmu->directRead(ws + wi * 16 + j * 2 + 1);
 
 			setLine(backgroundBuffer, x * 8, j + y * 8, bg_hi, bg_lo);
 			setLine(windowBuffer, x * 8, j + y * 8, win_hi, win_lo);
+		}
+	}
+}
+
+void PPU::updateObjects() {
+	// iterate through oam
+	// for each oam object, access its location in the tile memory and draw it at the correct position with the correct flip
+	// and using the correct palette
+
+	bool lcdc7 = mmu->directRead(0xFF40) & (1 << 7);
+
+	// Early out if LCD is off
+	if (!lcdc7) {
+		return;
+	}
+
+	uint16_t oamStart = 0xFE00;
+	uint16_t tileStart = 0x8000;
+
+	// TODO: Figure out a better way to handle these lambdas
+	auto setLine = [&](uint32_t* buffer, uint8_t x, uint8_t y, uint8_t hi, uint8_t lo) {
+		// This sets a row of 8 pixels in a tile from left to right.
+		// The high and low bytes hold the palette reference information.
+		// The y position is adjusted in the loop that calls this function,
+		// as each tile is set a line at a time.
+		buffer[y * MAP_WIDTH + x] = palette[((hi >> 6) & (1 << 1)) | ((lo >> 7) & 1)];
+		buffer[y * MAP_WIDTH + x + 1] = palette[((hi >> 5) & (1 << 1)) | ((lo >> 6) & 1)];
+		buffer[y * MAP_WIDTH + x + 2] = palette[((hi >> 4) & (1 << 1)) | ((lo >> 5) & 1)];
+		buffer[y * MAP_WIDTH + x + 3] = palette[((hi >> 3) & (1 << 1)) | ((lo >> 4) & 1)];
+
+		buffer[y * MAP_WIDTH + x + 4] = palette[((hi >> 2) & (1 << 1)) | ((lo >> 3) & 1)];
+		buffer[y * MAP_WIDTH + x + 5] = palette[((hi >> 1) & (1 << 1)) | ((lo >> 2) & 1)];
+		buffer[y * MAP_WIDTH + x + 6] = palette[((hi >> 0) & (1 << 1)) | ((lo >> 1) & 1)];
+		buffer[y * MAP_WIDTH + x + 7] = palette[((hi << 1) & (1 << 1)) | ((lo >> 0) & 1)];
+	};
+
+	// Iterate 4 bytes at a time from 0xFE00 to 0xFE9F
+	for (int i = 0; i < 40; i++) {
+		// TODO: Should these be direct reads?
+		uint8_t x = mmu->directRead(oamStart + i * 4);
+		uint8_t y = mmu->directRead(oamStart + i * 4 + 1);
+		uint8_t tileIndex = mmu->directRead(oamStart + i * 4 + 2);
+		uint8_t flags = mmu->directRead(oamStart + i * 4 + 3);
+
+		if (x != 0 || y != 0 || tileIndex != 0) {
+			std::cout << "huh" << std::endl;
+		}
+
+		for (int j = 0; j < 8; j++) {
+			uint8_t lo = mmu->directRead(tileStart + tileIndex * 16 + j * 2);
+			uint8_t hi = mmu->directRead(tileStart + tileIndex * 16 + j * 2 + 1);
+
+			setLine(objectsBuffer, x, j + y, hi, lo);
 		}
 	}
 }
@@ -319,4 +380,8 @@ uint32_t* PPU::getBackgroundBuffer() {
 
 uint32_t* PPU::getWindowBuffer() {
 	return windowBuffer;
+}
+
+uint32_t* PPU::getObjectsBuffer() {
+	return objectsBuffer;
 }

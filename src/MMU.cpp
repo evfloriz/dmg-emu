@@ -36,6 +36,20 @@ void MMU::write(uint16_t addr, uint8_t data) {
 			selectedButtons = &buttonsOff;
 		}
 	}
+	else if (addr == 0xFF46) {
+		// Early out if data is out of range
+		if (data > 0xDF) {
+			return;
+		}
+
+		// DMA transfer
+		// Write data from 0xXX00-0xXX9F to 0xFE00-0xFE9F
+		uint16_t dataStart = data * 0x100;
+		uint16_t oamStart = 0xFE00;
+		for (int i = 0; i < 0xA0; i++) {
+			directWrite(oamStart + i, directRead(dataStart + i));
+		}
+	}
 	else {
 		memory[addr] = data;
 	}

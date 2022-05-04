@@ -68,6 +68,13 @@ public:
 			return -1;
 		}
 
+		objectsTexture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, MAP_WIDTH, MAP_HEIGHT);
+		if (objectsTexture == NULL) {
+			std::cout << "Texture could not be created. SDL_Error: " << SDL_GetError() << std::endl;
+			close();
+			return -1;
+		}
+
 		// Initialize rects for various rendering textures
 		srcScreenRect = { 0, 0, DMG_WIDTH, DMG_HEIGHT };
 		destScreenRect = { 0, 0, DMG_WIDTH * SCREEN_SCALE, DMG_HEIGHT * SCREEN_SCALE };
@@ -80,6 +87,9 @@ public:
 		
 		srcWindowRect = { 0, 0, MAP_WIDTH, MAP_HEIGHT };
 		destWindowRect = { MAP_WIDTH, SCREEN_HEIGHT - MAP_HEIGHT, MAP_WIDTH, MAP_HEIGHT };
+
+		srcObjectsRect = { 0, 0, MAP_WIDTH, MAP_HEIGHT };
+		destObjectsRect = { MAP_WIDTH * 2, SCREEN_HEIGHT - MAP_HEIGHT, MAP_WIDTH, MAP_HEIGHT };
 
 		// Start dmg
 		dmg.init();
@@ -183,6 +193,13 @@ public:
 			srcWindowRect,
 			destWindowRect,
 			MAP_WIDTH * MAP_HEIGHT);
+
+		renderTexture(
+			dmg.ppu.getObjectsBuffer(),
+			objectsTexture,
+			srcObjectsRect,
+			destObjectsRect,
+			MAP_WIDTH * MAP_HEIGHT);
 		
 		SDL_RenderPresent(renderer);
 
@@ -193,6 +210,26 @@ public:
 		if (screenTexture) {
 			SDL_DestroyTexture(screenTexture);
 			screenTexture = nullptr;
+		}
+		
+		if (tileDataTexture) {
+			SDL_DestroyTexture(tileDataTexture);
+			tileDataTexture = nullptr;
+		}
+		
+		if (backgroundTexture) {
+			SDL_DestroyTexture(backgroundTexture);
+			backgroundTexture = nullptr;
+		}
+		
+		if (windowTexture) {
+			SDL_DestroyTexture(windowTexture);
+			windowTexture = nullptr;
+		}
+
+		if (objectsTexture) {
+			SDL_DestroyTexture(objectsTexture);
+			objectsTexture = nullptr;
 		}
 
 		if (renderer) {
@@ -216,6 +253,7 @@ private:
 	SDL_Texture* tileDataTexture = nullptr;
 	SDL_Texture* backgroundTexture = nullptr;
 	SDL_Texture* windowTexture = nullptr;
+	SDL_Texture* objectsTexture = nullptr;
 
 	SDL_Rect srcScreenRect;
 	SDL_Rect destScreenRect;
@@ -226,6 +264,8 @@ private:
 	SDL_Rect destBackgroundRect;
 	SDL_Rect srcWindowRect;
 	SDL_Rect destWindowRect;
+	SDL_Rect srcObjectsRect;
+	SDL_Rect destObjectsRect;
 
 	DMG dmg;
 

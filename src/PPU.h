@@ -22,11 +22,13 @@ public:
 	void updateTileMaps();
 	void updateScreen();
 	void updateScanline();
+	void updateObjects();
 
 	uint32_t* getScreenBuffer();
 	uint32_t* getTileDataBuffer();
 	uint32_t* getBackgroundBuffer();
 	uint32_t* getWindowBuffer();
+	uint32_t* getObjectsBuffer();
 
 	bool frameComplete = false;
 
@@ -37,8 +39,9 @@ private:
 	uint16_t cycle = 0;
 	uint8_t scanline = 0;
 
-	uint32_t screenBuffer[160 * 144];
-	uint32_t tileDataBuffer[128 * 192];
-	uint32_t backgroundBuffer[256 * 256];
-	uint32_t windowBuffer[256 * 256];
+	uint32_t* screenBuffer = new uint32_t[160 * 144];
+	uint32_t* tileDataBuffer = new uint32_t[128 * 192];
+	uint32_t* backgroundBuffer = new uint32_t[256 * 256];
+	uint32_t* windowBuffer = new uint32_t[256 * 256];
+	uint32_t* objectsBuffer = new uint32_t[256 * 256];
 };
