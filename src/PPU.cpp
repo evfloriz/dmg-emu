@@ -243,24 +243,45 @@ void PPU::updateObjects() {
 		return;
 	}
 
+	// Update palette information
+	uint32_t obp0Data = mmu->directRead(0xFF48);
+	uint32_t obp1Data = mmu->directRead(0xFF49);
+
+	uint32_t obp0[] = {
+		0,
+		(obp0Data & 0x0C) >> 2,
+		(obp0Data & 0x30) >> 4,
+		(obp0Data & 0xC0) >> 6
+	};
+
+	uint32_t obp1[] = {
+		0,
+		(obp1Data & 0x0C) >> 2,
+		(obp1Data & 0x30) >> 4,
+		(obp1Data & 0xC0) >> 6
+	};
+
+
 	uint16_t oamStart = 0xFE00;
 	uint16_t tileStart = 0x8000;
 
 	// TODO: Figure out a better way to handle these lambdas
-	auto setLine = [&](uint32_t* buffer, uint8_t x, uint8_t y, uint8_t hi, uint8_t lo) {
+	auto setLine = [&](uint32_t* buffer, uint8_t x, uint8_t y, uint8_t hi, uint8_t lo, uint32_t* obp, bool xFlip) {
 		// This sets a row of 8 pixels in a tile from left to right.
 		// The high and low bytes hold the palette reference information.
 		// The y position is adjusted in the loop that calls this function,
 		// as each tile is set a line at a time.
-		buffer[y * MAP_WIDTH + x] = palette[((hi >> 6) & (1 << 1)) | ((lo >> 7) & 1)];
-		buffer[y * MAP_WIDTH + x + 1] = palette[((hi >> 5) & (1 << 1)) | ((lo >> 6) & 1)];
-		buffer[y * MAP_WIDTH + x + 2] = palette[((hi >> 4) & (1 << 1)) | ((lo >> 5) & 1)];
-		buffer[y * MAP_WIDTH + x + 3] = palette[((hi >> 3) & (1 << 1)) | ((lo >> 4) & 1)];
+		for (int i = 7; i > -1; i--) {
+			// For xFlip, change the order that the lines of the sprite are read from by shifting i vs 7 - i bits
+			uint8_t updatedX = xFlip ? (7 - i) : i;
+			
+			// Update palette based on selected object palette
+			uint32_t paletteIndex = obp[((hi >> updatedX) << 1 & 0x02) | ((lo >> updatedX) & 0x01)];
 
-		buffer[y * MAP_WIDTH + x + 4] = palette[((hi >> 2) & (1 << 1)) | ((lo >> 3) & 1)];
-		buffer[y * MAP_WIDTH + x + 5] = palette[((hi >> 1) & (1 << 1)) | ((lo >> 2) & 1)];
-		buffer[y * MAP_WIDTH + x + 6] = palette[((hi >> 0) & (1 << 1)) | ((lo >> 1) & 1)];
-		buffer[y * MAP_WIDTH + x + 7] = palette[((hi << 1) & (1 << 1)) | ((lo >> 0) & 1)];
+			if (paletteIndex != 0) {
+				buffer[y * MAP_WIDTH + x + 7 - i] = palette[paletteIndex];
+			}
+		}
 	};
 
 	// Clear objects array of old sprites
@@ -274,11 +295,18 @@ void PPU::updateObjects() {
 		uint8_t tileIndex = mmu->directRead(oamStart + i * 4 + 2);
 		uint8_t flags = mmu->directRead(oamStart + i * 4 + 3);
 
+		uint32_t* obp = (flags & (1 << 4)) ? obp1 : obp0;
+		uint32_t yFlip = (flags & (1 << 6));
+		uint32_t xFlip = (flags & (1 << 5));
+
 		for (int j = 0; j < 8; j++) {
 			uint8_t lo = mmu->directRead(tileStart + tileIndex * 16 + j * 2);
 			uint8_t hi = mmu->directRead(tileStart + tileIndex * 16 + j * 2 + 1);
 
-			setLine(objectsBuffer, x, j + y, hi, lo);
+			// For yFlip, change the y values of each line to print bottom up rather than top down
+			uint8_t updatedY = yFlip ? (7 - j) : j;
+
+			setLine(objectsBuffer, x, y + updatedY, hi, lo, obp, xFlip);
 		}
 	}
 }
