@@ -360,6 +360,17 @@ void PPU::updateScanline() {
 				screenBuffer[screenIndex] = windowBuffer[winIndex];
 			}
 		}
+
+		// Get objects from the section of the object buffer that overlaps with the screen
+		// Last in order so they have highest priority
+		uint16_t objIndex = ((y + 16) * 256 + (x + 8)) % 65536;
+		uint32_t obj = objectsBuffer[objIndex];
+
+		// TODO: add object priority conditions on a per pixel basis
+		if (obj != 0) {
+			screenBuffer[screenIndex] = obj;
+		}
+		
 	}
 }
 
