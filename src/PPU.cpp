@@ -234,9 +234,7 @@ void PPU::updateTileMaps() {
 }
 
 void PPU::updateObjects() {
-	// iterate through oam
-	// for each oam object, access its location in the tile memory and draw it at the correct position with the correct flip
-	// and using the correct palette
+	// NOTE: there's a sprite drawn at the top left of the screen, not sure if it's supposed to be there
 
 	bool lcdc7 = mmu->directRead(0xFF40) & (1 << 7);
 
@@ -265,17 +263,16 @@ void PPU::updateObjects() {
 		buffer[y * MAP_WIDTH + x + 7] = palette[((hi << 1) & (1 << 1)) | ((lo >> 0) & 1)];
 	};
 
+	// Clear objects array of old sprites
+	std::fill(objectsBuffer, objectsBuffer + 256 * 256, 0);
+
 	// Iterate 4 bytes at a time from 0xFE00 to 0xFE9F
 	for (int i = 0; i < 40; i++) {
 		// TODO: Should these be direct reads?
-		uint8_t x = mmu->directRead(oamStart + i * 4);
-		uint8_t y = mmu->directRead(oamStart + i * 4 + 1);
+		uint8_t y = mmu->directRead(oamStart + i * 4);
+		uint8_t x = mmu->directRead(oamStart + i * 4 + 1);
 		uint8_t tileIndex = mmu->directRead(oamStart + i * 4 + 2);
 		uint8_t flags = mmu->directRead(oamStart + i * 4 + 3);
-
-		if (x != 0 || y != 0 || tileIndex != 0) {
-			std::cout << "huh" << std::endl;
-		}
 
 		for (int j = 0; j < 8; j++) {
 			uint8_t lo = mmu->directRead(tileStart + tileIndex * 16 + j * 2);
