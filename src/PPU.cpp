@@ -307,7 +307,7 @@ void PPU::updateScanline() {
 
 		// Get the current position of the tilemap to set in the screen,
 		// including wrapping around if it would exceed the bounds of the tilemap.
-		uint16_t bgIndex = ((y + scy) * 256 + (x + scx)) % 65536;
+		uint16_t bgIndex = (((y + scy) % 256) * 256 + (x + scx) % 256);
 		screenBuffer[screenIndex] = backgroundBuffer[bgIndex];
 
 		// Screen to window tilemap mapping - screen pixel minus wx (or wy), so long as its greater than 0
