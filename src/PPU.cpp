@@ -12,6 +12,8 @@ PPU::PPU(MMU* mmu) {
 	palette[1] = ARGB(139, 172, 139);
 	palette[2] = ARGB(48, 98, 48);
 	palette[3] = ARGB(15, 56, 15);
+
+	std::fill(screenBuffer, screenBuffer + DMG_WIDTH * DMG_HEIGHT, 0);
 }
 
 PPU::~PPU() {
@@ -81,26 +83,14 @@ void PPU::updateLY() {
 	}
 }
 
-void PPU::setLine(uint32_t* buffer, uint16_t width, uint8_t x, uint8_t y, uint8_t hi, uint8_t lo) {
-	// This sets a row of 8 pixels in a tile from left to right.
-	// The high and low bytes hold the palette reference information.
-	// The y position is adjusted in the loop that calls this function,
-	// as each tile is set a line at a time.
-	
-	for (int i = 7; i > -1; i--) {
-		// Update palette based on selected object palette
-		uint32_t paletteIndex = ((hi >> i) << 1 & 0x02) | ((lo >> i) & 0x01);
-		buffer[y * width + x + 7 - i] = palette[paletteIndex];
-	}
-}
-
 void PPU::setTile(
 	uint32_t* buffer,
 	uint16_t width,
 	uint16_t start,
 	uint16_t index,
 	uint8_t x,
-	uint8_t y) {
+	uint8_t y,
+	uint32_t* bgp) {
 
 	// Read each pair of bytes and set each of the 8 lines of pixels.
 	// The correct bytes are found using the start location and index found above,
@@ -117,7 +107,7 @@ void PPU::setTile(
 		// as each tile is set a line at a time.
 		for (int i = 7; i > -1; i--) {
 			// Update palette based on selected object palette
-			uint32_t paletteIndex = ((hi >> i) << 1 & 0x02) | ((lo >> i) & 0x01);
+			uint32_t paletteIndex = bgp[((hi >> i) << 1 & 0x02) | ((lo >> i) & 0x01)];
 			buffer[(y + j) * width + x + 7 - i] = palette[paletteIndex];
 		}
 	}	
@@ -149,7 +139,15 @@ void PPU::setObject(
 			uint32_t paletteIndex = obp[((hi >> updatedShift) << 1 & 0x02) | ((lo >> updatedShift) & 0x01)];
 
 			if (paletteIndex != 0) {
-				buffer[(y + updatedJ) * MAP_WIDTH + x + 7 - i] = palette[paletteIndex];
+				// Check against out of bounds updates.
+				// More accurately, the ppu should search for sprites whose y collides with the current scanline,
+				// so an out of bounds y position shouldn't have an impact.
+				// For x, it counts toward the limit but if its simply greater than 168 it doesn't matter.
+				// Instead of 256 and 256, I could use x < 168 and y < 160 since that would hid it completely,
+				// I wouldn't need to render it on the object layer.
+				if ((y + updatedJ < 256) && (x + 7 - i < 256)) {
+					buffer[(y + updatedJ) * MAP_WIDTH + x + 7 - i] = palette[paletteIndex];
+				}
 			}
 		}
 	}
@@ -163,13 +161,22 @@ void PPU::updateTileData() {
 	uint16_t block1Start = 0x8800;
 	uint16_t block2Start = 0x9000;
 
+	// Update palette information
+	uint32_t bgpData = mmu->directRead(0xFF47);
+	uint32_t bgp[] = {
+		(bgpData & 0x03) >> 0,
+		(bgpData & 0x0C) >> 2,
+		(bgpData & 0x30) >> 4,
+		(bgpData & 0xC0) >> 6
+	};
+
 	for (int i = 0; i < 0x0080; i++) {
 		uint8_t x = i % 16;
 		uint8_t y = i / 16;
 
-		setTile(tileDataBuffer, TILE_DATA_WIDTH, block0Start, i, x * 8, y * 8);
-		setTile(tileDataBuffer, TILE_DATA_WIDTH, block1Start, i, x * 8, 64 + y * 8);
-		setTile(tileDataBuffer, TILE_DATA_WIDTH, block2Start, i, x * 8, 128 + y * 8);
+		setTile(tileDataBuffer, TILE_DATA_WIDTH, block0Start, i, x * 8, y * 8, bgp);
+		setTile(tileDataBuffer, TILE_DATA_WIDTH, block1Start, i, x * 8, 64 + y * 8, bgp);
+		setTile(tileDataBuffer, TILE_DATA_WIDTH, block2Start, i, x * 8, 128 + y * 8, bgp);
 	}
 }
 
@@ -195,6 +202,15 @@ void PPU::updateTileMaps() {
 	bool lcdc6 = mmu->directRead(0xFF40) & (1 << 6);
 	uint16_t windowStart = lcdc6 ? 0x9C00 : 0x9800;
 
+	// Update palette information
+	uint32_t bgpData = mmu->directRead(0xFF47);
+	uint32_t bgp[] = {
+		(bgpData & 0x03) >> 0,
+		(bgpData & 0x0C) >> 2,
+		(bgpData & 0x30) >> 4,
+		(bgpData & 0xC0) >> 6
+	};
+
 	// Iterate through the 32x32 tiles for the background and window
 	for (int i = 0; i < 0x0400; i++) {
 		uint8_t x = i % 32;
@@ -210,8 +226,8 @@ void PPU::updateTileMaps() {
 		uint16_t ws = (wi > 127) ? secondHalfStart : firstHalfStart;
 		wi %= 128;
 
-		setTile(backgroundBuffer, MAP_WIDTH, bs, bi, x * 8, y * 8);
-		setTile(windowBuffer, MAP_WIDTH, ws, wi, x * 8, y * 8);
+		setTile(backgroundBuffer, MAP_WIDTH, bs, bi, x * 8, y * 8, bgp);
+		setTile(windowBuffer, MAP_WIDTH, ws, wi, x * 8, y * 8, bgp);
 	}
 }
 
