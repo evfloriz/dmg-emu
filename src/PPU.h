@@ -12,17 +12,33 @@ public:
 	~PPU();
 
 public:
-	void write(uint16_t addr, uint8_t data);
-	uint8_t read(uint16_t addr);
-
 	void clock();
 	void updateLY();
 
 	void updateTileData();
 	void updateTileMaps();
-	void updateScreen();
 	void updateScanline();
 	void updateObjects();
+
+	void setLine(uint32_t* buffer, uint16_t width, uint8_t x, uint8_t y, uint8_t hi, uint8_t lo);
+	void setTile(
+		uint32_t* buffer,
+		uint16_t width,
+		uint16_t start,
+		uint16_t index,
+		uint8_t x,
+		uint8_t y);
+
+	void setObject(
+		uint32_t* buffer,
+		uint16_t width,
+		uint16_t start,
+		uint16_t index,
+		uint8_t x,
+		uint8_t y,
+		uint32_t* obp,
+		bool xFlip,
+		bool yFlip);
 
 	uint32_t* getScreenBuffer();
 	uint32_t* getTileDataBuffer();
