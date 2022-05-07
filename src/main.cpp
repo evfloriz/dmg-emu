@@ -131,11 +131,24 @@ public:
 			// Render the result in the pixel buffer (and debug pixel buffer)
 			render();
 
-			// Display fps
+			// Calculate
 			uint64_t end = SDL_GetPerformanceCounter();
 			float elapsed = (end - start) / (float)SDL_GetPerformanceFrequency();
+			
+			// Delay until 16.666f ms have past (for 60 fps)
+			float elapsedMS = elapsed * 1000.0f;
+			if (elapsedMS < 16.666f) {
+				SDL_Delay(16.666f - elapsedMS);
+			}
+
+			uint64_t capped_end = SDL_GetPerformanceCounter();
+			float capped_elapsed = (capped_end - start) / (float)SDL_GetPerformanceFrequency();
+			
+			// Display both the capped and uncapped fps
 			std::string fps = std::to_string((int)(1.0f / elapsed));
-			std::cout << fps << "\r" << std::flush;
+			std::string capped_fps = std::to_string((int)(1.0f / capped_elapsed));
+			std::cout << capped_fps << " | " << fps << "\r" << std::flush;
+			
 		}
 		return 0;
 	}
