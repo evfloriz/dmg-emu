@@ -153,8 +153,7 @@ public:
 			}
 
 			pitch /= sizeof(uint32_t);
-			//update(buffer);
-			//memcpy(pixels, buffer, buffer.size());
+			
 			std::copy(buffer, buffer + size, pixels);
 
 			SDL_UnlockTexture(texture);
@@ -179,7 +178,7 @@ public:
 			destTileDataRect,
 			TILE_DATA_WIDTH * TILE_DATA_HEIGHT);
 
-		// Process background map texture
+		// Process background texture
 		renderTexture(
 			dmg.ppu.getBackgroundBuffer(),
 			backgroundTexture,
@@ -187,6 +186,7 @@ public:
 			destBackgroundRect,
 			MAP_WIDTH * MAP_HEIGHT);
 
+		// Process window texture
 		renderTexture(
 			dmg.ppu.getWindowBuffer(),
 			windowTexture,
@@ -194,6 +194,7 @@ public:
 			destWindowRect,
 			MAP_WIDTH * MAP_HEIGHT);
 
+		// Process objects texture
 		renderTexture(
 			dmg.ppu.getObjectsBuffer(),
 			objectsTexture,

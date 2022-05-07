@@ -16,6 +16,9 @@ public:
 	void clock();
 	void updateLY();
 
+	// TODO: Do a pass on function access, I think a lot of these should be private. I think this goes alongside
+	// an update to frameComplete in the aim of keeping the PPU state internal to the PPU.
+
 	void updateTileData();
 	void updateTileMaps();
 	void updateScanline();

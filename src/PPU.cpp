@@ -39,27 +39,24 @@ void PPU::updateLY() {
 		return;
 	}
 
-	bool increaseScanline = false;
+	bool incrementScanline = false;
 
-	// Increment every 456 real clock cycles
+	// Increment scanline every 456 real clock cycles
 	// Or 114 M-cycles
 	cycle++;
 	if (cycle > 113) {
 		cycle = 0;
 
-		increaseScanline = true;
+		incrementScanline = true;
 	}
 
-	if (increaseScanline) {
+	if (incrementScanline) {
 		// Draw a line of the screen
 		if (scanline < 144) {
 			updateScanline();
-			
 		}
 
 		scanline = mmu->directRead(0xFF44);
-
-		// Reset after 154 cycles
 		scanline++;
 		
 		// Set VBLANK interrupt flag when LY is 144
@@ -67,6 +64,7 @@ void PPU::updateLY() {
 			mmu->directWrite(0xFF0F, (1 << 0));
 		}
 
+		// Reset after 154 cycles
 		if (scanline > 153) {
 			scanline = 0x00;
 			frameComplete = true;
