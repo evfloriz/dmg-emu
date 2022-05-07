@@ -12,8 +12,6 @@ PPU::PPU(MMU* mmu) {
 	palette[1] = ARGB(139, 172, 139);
 	palette[2] = ARGB(48, 98, 48);
 	palette[3] = ARGB(15, 56, 15);
-
-	std::fill(screenBuffer, screenBuffer + DMG_WIDTH * DMG_HEIGHT, 0);
 }
 
 PPU::~PPU() {
@@ -93,7 +91,7 @@ void PPU::setTile(
 	uint32_t* bgp) {
 
 	// Read each pair of bytes and set each of the 8 lines of pixels.
-	// The correct bytes are found using the start location and index found above,
+	// The correct bytes are found using the start location of the tile data and the index,
 	// multiplying the index by 16 since each tile takes up 16 bytes of data.
 	// j is used to iterate through pairs of bytes at a time, as two bytes are
 	// used for each line.
@@ -103,8 +101,6 @@ void PPU::setTile(
 
 		// This sets a row of 8 pixels in a tile from left to right.
 		// The high and low bytes hold the palette reference information.
-		// The y position is adjusted in the loop that calls this function,
-		// as each tile is set a line at a time.
 		for (int i = 7; i > -1; i--) {
 			// Update palette based on selected object palette
 			uint32_t paletteIndex = bgp[((hi >> i) << 1 & 0x02) | ((lo >> i) & 0x01)];
@@ -139,6 +135,7 @@ void PPU::setObject(
 			uint32_t paletteIndex = obp[((hi >> updatedShift) << 1 & 0x02) | ((lo >> updatedShift) & 0x01)];
 
 			if (paletteIndex != 0) {
+				// TODO: rework this to be more accurate to the Game Boy's actual operation.
 				// Check against out of bounds updates.
 				// More accurately, the ppu should search for sprites whose y collides with the current scanline,
 				// so an out of bounds y position shouldn't have an impact.
@@ -146,16 +143,13 @@ void PPU::setObject(
 				// Instead of 256 and 256, I could use x < 168 and y < 160 since that would hid it completely,
 				// I wouldn't need to render it on the object layer.
 				if ((y + updatedJ < 256) && (x + 7 - i < 256)) {
-					buffer[(y + updatedJ) * MAP_WIDTH + x + 7 - i] = palette[paletteIndex];
+					buffer[(y + updatedJ) * width + x + 7 - i] = palette[paletteIndex];
 				}
 			}
 		}
 	}
 }
 
-/*
-* This is just for debug use, it shouldn't actually be called.
-*/
 void PPU::updateTileData() {
 	uint16_t block0Start = 0x8000;
 	uint16_t block1Start = 0x8800;
@@ -181,9 +175,8 @@ void PPU::updateTileData() {
 }
 
 void PPU::updateTileMaps() {
-	bool lcdc7 = mmu->directRead(0xFF40) & (1 << 7);
-
 	// Early out if LCD is off
+	bool lcdc7 = mmu->directRead(0xFF40) & (1 << 7);
 	if (!lcdc7) {
 		return;
 	}
@@ -211,7 +204,7 @@ void PPU::updateTileMaps() {
 		(bgpData & 0xC0) >> 6
 	};
 
-	// Iterate through the 32x32 tiles for the background and window
+	// Iterate through 32x32 tiles for the background and window
 	for (int i = 0; i < 0x0400; i++) {
 		uint8_t x = i % 32;
 		uint8_t y = i / 32;
@@ -232,11 +225,8 @@ void PPU::updateTileMaps() {
 }
 
 void PPU::updateObjects() {
-	// NOTE: there's a sprite drawn at the top left of the screen, not sure if it's supposed to be there
-
-	bool lcdc7 = mmu->directRead(0xFF40) & (1 << 7);
-
 	// Early out if LCD is off
+	bool lcdc7 = mmu->directRead(0xFF40) & (1 << 7);
 	if (!lcdc7) {
 		return;
 	}
@@ -263,7 +253,7 @@ void PPU::updateObjects() {
 	uint16_t tileStart = 0x8000;
 
 	// Clear objects array of old sprites
-	std::fill(objectsBuffer, objectsBuffer + 256 * 256, 0);
+	std::fill(objectsBuffer, objectsBuffer + MAP_WIDTH * MAP_HEIGHT, 0);
 
 	// Iterate 4 bytes at a time from 0xFE00 to 0xFE9F
 	for (int i = 0; i < 40; i++) {
@@ -289,45 +279,43 @@ void PPU::updateScanline() {
 	// If lcdc5 = 1, window is enabled
 	bool lcdc5 = mmu->directRead(0xFF40) & (1 << 5);
 
-	// With two 32x32 arrays, use the scroll and window position to set the screen buffer
 	uint8_t scx = mmu->directRead(0xFF43);
 	uint8_t scy = mmu->directRead(0xFF42);
 	uint8_t wx = mmu->directRead(0xFF4B);
 	uint8_t wy = mmu->directRead(0xFF4A);
 
-	uint16_t screenStart = scy * 32 + scx;
-
-	// Iterate through every pixel on the screen and set to the corresponding value
-	// of the background buffer
+	// Iterate through every pixel on the current scanline and set to the correct value from the
+	// background, window, and objects buffers.
 	for (int i = 0; i < 160; i++) {
 		uint8_t x = i;
 		uint8_t y = scanline;
 
-		uint16_t screenIndex = y * 160 + x;
+		uint16_t si = y * 160 + x;
 
-		// Get the current position of the tilemap to set in the screen,
+		// Get the current position of the background tilemap to set in the screen,
 		// including wrapping around if it would exceed the bounds of the tilemap.
-		uint16_t bgIndex = (((y + scy) % 256) * 256 + (x + scx) % 256);
-		screenBuffer[screenIndex] = backgroundBuffer[bgIndex];
+		// TODO: figure out at what point constants are less clear than the actual number
+		uint16_t bi = (((y + scy) % 256) * 256 + (x + scx) % 256);
+		screenBuffer[si] = backgroundBuffer[bi];
 
 		// Screen to window tilemap mapping - screen pixel minus wx (or wy), so long as its greater than 0
 		if (lcdc5) {
-			int winIndexY = y - wy;
-			int winIndexX = x - wx + 7;		// wx is window position + 7, see pandocs
-			if (winIndexX >= 0 && winIndexY >= 0) {
-				int winIndex = (winIndexY * 256 + winIndexX);
-				screenBuffer[screenIndex] = windowBuffer[winIndex];
+			int wiy = y - wy;
+			int wix = x - wx + 7;		// wx is window position + 7, see pandocs
+			if (wix >= 0 && wiy >= 0) {
+				int wi = wiy * 256 + wix;
+				screenBuffer[si] = windowBuffer[wi];
 			}
 		}
 
 		// Get objects from the section of the object buffer that overlaps with the screen
 		// Last in order so they have highest priority
-		uint16_t objIndex = ((y + 16) * 256 + (x + 8)) % 65536;
-		uint32_t obj = objectsBuffer[objIndex];
+		uint16_t oi = ((y + 16) * 256 + (x + 8)) % 65536;
+		uint32_t obj = objectsBuffer[oi];
 
 		// TODO: add object priority conditions on a per pixel basis
 		if (obj != 0) {
-			screenBuffer[screenIndex] = obj;
+			screenBuffer[si] = obj;
 		}	
 	}
 }

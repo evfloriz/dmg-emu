@@ -2,6 +2,7 @@
 
 #include <cstdint>
 
+#include "Util.h"
 #include "Cartridge.h"
 
 class MMU;
@@ -55,9 +56,9 @@ private:
 	uint16_t cycle = 0;
 	uint8_t scanline = 0;
 
-	uint32_t* screenBuffer = new uint32_t[160 * 144];
-	uint32_t* tileDataBuffer = new uint32_t[128 * 192];
-	uint32_t* backgroundBuffer = new uint32_t[256 * 256];
-	uint32_t* windowBuffer = new uint32_t[256 * 256];
-	uint32_t* objectsBuffer = new uint32_t[256 * 256];
+	uint32_t* screenBuffer = new uint32_t[DMG_WIDTH * DMG_HEIGHT];
+	uint32_t* tileDataBuffer = new uint32_t[TILE_DATA_WIDTH * TILE_DATA_HEIGHT];
+	uint32_t* backgroundBuffer = new uint32_t[MAP_WIDTH * MAP_HEIGHT];
+	uint32_t* windowBuffer = new uint32_t[MAP_WIDTH * MAP_HEIGHT];
+	uint32_t* objectsBuffer = new uint32_t[MAP_WIDTH * MAP_HEIGHT];
 };
