@@ -2,6 +2,7 @@
 
 #include <cstdint>
 
+#include "Util.h"
 #include "Cartridge.h"
 
 class MMU;
@@ -12,22 +13,44 @@ public:
 	~PPU();
 
 public:
-	void write(uint16_t addr, uint8_t data);
-	uint8_t read(uint16_t addr);
-
 	void clock();
 	void updateLY();
 
-	void updateTileData(uint32_t* tileDataBuffer);
-	void updateTileMap(uint32_t* pixelBuffer);
+	// TODO: Do a pass on function access, I think a lot of these should be private. I think this goes alongside
+	// an update to frameComplete in the aim of keeping the PPU state internal to the PPU.
 
-	uint8_t getSCY();
-	uint8_t getSCX();
+	void updateTileData();
+	void updateTileMaps();
+	void updateScanline();
+	void updateObjects();
 
-	uint32_t* getPixelBuffer();
+	void setTile(
+		uint32_t* buffer,
+		uint16_t width,
+		uint16_t start,
+		uint16_t index,
+		uint8_t x,
+		uint8_t y,
+		uint32_t* bgp);
+
+	void setObject(
+		uint32_t* buffer,
+		uint16_t width,
+		uint16_t start,
+		uint16_t index,
+		uint8_t x,
+		uint8_t y,
+		uint32_t* obp,
+		bool xFlip,
+		bool yFlip);
+
+	uint32_t* getScreenBuffer();
 	uint32_t* getTileDataBuffer();
+	uint32_t* getBackgroundBuffer();
+	uint32_t* getWindowBuffer();
+	uint32_t* getObjectsBuffer();
 
-	bool frame_complete = false;
+	bool frameComplete = false;
 
 private:
 	MMU* mmu = nullptr;
@@ -36,12 +59,9 @@ private:
 	uint16_t cycle = 0;
 	uint8_t scanline = 0;
 
-	bool lcdc3 = false;
-	bool lcdc4 = false;
-	bool lcdc5 = false;
-	bool lcdc6 = false;
-	bool lcdc7 = false;
-
-	uint32_t* pixelBuffer = nullptr;
-	uint32_t* tileDataBuffer = nullptr;
+	uint32_t* screenBuffer = new uint32_t[DMG_WIDTH * DMG_HEIGHT];
+	uint32_t* tileDataBuffer = new uint32_t[TILE_DATA_WIDTH * TILE_DATA_HEIGHT];
+	uint32_t* backgroundBuffer = new uint32_t[MAP_WIDTH * MAP_HEIGHT];
+	uint32_t* windowBuffer = new uint32_t[MAP_WIDTH * MAP_HEIGHT];
+	uint32_t* objectsBuffer = new uint32_t[MAP_WIDTH * MAP_HEIGHT];
 };

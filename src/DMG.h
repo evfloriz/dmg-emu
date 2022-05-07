@@ -11,7 +11,7 @@ public:
 
 	bool init();
 	bool tick();
-	bool tick_frame();
+	bool tickFrame();
 
 public:
 	MMU mmu;
