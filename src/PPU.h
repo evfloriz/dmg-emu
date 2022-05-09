@@ -42,7 +42,8 @@ public:
 		uint8_t y,
 		uint32_t* obp,
 		bool xFlip,
-		bool yFlip);
+		bool yFlip,
+		bool priority);
 
 	uint32_t* getScreenBuffer();
 	uint32_t* getTileDataBuffer();
@@ -55,6 +56,9 @@ public:
 private:
 	MMU* mmu = nullptr;
 	uint32_t palette[4];
+	uint32_t bgp[4];
+	uint32_t obp0[4];
+	uint32_t obp1[4];
 
 	uint16_t cycle = 0;
 	uint8_t scanline = 0;
@@ -64,4 +68,5 @@ private:
 	uint32_t* backgroundBuffer = new uint32_t[MAP_WIDTH * MAP_HEIGHT];
 	uint32_t* windowBuffer = new uint32_t[MAP_WIDTH * MAP_HEIGHT];
 	uint32_t* objectsBuffer = new uint32_t[MAP_WIDTH * MAP_HEIGHT];
+	bool* objectsPriorityBuffer = new bool[MAP_WIDTH * MAP_HEIGHT];
 };

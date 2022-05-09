@@ -20,6 +20,7 @@ PPU::~PPU() {
 	delete[] backgroundBuffer;
 	delete[] windowBuffer;
 	delete[] objectsBuffer;
+	delete[] objectsPriorityBuffer;
 }
 
 void PPU::clock() {
@@ -116,7 +117,8 @@ void PPU::setObject(
 	uint8_t y,
 	uint32_t* obp,
 	bool xFlip,
-	bool yFlip) {
+	bool yFlip,
+	bool priority) {
 
 	for (int j = 0; j < 8; j++) {
 		uint8_t lo = mmu->directRead(start + index * 16 + j * 2);
@@ -141,7 +143,11 @@ void PPU::setObject(
 				// Instead of 256 and 256, I could use x < 168 and y < 160 since that would hid it completely,
 				// I wouldn't need to render it on the object layer.
 				if ((y + updatedJ < 256) && (x + 7 - i < 256)) {
-					buffer[(y + updatedJ) * width + x + 7 - i] = palette[paletteIndex];
+					uint16_t bufferIndex = (y + updatedJ) * width + x + 7 - i;
+					buffer[bufferIndex] = palette[paletteIndex];
+					
+					// Keep track if the pixel at the particular index is part of an object with a priority bit set to true
+					objectsPriorityBuffer[bufferIndex] = priority;
 				}
 			}
 		}
@@ -155,12 +161,10 @@ void PPU::updateTileData() {
 
 	// Update palette information
 	uint32_t bgpData = mmu->directRead(0xFF47);
-	uint32_t bgp[] = {
-		(bgpData & 0x03) >> 0,
-		(bgpData & 0x0C) >> 2,
-		(bgpData & 0x30) >> 4,
-		(bgpData & 0xC0) >> 6
-	};
+	bgp[0] = (bgpData & 0x03) >> 0;
+	bgp[1] = (bgpData & 0x0C) >> 2;
+	bgp[2] = (bgpData & 0x30) >> 4;
+	bgp[3] = (bgpData & 0xC0) >> 6;
 
 	for (int i = 0; i < 0x0080; i++) {
 		uint8_t x = i % 16;
@@ -195,12 +199,10 @@ void PPU::updateTileMaps() {
 
 	// Update palette information
 	uint32_t bgpData = mmu->directRead(0xFF47);
-	uint32_t bgp[] = {
-		(bgpData & 0x03) >> 0,
-		(bgpData & 0x0C) >> 2,
-		(bgpData & 0x30) >> 4,
-		(bgpData & 0xC0) >> 6
-	};
+	bgp[0] = (bgpData & 0x03) >> 0;
+	bgp[1] = (bgpData & 0x0C) >> 2;
+	bgp[2] = (bgpData & 0x30) >> 4;
+	bgp[3] = (bgpData & 0xC0) >> 6;
 
 	// Iterate through 32x32 tiles for the background and window
 	for (int i = 0; i < 0x0400; i++) {
@@ -233,19 +235,15 @@ void PPU::updateObjects() {
 	uint32_t obp0Data = mmu->directRead(0xFF48);
 	uint32_t obp1Data = mmu->directRead(0xFF49);
 
-	uint32_t obp0[] = {
-		0,
-		(obp0Data & 0x0C) >> 2,
-		(obp0Data & 0x30) >> 4,
-		(obp0Data & 0xC0) >> 6
-	};
+	obp0[0] = 0;
+	obp0[1] = (obp0Data & 0x0C) >> 2;
+	obp0[2] = (obp0Data & 0x30) >> 4;
+	obp0[3] = (obp0Data & 0xC0) >> 6;
 
-	uint32_t obp1[] = {
-		0,
-		(obp1Data & 0x0C) >> 2,
-		(obp1Data & 0x30) >> 4,
-		(obp1Data & 0xC0) >> 6
-	};
+	obp1[0] = 0;
+	obp1[1] = (obp1Data & 0x0C) >> 2;
+	obp1[2] = (obp1Data & 0x30) >> 4;
+	obp1[3] = (obp1Data & 0xC0) >> 6;
 
 	uint16_t oamStart = 0xFE00;
 	uint16_t tileStart = 0x8000;
@@ -261,10 +259,11 @@ void PPU::updateObjects() {
 		uint8_t flags = mmu->directRead(oamStart + i * 4 + 3);
 
 		uint32_t* obp = (flags & (1 << 4)) ? obp1 : obp0;
-		uint32_t yFlip = (flags & (1 << 6));
-		uint32_t xFlip = (flags & (1 << 5));
-
-		setObject(objectsBuffer, MAP_WIDTH, tileStart, tileIndex, x, y, obp, xFlip, yFlip);
+		bool yFlip = (flags & (1 << 6));
+		bool xFlip = (flags & (1 << 5));
+		
+		bool priority = (flags & (1 << 7));
+		setObject(objectsBuffer, MAP_WIDTH, tileStart, tileIndex, x, y, obp, xFlip, yFlip, priority);
 	}
 }
 
@@ -310,9 +309,10 @@ void PPU::updateScanline() {
 		// Last in order so they have highest priority
 		uint16_t oi = ((y + 16) * 256 + (x + 8)) % 65536;
 		uint32_t obj = objectsBuffer[oi];
+		bool priority = objectsPriorityBuffer[oi];
 
 		// TODO: add object priority conditions on a per pixel basis
-		if (obj != 0) {
+		if (obj != 0 && (!priority || screenBuffer[si] == palette[bgp[0]])) {
 			screenBuffer[si] = obj;
 		}	
 	}
