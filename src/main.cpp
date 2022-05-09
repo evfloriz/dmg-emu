@@ -131,7 +131,7 @@ public:
 			// Render the result in the pixel buffer (and debug pixel buffer)
 			render();
 
-			// Calculate
+			// Calculate fps
 			uint64_t end = SDL_GetPerformanceCounter();
 			float elapsed = (end - start) / (float)SDL_GetPerformanceFrequency();
 			

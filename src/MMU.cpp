@@ -36,6 +36,10 @@ void MMU::write(uint16_t addr, uint8_t data) {
 			selectedButtons = &buttonsOff;
 		}
 	}
+	else if (addr == 0xFF04) {
+		// If the divider is written to, set it to 0
+		memory[addr] = 0x00;
+	}
 	else if (addr == 0xFF46) {
 		// Early out if data is out of range
 		if (data > 0xDF) {
