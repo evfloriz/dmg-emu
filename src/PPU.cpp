@@ -231,6 +231,9 @@ void PPU::updateObjects() {
 		return;
 	}
 
+	// If lcdc2 = 1, sprites are 8x16 rather than 8x8
+	bool lcdc2 = mmu->directRead(0xFF40) & (1 << 2);
+
 	// Update palette information
 	uint32_t obp0Data = mmu->directRead(0xFF48);
 	uint32_t obp1Data = mmu->directRead(0xFF49);
@@ -264,6 +267,13 @@ void PPU::updateObjects() {
 		
 		bool priority = (flags & (1 << 7));
 		setObject(objectsBuffer, MAP_WIDTH, tileStart, tileIndex, x, y, obp, xFlip, yFlip, priority);
+
+		if (lcdc2) {
+			// Set the tile below x and y to the next tile index
+			// TODO: Watch out for a bug related to the last bit being ignored.
+			// eg if the index is 0x01, the two tiles should be 0x00 and 0x01, not 0x01 and 0x02.
+			setObject(objectsBuffer, MAP_WIDTH, tileStart, tileIndex + 1, x, y + 8, obp, xFlip, yFlip, priority);
+		}
 	}
 }
 
@@ -275,6 +285,13 @@ void PPU::updateScanline() {
 
 	// If lcdc5 = 1, window is enabled
 	bool lcdc5 = mmu->directRead(0xFF40) & (1 << 5);
+
+	// If lcdc1 = 1, objects are enabled
+	bool lcdc1 = mmu->directRead(0xFF40) & (1 << 1);
+
+	// If lcdc0 = 1, background and window are enabled
+	// Otherwise they are white (palette[0])
+	bool lcdc0 = mmu->directRead(0xFF40) & (1 << 0);
 
 	uint8_t scx = mmu->directRead(0xFF43);
 	uint8_t scy = mmu->directRead(0xFF42);
@@ -305,16 +322,23 @@ void PPU::updateScanline() {
 			}
 		}
 
-		// Get objects from the section of the object buffer that overlaps with the screen
-		// Last in order so they have highest priority
-		uint16_t oi = ((y + 16) * 256 + (x + 8)) % 65536;
-		uint32_t obj = objectsBuffer[oi];
-		bool priority = objectsPriorityBuffer[oi];
+		if (!lcdc0) {
+			screenBuffer[si] = palette[0];
+		}
 
-		// TODO: add object priority conditions on a per pixel basis
-		if (obj != 0 && (!priority || screenBuffer[si] == palette[bgp[0]])) {
-			screenBuffer[si] = obj;
-		}	
+		if (lcdc1) {
+			// Get objects from the section of the object buffer that overlaps with the screen
+			// Last in order so they have highest priority
+
+			uint16_t oi = ((y + 16) * 256 + (x + 8)) % 65536;
+			uint32_t obj = objectsBuffer[oi];
+			bool priority = objectsPriorityBuffer[oi];
+
+			// TODO: add object priority conditions on a per pixel basis
+			if (obj != 0 && (!priority || screenBuffer[si] == palette[bgp[0]])) {
+				screenBuffer[si] = obj;
+			}
+		}
 	}
 }
 
