@@ -25,6 +25,8 @@ public:
 	void directWrite(uint16_t addr, uint8_t data);
 	uint8_t directRead(uint16_t addr);
 
+	void setIF(uint8_t bit);
+
 	void insertCartridge(const std::shared_ptr<Cartridge>& cartridge);
 
 	// Set the values of the input

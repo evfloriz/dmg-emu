@@ -40,34 +40,73 @@ void PPU::updateLY() {
 		return;
 	}
 
-	bool incrementScanline = false;
+	// TODO: Figure out timings, when should things be calculated vs incremented? Right now cycles and LY are
+	// incremented in the middle of a clock cycle
+	uint8_t stat = mmu->directRead(0xFF41);
 
-	// Increment scanline every 456 real clock cycles
+	// Determine mode
+	if (ly < 144) {
+		if (cycle < 20) {
+			// Mode 2
+			stat &= 0xFC;
+			stat |= 0x02;
+		}
+		else if (cycle < 73) {
+			// Mode 3 - assuming maximum time for now
+			stat &= 0xFC;
+			stat |= 0x03;
+		}
+		else {
+			// Mode 0
+			stat &= 0xFC;
+			stat |= 0x00;
+		}
+	}
+	else {
+		// Mode 1
+		stat &= 0xFC;
+		stat |= 0x01;
+	}
+	
+	
+	// Increment LY every 456 real clock cycles
 	// Or 114 M-cycles
+	bool incrementLY = false;
 	cycle++;
 	if (cycle > 113) {
 		cycle = 0;
-
-		incrementScanline = true;
+		incrementLY = true;
 	}
 
-	if (incrementScanline) {
+	if (incrementLY) {
+		ly = mmu->directRead(0xFF44);
+		
 		// Draw a line of the screen
-		if (scanline < 144) {
+		if (ly < 144) {
 			updateScanline();
 		}
 
-		scanline = mmu->directRead(0xFF44);
-		scanline++;
+		// Handle LYC state
+		uint8_t lyc = mmu->directRead(0xFF45);
+		if (ly == lyc) {
+			// Set bit 2 of STAT
+			stat |= (1 << 2);
+		}
+		else {
+			// Reset bit 2 of STAT
+			stat &= ~(1 << 2);
+		}
+
+		ly++;
 		
 		// Set VBLANK interrupt flag when LY is 144
-		if (scanline == 144) {
-			mmu->directWrite(0xFF0F, (1 << 0));
+		if (ly == 144) {
+			mmu->setIF(0);
 		}
 
 		// Reset after 154 cycles
-		if (scanline > 153) {
-			scanline = 0x00;
+		if (ly > 153) {
+			ly = 0x00;
 			frameComplete = true;
 
 			// Update the tilemaps at the end of every frame
@@ -76,8 +115,18 @@ void PPU::updateLY() {
 			updateObjects();
 		}
 
-		mmu->directWrite(0xFF44, scanline);
+		mmu->directWrite(0xFF44, ly);
 	}
+
+	// Handle STAT interrupt
+	if ((stat & (1 << 6) && stat & (1 << 2)) ||		// LYC=LY interrupt
+		(stat & (1 << 5) && (stat & 0x03) == 2) ||	// OAM interrupt (mode 2)
+		(stat & (1 << 4) && (stat & 0x03) == 1) ||	// VBlank interrupt
+		(stat & (1 << 3) && (stat & 0x03) == 0)) {	// HBlank interrupt
+		mmu->setIF(1);
+	}
+
+	mmu->directWrite(0xFF41, stat);
 }
 
 void PPU::setTile(
@@ -279,7 +328,7 @@ void PPU::updateObjects() {
 
 void PPU::updateScanline() {
 	// Early out if scanline is greater than 143, shouldn't ever hit this point
-	if (scanline > 143) {
+	if (ly > 143) {
 		return;
 	}
 
@@ -302,7 +351,7 @@ void PPU::updateScanline() {
 	// background, window, and objects buffers.
 	for (int i = 0; i < 160; i++) {
 		uint8_t x = i;
-		uint8_t y = scanline;
+		uint8_t y = ly;
 
 		uint16_t si = y * 160 + x;
 

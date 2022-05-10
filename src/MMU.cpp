@@ -40,6 +40,14 @@ void MMU::write(uint16_t addr, uint8_t data) {
 		// If the divider is written to, set it to 0
 		memory[addr] = 0x00;
 	}
+	else if (addr == 0xFF41) {
+		// LCD STAT
+		// Bottom 3 bits are read only
+		uint8_t readOnlyBits = memory[addr] & 0x07;
+		data &= 0xF8;
+
+		memory[addr] = data | readOnlyBits;
+	}
 	else if (addr == 0xFF46) {
 		// Early out if data is out of range
 		if (data > 0xDF) {
@@ -106,6 +114,19 @@ void MMU::writeDirectionButton(uint8_t pos, uint8_t value) {
 
 void MMU::writeButton(uint8_t* buttons, uint8_t pos, uint8_t value) {
 	// Create mask for the bit at pos, then or with the value at pos
+	uint8_t oldButtons = *buttons;
 	*buttons &= ~(1 << pos);
 	*buttons |= (value << pos);
+
+	// If a bit went from high to low, request a joypad interrupt
+	if (oldButtons > *buttons) {
+		setIF(4);
+	}
+}
+
+void MMU::setIF(uint8_t bit) {
+	uint8_t IF = memory[0xFF0F];
+	IF &= ~(1 << bit);
+	IF |= (1 << bit);
+	memory[0xFF0F] = IF;
 }

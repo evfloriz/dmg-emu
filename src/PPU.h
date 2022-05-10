@@ -61,7 +61,7 @@ private:
 	uint32_t obp1[4];
 
 	uint16_t cycle = 0;
-	uint8_t scanline = 0;
+	uint8_t ly = 0;
 
 	uint32_t* screenBuffer = new uint32_t[DMG_WIDTH * DMG_HEIGHT];
 	uint32_t* tileDataBuffer = new uint32_t[TILE_DATA_WIDTH * TILE_DATA_HEIGHT];
