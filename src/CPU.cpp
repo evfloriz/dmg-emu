@@ -2128,7 +2128,7 @@ uint8_t CPU::timer() {
 			timer_counter++;
 			if (timer_counter == 0) {
 				// Set timer interrupt if overflow occurred
-				mmu->setIF(2);
+				mmu->setBit(0xFF0F, 2, 1);
 			}
 			mmu->directWrite(0xFF05, timer_counter);
 		}

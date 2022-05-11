@@ -55,10 +55,10 @@ public:
 
 private:
 	MMU* mmu = nullptr;
-	uint32_t palette[4];
-	uint32_t bgp[4];
-	uint32_t obp0[4];
-	uint32_t obp1[4];
+	uint32_t palette[4] = {};
+	uint32_t bgp[4] = {};
+	uint32_t obp0[4] = {};
+	uint32_t obp1[4] = {};
 
 	uint16_t cycle = 0;
 	uint8_t ly = 0;

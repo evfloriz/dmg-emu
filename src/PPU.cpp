@@ -101,7 +101,7 @@ void PPU::updateLY() {
 		
 		// Set VBLANK interrupt flag when LY is 144
 		if (ly == 144) {
-			mmu->setIF(0);
+			mmu->setBit(0xFF0F, 0, 1);;
 		}
 
 		// Reset after 154 cycles
@@ -123,7 +123,7 @@ void PPU::updateLY() {
 		(stat & (1 << 5) && (stat & 0x03) == 2) ||	// OAM interrupt (mode 2)
 		(stat & (1 << 4) && (stat & 0x03) == 1) ||	// VBlank interrupt
 		(stat & (1 << 3) && (stat & 0x03) == 0)) {	// HBlank interrupt
-		mmu->setIF(1);
+		mmu->setBit(0xFF0F, 1, 1);
 	}
 
 	mmu->directWrite(0xFF41, stat);
@@ -378,13 +378,13 @@ void PPU::updateScanline() {
 		if (lcdc1) {
 			// Get objects from the section of the object buffer that overlaps with the screen
 			// Last in order so they have highest priority
-
 			uint16_t oi = ((y + 16) * 256 + (x + 8)) % 65536;
 			uint32_t obj = objectsBuffer[oi];
-			bool priority = objectsPriorityBuffer[oi];
-
-			// TODO: add object priority conditions on a per pixel basis
-			if (obj != 0 && (!priority || screenBuffer[si] == palette[bgp[0]])) {
+			
+			// Set the pixel to the object pixel if it is not 0 (transparent), and there is either no
+			// priority bit in that location, or if there is a priority bit, the current value of the screen
+			// (from the background and window) is equal to color 0.
+			if (obj != 0 && (!objectsPriorityBuffer[oi] || screenBuffer[si] == palette[bgp[0]])) {
 				screenBuffer[si] = obj;
 			}
 		}

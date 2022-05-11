@@ -120,13 +120,13 @@ void MMU::writeButton(uint8_t* buttons, uint8_t pos, uint8_t value) {
 
 	// If a bit went from high to low, request a joypad interrupt
 	if (oldButtons > *buttons) {
-		setIF(4);
+		setBit(0xFF0F, 4, 1);
 	}
 }
 
-void MMU::setIF(uint8_t bit) {
-	uint8_t IF = memory[0xFF0F];
-	IF &= ~(1 << bit);
-	IF |= (1 << bit);
-	memory[0xFF0F] = IF;
+void MMU::setBit(uint16_t addr, uint8_t pos, uint8_t value) {
+	uint8_t data = memory[addr];
+	data &= ~(1 << pos);
+	data |= (value << pos);
+	memory[addr] = data;
 }

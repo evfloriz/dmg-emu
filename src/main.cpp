@@ -16,6 +16,21 @@ class Demo {
 
 public:
 	Demo() {
+		// Initialize rects for various rendering textures
+		srcScreenRect = { 0, 0, DMG_WIDTH, DMG_HEIGHT };
+		destScreenRect = { 0, 0, DMG_WIDTH * SCREEN_SCALE, DMG_HEIGHT * SCREEN_SCALE };
+
+		srcTileDataRect = { 0, 0, TILE_DATA_WIDTH, TILE_DATA_HEIGHT };
+		destTileDataRect = { SCREEN_WIDTH - (TILE_DATA_WIDTH * TILE_SCALE), 0, TILE_DATA_WIDTH * TILE_SCALE, TILE_DATA_HEIGHT * TILE_SCALE };
+
+		srcBackgroundRect = { 0, 0, MAP_WIDTH, MAP_HEIGHT };
+		destBackgroundRect = { 0, SCREEN_HEIGHT - MAP_HEIGHT, MAP_WIDTH, MAP_HEIGHT };
+
+		srcWindowRect = { 0, 0, MAP_WIDTH, MAP_HEIGHT };
+		destWindowRect = { MAP_WIDTH, SCREEN_HEIGHT - MAP_HEIGHT, MAP_WIDTH, MAP_HEIGHT };
+
+		srcObjectsRect = { 0, 0, MAP_WIDTH, MAP_HEIGHT };
+		destObjectsRect = { MAP_WIDTH * 2, SCREEN_HEIGHT - MAP_HEIGHT, MAP_WIDTH, MAP_HEIGHT };
 	}
 
 	int init() {
@@ -75,22 +90,6 @@ public:
 			return -1;
 		}
 
-		// Initialize rects for various rendering textures
-		srcScreenRect = { 0, 0, DMG_WIDTH, DMG_HEIGHT };
-		destScreenRect = { 0, 0, DMG_WIDTH * SCREEN_SCALE, DMG_HEIGHT * SCREEN_SCALE };
-
-		srcTileDataRect = { 0, 0, TILE_DATA_WIDTH, TILE_DATA_HEIGHT };
-		destTileDataRect = { SCREEN_WIDTH - (TILE_DATA_WIDTH * TILE_SCALE), 0, TILE_DATA_WIDTH * TILE_SCALE, TILE_DATA_HEIGHT * TILE_SCALE};
-		
-		srcBackgroundRect = { 0, 0, MAP_WIDTH, MAP_HEIGHT };
-		destBackgroundRect = { 0, SCREEN_HEIGHT - MAP_HEIGHT, MAP_WIDTH, MAP_HEIGHT };
-		
-		srcWindowRect = { 0, 0, MAP_WIDTH, MAP_HEIGHT };
-		destWindowRect = { MAP_WIDTH, SCREEN_HEIGHT - MAP_HEIGHT, MAP_WIDTH, MAP_HEIGHT };
-
-		srcObjectsRect = { 0, 0, MAP_WIDTH, MAP_HEIGHT };
-		destObjectsRect = { MAP_WIDTH * 2, SCREEN_HEIGHT - MAP_HEIGHT, MAP_WIDTH, MAP_HEIGHT };
-
 		// Start dmg
 		dmg.init();
 
@@ -138,7 +137,7 @@ public:
 			// Delay until 16.666f ms have past (for 60 fps)
 			float elapsedMS = elapsed * 1000.0f;
 			if (elapsedMS < 16.666f) {
-				SDL_Delay(16.666f - elapsedMS);
+				SDL_Delay(static_cast<uint32_t>(16.666f - elapsedMS));
 			}
 
 			uint64_t capped_end = SDL_GetPerformanceCounter();
