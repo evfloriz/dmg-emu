@@ -49,13 +49,13 @@ bool DMG::init() {
 	}
 
 	// Reset LY
-	mmu.write(0xFF44, 0x00);
+	mmu.directWrite(0xFF44, 0x00);
 
 	// Reset divider and timer registers
-	mmu.write(0xFF04, 0xAB);
-	mmu.write(0xFF05, 0x00);
-	mmu.write(0xFF06, 0x00);
-	mmu.write(0xFF07, 0xF8);
+	mmu.directWrite(0xFF04, 0xAB);
+	mmu.directWrite(0xFF05, 0x00);
+	mmu.directWrite(0xFF06, 0x00);
+	mmu.directWrite(0xFF07, 0xF8);
 
 	return true;
 }

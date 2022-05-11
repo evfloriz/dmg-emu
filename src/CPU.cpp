@@ -2099,7 +2099,8 @@ uint8_t CPU::timer() {
 		// Increment divider every 64 cycles
 		// Divider will automatically overflow
 		uint8_t divider = mmu->directRead(0xFF04);
-		mmu->directWrite(0xFF04, divider++);
+		divider++;
+		mmu->directWrite(0xFF04, divider);
 	}
 
 	// Timer
@@ -2127,7 +2128,7 @@ uint8_t CPU::timer() {
 			timer_counter++;
 			if (timer_counter == 0) {
 				// Set timer interrupt if overflow occurred
-				mmu->directWrite(0xFF0F, (1 << 2));
+				mmu->setBit(0xFF0F, 2, 1);
 			}
 			mmu->directWrite(0xFF05, timer_counter);
 		}

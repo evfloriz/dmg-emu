@@ -20,6 +20,7 @@ PPU::~PPU() {
 	delete[] backgroundBuffer;
 	delete[] windowBuffer;
 	delete[] objectsBuffer;
+	delete[] objectsPriorityBuffer;
 }
 
 void PPU::clock() {
@@ -39,34 +40,73 @@ void PPU::updateLY() {
 		return;
 	}
 
-	bool incrementScanline = false;
+	// TODO: Figure out timings, when should things be calculated vs incremented? Right now cycles and LY are
+	// incremented in the middle of a clock cycle
+	uint8_t stat = mmu->directRead(0xFF41);
 
-	// Increment scanline every 456 real clock cycles
+	// Determine mode
+	if (ly < 144) {
+		if (cycle < 20) {
+			// Mode 2
+			stat &= 0xFC;
+			stat |= 0x02;
+		}
+		else if (cycle < 73) {
+			// Mode 3 - assuming maximum time for now
+			stat &= 0xFC;
+			stat |= 0x03;
+		}
+		else {
+			// Mode 0
+			stat &= 0xFC;
+			stat |= 0x00;
+		}
+	}
+	else {
+		// Mode 1
+		stat &= 0xFC;
+		stat |= 0x01;
+	}
+	
+	
+	// Increment LY every 456 real clock cycles
 	// Or 114 M-cycles
+	bool incrementLY = false;
 	cycle++;
 	if (cycle > 113) {
 		cycle = 0;
-
-		incrementScanline = true;
+		incrementLY = true;
 	}
 
-	if (incrementScanline) {
+	if (incrementLY) {
+		ly = mmu->directRead(0xFF44);
+		
 		// Draw a line of the screen
-		if (scanline < 144) {
+		if (ly < 144) {
 			updateScanline();
 		}
 
-		scanline = mmu->directRead(0xFF44);
-		scanline++;
+		// Handle LYC state
+		uint8_t lyc = mmu->directRead(0xFF45);
+		if (ly == lyc) {
+			// Set bit 2 of STAT
+			stat |= (1 << 2);
+		}
+		else {
+			// Reset bit 2 of STAT
+			stat &= ~(1 << 2);
+		}
+
+		ly++;
 		
 		// Set VBLANK interrupt flag when LY is 144
-		if (scanline == 144) {
-			mmu->directWrite(0xFF0F, (1 << 0));
+		if (ly == 144) {
+			mmu->setBit(0xFF0F, 0, 1);;
 		}
 
 		// Reset after 154 cycles
-		if (scanline > 153) {
-			scanline = 0x00;
+		if (ly > 153) {
+			ly = 0x00;
 			frameComplete = true;
 
 			// Update the tilemaps at the end of every frame
@@ -75,8 +115,18 @@ void PPU::updateLY() {
 			updateObjects();
 		}
 
-		mmu->directWrite(0xFF44, scanline);
+		mmu->directWrite(0xFF44, ly);
 	}
+
+	// Handle STAT interrupt
+	if ((stat & (1 << 6) && stat & (1 << 2)) ||		// LYC=LY interrupt
+		(stat & (1 << 5) && (stat & 0x03) == 2) ||	// OAM interrupt (mode 2)
+		(stat & (1 << 4) && (stat & 0x03) == 1) ||	// VBlank interrupt
+		(stat & (1 << 3) && (stat & 0x03) == 0)) {	// HBlank interrupt
+		mmu->setBit(0xFF0F, 1, 1);
+	}
+
+	mmu->directWrite(0xFF41, stat);
 }
 
 void PPU::setTile(
@@ -116,7 +166,8 @@ void PPU::setObject(
 	uint8_t y,
 	uint32_t* obp,
 	bool xFlip,
-	bool yFlip) {
+	bool yFlip,
+	bool priority) {
 
 	for (int j = 0; j < 8; j++) {
 		uint8_t lo = mmu->directRead(start + index * 16 + j * 2);
@@ -141,7 +192,11 @@ void PPU::setObject(
 				// Instead of 256 and 256, I could use x < 168 and y < 160 since that would hid it completely,
 				// I wouldn't need to render it on the object layer.
 				if ((y + updatedJ < 256) && (x + 7 - i < 256)) {
-					buffer[(y + updatedJ) * width + x + 7 - i] = palette[paletteIndex];
+					uint16_t bufferIndex = (y + updatedJ) * width + x + 7 - i;
+					buffer[bufferIndex] = palette[paletteIndex];
+					
+					// Keep track if the pixel at the particular index is part of an object with a priority bit set to true
+					objectsPriorityBuffer[bufferIndex] = priority;
 				}
 			}
 		}
@@ -155,12 +210,10 @@ void PPU::updateTileData() {
 
 	// Update palette information
 	uint32_t bgpData = mmu->directRead(0xFF47);
-	uint32_t bgp[] = {
-		(bgpData & 0x03) >> 0,
-		(bgpData & 0x0C) >> 2,
-		(bgpData & 0x30) >> 4,
-		(bgpData & 0xC0) >> 6
-	};
+	bgp[0] = (bgpData & 0x03) >> 0;
+	bgp[1] = (bgpData & 0x0C) >> 2;
+	bgp[2] = (bgpData & 0x30) >> 4;
+	bgp[3] = (bgpData & 0xC0) >> 6;
 
 	for (int i = 0; i < 0x0080; i++) {
 		uint8_t x = i % 16;
@@ -195,12 +248,10 @@ void PPU::updateTileMaps() {
 
 	// Update palette information
 	uint32_t bgpData = mmu->directRead(0xFF47);
-	uint32_t bgp[] = {
-		(bgpData & 0x03) >> 0,
-		(bgpData & 0x0C) >> 2,
-		(bgpData & 0x30) >> 4,
-		(bgpData & 0xC0) >> 6
-	};
+	bgp[0] = (bgpData & 0x03) >> 0;
+	bgp[1] = (bgpData & 0x0C) >> 2;
+	bgp[2] = (bgpData & 0x30) >> 4;
+	bgp[3] = (bgpData & 0xC0) >> 6;
 
 	// Iterate through 32x32 tiles for the background and window
 	for (int i = 0; i < 0x0400; i++) {
@@ -229,23 +280,22 @@ void PPU::updateObjects() {
 		return;
 	}
 
+	// If lcdc2 = 1, sprites are 8x16 rather than 8x8
+	bool lcdc2 = mmu->directRead(0xFF40) & (1 << 2);
+
 	// Update palette information
 	uint32_t obp0Data = mmu->directRead(0xFF48);
 	uint32_t obp1Data = mmu->directRead(0xFF49);
 
-	uint32_t obp0[] = {
-		0,
-		(obp0Data & 0x0C) >> 2,
-		(obp0Data & 0x30) >> 4,
-		(obp0Data & 0xC0) >> 6
-	};
+	obp0[0] = 0;
+	obp0[1] = (obp0Data & 0x0C) >> 2;
+	obp0[2] = (obp0Data & 0x30) >> 4;
+	obp0[3] = (obp0Data & 0xC0) >> 6;
 
-	uint32_t obp1[] = {
-		0,
-		(obp1Data & 0x0C) >> 2,
-		(obp1Data & 0x30) >> 4,
-		(obp1Data & 0xC0) >> 6
-	};
+	obp1[0] = 0;
+	obp1[1] = (obp1Data & 0x0C) >> 2;
+	obp1[2] = (obp1Data & 0x30) >> 4;
+	obp1[3] = (obp1Data & 0xC0) >> 6;
 
 	uint16_t oamStart = 0xFE00;
 	uint16_t tileStart = 0x8000;
@@ -261,21 +311,36 @@ void PPU::updateObjects() {
 		uint8_t flags = mmu->directRead(oamStart + i * 4 + 3);
 
 		uint32_t* obp = (flags & (1 << 4)) ? obp1 : obp0;
-		uint32_t yFlip = (flags & (1 << 6));
-		uint32_t xFlip = (flags & (1 << 5));
+		bool yFlip = (flags & (1 << 6));
+		bool xFlip = (flags & (1 << 5));
+		
+		bool priority = (flags & (1 << 7));
+		setObject(objectsBuffer, MAP_WIDTH, tileStart, tileIndex, x, y, obp, xFlip, yFlip, priority);
 
-		setObject(objectsBuffer, MAP_WIDTH, tileStart, tileIndex, x, y, obp, xFlip, yFlip);
+		if (lcdc2) {
+			// Set the tile below x and y to the next tile index
+			// TODO: Watch out for a bug related to the last bit being ignored.
+			// eg if the index is 0x01, the two tiles should be 0x00 and 0x01, not 0x01 and 0x02.
+			setObject(objectsBuffer, MAP_WIDTH, tileStart, tileIndex + 1, x, y + 8, obp, xFlip, yFlip, priority);
+		}
 	}
 }
 
 void PPU::updateScanline() {
 	// Early out if scanline is greater than 143, shouldn't ever hit this point
-	if (scanline > 143) {
+	if (ly > 143) {
 		return;
 	}
 
 	// If lcdc5 = 1, window is enabled
 	bool lcdc5 = mmu->directRead(0xFF40) & (1 << 5);
+
+	// If lcdc1 = 1, objects are enabled
+	bool lcdc1 = mmu->directRead(0xFF40) & (1 << 1);
+
+	// If lcdc0 = 1, background and window are enabled
+	// Otherwise they are white (palette[0])
+	bool lcdc0 = mmu->directRead(0xFF40) & (1 << 0);
 
 	uint8_t scx = mmu->directRead(0xFF43);
 	uint8_t scy = mmu->directRead(0xFF42);
@@ -286,7 +351,7 @@ void PPU::updateScanline() {
 	// background, window, and objects buffers.
 	for (int i = 0; i < 160; i++) {
 		uint8_t x = i;
-		uint8_t y = scanline;
+		uint8_t y = ly;
 
 		uint16_t si = y * 160 + x;
 
@@ -306,15 +371,23 @@ void PPU::updateScanline() {
 			}
 		}
 
-		// Get objects from the section of the object buffer that overlaps with the screen
-		// Last in order so they have highest priority
-		uint16_t oi = ((y + 16) * 256 + (x + 8)) % 65536;
-		uint32_t obj = objectsBuffer[oi];
+		if (!lcdc0) {
+			screenBuffer[si] = palette[0];
+		}
 
-		// TODO: add object priority conditions on a per pixel basis
-		if (obj != 0) {
-			screenBuffer[si] = obj;
-		}	
+		if (lcdc1) {
+			// Get objects from the section of the object buffer that overlaps with the screen
+			// Last in order so they have highest priority
+			uint16_t oi = ((y + 16) * 256 + (x + 8)) % 65536;
+			uint32_t obj = objectsBuffer[oi];
+			
+			// Set the pixel to the object pixel if it is not 0 (transparent), and there is either no
+			// priority bit in that location, or if there is a priority bit, the current value of the screen
+			// (from the background and window) is equal to color 0.
+			if (obj != 0 && (!objectsPriorityBuffer[oi] || screenBuffer[si] == palette[bgp[0]])) {
+				screenBuffer[si] = obj;
+			}
+		}
 	}
 }
 
