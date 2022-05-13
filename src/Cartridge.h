@@ -28,7 +28,5 @@ private:
 	uint8_t romBanks = 2;
 	uint8_t ramBanks = 0;
 
-	//uint8_t header[3] = {};
-
 	std::shared_ptr<MBC> mbc;
 };

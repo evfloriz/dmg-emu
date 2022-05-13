@@ -16,7 +16,6 @@ protected:
 	bool ramEnable = 0;
 	uint8_t romBankNumber = 1;		// This defaults to 1, since 0 is treated as 1 for MBC1
 	uint8_t ramBankNumber = 0;
-	uint8_t upperRomBankNumber = 0;
 	uint8_t modeSelect = 0;
 
 	const uint32_t ROM_BANK_SIZE = 16 * 1024;

@@ -11,20 +11,19 @@ MMU::~MMU() {
 
 void MMU::write(uint16_t addr, uint8_t data) {
 	if (addr <= 0x7FFF) {
-		// cartridge, invalid to write to.
-		// Passing into cartridge read will change the state of the mbc chip if there is one
+		// Change the state of mbc chip if there is one
 		cart->setRegister(addr, data);
 	}
 	else if (addr >= 0xA000 && addr <= 0xBFFF) {
-		// external ram
+		// External ram
 		cart->writeRam(addr, data);
 	}
 	else if (addr >= 0xE000 && addr <= 0xFDFF) {
-		// echo ram, prohibited
+		// Echo ram, prohibited
 		return;
 	}
 	else if (addr >= 0xFEA0 && addr <= 0xFEFF) {
-		// unusable
+		// Unusable
 		return;
 	}
 	else if (addr == 0xFF00) {
@@ -74,19 +73,19 @@ void MMU::write(uint16_t addr, uint8_t data) {
 
 uint8_t MMU::read(uint16_t addr) {	
 	if (addr <= 0x7FFF) {
-		// cartridge, figures out proper mapping
+		// Cartridge
 		return cart->readRom(addr);
 	}
 	else if (addr >= 0xA000 && addr <= 0xBFFF) {
-		// external ram
+		// External ram
 		return cart->readRam(addr);
 	}
 	else if (addr >= 0xE000 && addr <= 0xFDFF) {
-		// echo ram, prohibited
+		// Echo ram, prohibited
 		return 0xFF;
 	}
 	else if (addr >= 0xFEA0 && addr <= 0xFEFF) {
-		// unusable
+		// Unusable
 		return 0xFF;
 	}
 	else if (addr == 0xFF00) {

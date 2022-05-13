@@ -1,11 +1,11 @@
 #include "MBC1.h"
 
 uint32_t MBC1::mapRomAddr(uint16_t addr) {
-	// Return the mapped address to read from given the current state of the MBC
 	if (addr <= 0x3FFF) {
 		return addr;
 	}
 	else if (addr <= 0x7FFF) {
+		// Use the upper rom bank number bits if in rom mode
 		uint8_t newRomBankNumber = romBankNumber;
 		if (modeSelect == 0x00) {
 			newRomBankNumber = (upperRomBankNumber << 5) | romBankNumber;
@@ -13,16 +13,16 @@ uint32_t MBC1::mapRomAddr(uint16_t addr) {
 		return newRomBankNumber * ROM_BANK_SIZE + (addr - 0x4000);
 	}
 	else {
-		// This is an error, shouldn't get here
+		// Error
 		return 0xFFFFFFFF;
 	}
 }
 
 uint32_t MBC1::mapRamAddr(uint16_t addr) {
-	// Return the mapped address to read from given the current state of the MBC
+	// TODO: Refactor logic
 	if (addr >= 0xA000 && addr <= 0xBFFF) {
-		// Return address of ram to use in the cartridge's ram vector
 		if (ramEnable) {
+			// Use the ram bank number bits if in ram mode
 			uint8_t newRamBankNumber = 0;
 			if (modeSelect == 0x01) {
 				newRamBankNumber = ramBankNumber;
@@ -34,13 +34,12 @@ uint32_t MBC1::mapRamAddr(uint16_t addr) {
 		}
 	}
 	else {
-		// This is an error, shouldn't get here
+		// Error
 		return 0xFFFFFFFF;
 	}
 }
 
 void MBC1::setRegister(uint16_t addr, uint8_t data) {
-	// Modify the MBC state
 	if (addr <= 0x1FFF) {
 		// Ram enable
 		data &= 0x0A;
@@ -55,6 +54,7 @@ void MBC1::setRegister(uint16_t addr, uint8_t data) {
 		romBankNumber = data;
 	}
 	else if (addr <= 0x5FFF) {
+		// Upper rom number bits or ram number bits, depending on mode
 		data &= 0x03;
 		if (modeSelect == 0x01) {
 			ramBankNumber = data;
@@ -65,8 +65,6 @@ void MBC1::setRegister(uint16_t addr, uint8_t data) {
 	}
 	else if (addr <= 0x7FFF) {
 		data &= 0x01;
-
-		// Calling modeSelect == 0x01 to mean ram bank bits and 0x00 to mean upper rom bank bits
 		modeSelect = data;
 	}
 }

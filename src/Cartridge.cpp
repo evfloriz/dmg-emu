@@ -18,10 +18,6 @@ Cartridge::Cartridge(const std::string& fileName) {
 		ifs.seekg(0x147, ifs.beg);
 		ifs.read((char*)&header, 3);
 
-		printf("0x%02x \n", header.mbcType);
-		printf("0x%02x \n", header.romSize);
-		printf("0x%02x \n", header.ramSize);
-
 		// Resize rom to the correct size
 		romBanks = 2 << header.romSize;
 		romSize = (16 * 1024) * romBanks;
@@ -57,6 +53,9 @@ Cartridge::Cartridge(const std::string& fileName) {
 		else if (header.mbcType >= 0x0F && header.mbcType <= 0x13) {
 			mbc = std::make_shared<MBC3>();
 		}
+		else {
+			printf("MBC not implemented");
+		}
 	}
 	else {
 		printf("Error loading rom");
@@ -89,7 +88,6 @@ void Cartridge::writeRam(uint16_t addr, uint8_t data) {
 		return;
 	}
 
-	// Only external ram is writable, and only if ram is enabled
 	uint32_t mappedAddr = mbc->mapRamAddr(addr);
 	if (mappedAddr == 0xFFFFFFFF) {
 		return;
