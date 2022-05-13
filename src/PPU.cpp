@@ -304,7 +304,9 @@ void PPU::updateObjects() {
 	std::fill(objectsBuffer, objectsBuffer + MAP_WIDTH * MAP_HEIGHT, 0);
 
 	// Iterate 4 bytes at a time from 0xFE00 to 0xFE9F
-	for (int i = 0; i < 40; i++) {
+	// Go in reverse order so earlier oam entries overwrite later ones
+	// This will need to change if I implement more accurate sprite drawing
+	for (int i = 40; i > -1; i--) {
 		uint8_t y = mmu->directRead(oamStart + i * 4);
 		uint8_t x = mmu->directRead(oamStart + i * 4 + 1);
 		uint8_t tileIndex = mmu->directRead(oamStart + i * 4 + 2);

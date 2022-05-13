@@ -31,9 +31,9 @@ bool DMG::init() {
 	std::string romName = "test-roms/" + test_roms[test_num];
 
 	//romName = "roms/tetris.gb";
-	//romName = "roms/tennis.gb";
+	romName = "roms/tennis.gb";
 	//romName = "roms/super-mario-land.gb";
-	romName = "roms/pokemon-red.gb";
+	//romName = "roms/pokemon-red.gb";
 	//romName = "roms/loz-la.gb";
 
 	// Create cartridge
