@@ -19,6 +19,9 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\MBC.cpp" />
+    <ClCompile Include="src\MBC0.cpp" />
+    <ClCompile Include="src\MBC1.cpp" />
     <ClCompile Include="src\DMG.cpp" />
     <ClCompile Include="src\Cartridge.cpp" />
     <ClCompile Include="src\PPU.cpp" />
@@ -27,6 +30,9 @@
     <ClCompile Include="src\main.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\MBC.h" />
+    <ClInclude Include="src\MBC0.h" />
+    <ClInclude Include="src\MBC1.h" />
     <ClInclude Include="src\DMG.h" />
     <ClInclude Include="src\Cartridge.h" />
     <ClInclude Include="src\PPU.h" />
