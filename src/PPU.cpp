@@ -181,9 +181,9 @@ void PPU::setObject(
 			uint8_t updatedShift = xFlip ? (7 - i) : i;
 
 			// Update palette based on selected object palette
-			uint32_t paletteIndex = obp[((hi >> updatedShift) << 1 & 0x02) | ((lo >> updatedShift) & 0x01)];
+			uint32_t objectPaletteIndex = ((hi >> updatedShift) << 1 & 0x02) | ((lo >> updatedShift) & 0x01);
 
-			if (paletteIndex != 0) {
+			if (objectPaletteIndex != 0) {
 				// TODO: rework this to be more accurate to the Game Boy's actual operation.
 				// Check against out of bounds updates.
 				// More accurately, the ppu should search for sprites whose y collides with the current scanline,
@@ -193,7 +193,7 @@ void PPU::setObject(
 				// I wouldn't need to render it on the object layer.
 				if ((y + updatedJ < 256) && (x + 7 - i < 256)) {
 					uint16_t bufferIndex = (y + updatedJ) * width + x + 7 - i;
-					buffer[bufferIndex] = palette[paletteIndex];
+					buffer[bufferIndex] = palette[obp[objectPaletteIndex]];
 					
 					// Keep track if the pixel at the particular index is part of an object with a priority bit set to true
 					objectsPriorityBuffer[bufferIndex] = priority;
