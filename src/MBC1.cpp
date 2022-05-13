@@ -19,7 +19,7 @@ uint32_t MBC1::mapRomAddr(uint16_t addr) {
 }
 
 uint32_t MBC1::mapRamAddr(uint16_t addr) {
-	// TODO: Refactor logic
+	// TODO: Do another pass on the logic here
 	if (addr >= 0xA000 && addr <= 0xBFFF) {
 		if (ramEnable) {
 			// Use the ram bank number bits if in ram mode

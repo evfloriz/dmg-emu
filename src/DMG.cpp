@@ -34,7 +34,7 @@ bool DMG::init() {
 
 	std::cout << "Beginning execution of " << romName << std::endl;
 
-	// TODO: Straighten out printing and logging
+	// TODO: Clean up printing and logging
 	cpu.print_toggle = false;
 	cpu.log_toggle = false;
 	cpu.log_file = "log/l" + std::to_string(testRomNum) + ".txt";
