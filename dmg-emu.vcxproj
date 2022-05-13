@@ -19,7 +19,6 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\MBC.cpp" />
     <ClCompile Include="src\MBC0.cpp" />
     <ClCompile Include="src\MBC1.cpp" />
     <ClCompile Include="src\DMG.cpp" />

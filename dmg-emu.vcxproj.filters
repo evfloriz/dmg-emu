@@ -33,9 +33,6 @@
     <ClCompile Include="src\DMG.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\MBC.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="src\MBC1.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
