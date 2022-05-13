@@ -51,10 +51,10 @@ Cartridge::Cartridge(const std::string& fileName) {
 		if (header.mbcType == 0x00) {
 			mbc = std::make_shared<MBC0>();
 		}
-		else if (header.mbcType >= 0x01 || header.mbcType <= 0x05) {
+		else if (header.mbcType >= 0x01 && header.mbcType <= 0x05) {
 			mbc = std::make_shared<MBC1>();
 		}
-		else if (header.mbcType >= 0x0F || header.mbcType <= 0x13) {
+		else if (header.mbcType >= 0x0F && header.mbcType <= 0x13) {
 			mbc = std::make_shared<MBC3>();
 		}
 	}

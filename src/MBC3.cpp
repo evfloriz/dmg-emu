@@ -19,7 +19,12 @@ uint32_t MBC3::mapRamAddr(uint16_t addr) {
 	if (addr >= 0xA000 && addr <= 0xBFFF) {
 		// Return address of ram to use in the cartridge's ram vector
 		if (ramEnable) {
-			return ramBankNumber * RAM_BANK_SIZE + (addr - 0xA000);
+			if (modeSelect == 0x01) {
+				// RTC
+			}
+			else {
+				return ramBankNumber * RAM_BANK_SIZE + (addr - 0xA000);
+			}
 		}
 		else {
 			return 0xFFFFFFFF;
@@ -51,9 +56,11 @@ void MBC3::setRegister(uint16_t addr, uint8_t data) {
 		// ram bank number
 		if (data <= 0x03) {
 			ramBankNumber = data;
+			modeSelect = 0x00;
 		}
 		else if (data >= 0x08 && data <= 0x0C) {
-			// RTC related
+			// Use modeSelect to choose ram vs rtc
+			modeSelect = 0x01;
 		}
 	}
 	else if (addr <= 0x7FFF) {

@@ -6,7 +6,11 @@ uint32_t MBC1::mapRomAddr(uint16_t addr) {
 		return addr;
 	}
 	else if (addr <= 0x7FFF) {
-		return romBankNumber * ROM_BANK_SIZE + (addr - 0x4000);
+		uint8_t newRomBankNumber = romBankNumber;
+		if (modeSelect == 0x00) {
+			newRomBankNumber = (upperRomBankNumber << 5) | romBankNumber;
+		}
+		return newRomBankNumber * ROM_BANK_SIZE + (addr - 0x4000);
 	}
 	else {
 		// This is an error, shouldn't get here
@@ -19,7 +23,11 @@ uint32_t MBC1::mapRamAddr(uint16_t addr) {
 	if (addr >= 0xA000 && addr <= 0xBFFF) {
 		// Return address of ram to use in the cartridge's ram vector
 		if (ramEnable) {
-			return ramBankNumber * RAM_BANK_SIZE + (addr - 0xA000);
+			uint8_t newRamBankNumber = 0;
+			if (modeSelect == 0x01) {
+				newRamBankNumber = ramBankNumber;
+			}
+			return newRamBankNumber * RAM_BANK_SIZE + (addr - 0xA000);
 		}
 		else {
 			return 0xFFFFFFFF;
@@ -57,6 +65,8 @@ void MBC1::setRegister(uint16_t addr, uint8_t data) {
 	}
 	else if (addr <= 0x7FFF) {
 		data &= 0x01;
+
+		// Calling modeSelect == 0x01 to mean ram bank bits and 0x00 to mean upper rom bank bits
 		modeSelect = data;
 	}
 }
