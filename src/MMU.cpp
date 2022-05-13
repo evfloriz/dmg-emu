@@ -17,7 +17,7 @@ void MMU::write(uint16_t addr, uint8_t data) {
 	}
 	else if (addr >= 0xA000 && addr <= 0xBFFF) {
 		// external ram
-		cart->write(addr, data);
+		cart->writeRam(addr, data);
 	}
 	else if (addr >= 0xE000 && addr <= 0xFDFF) {
 		// echo ram, prohibited
@@ -75,11 +75,11 @@ void MMU::write(uint16_t addr, uint8_t data) {
 uint8_t MMU::read(uint16_t addr) {	
 	if (addr <= 0x7FFF) {
 		// cartridge, figures out proper mapping
-		return cart->read(addr);
+		return cart->readRom(addr);
 	}
 	else if (addr >= 0xA000 && addr <= 0xBFFF) {
 		// external ram
-		return cart->read(addr);
+		return cart->readRam(addr);
 	}
 	else if (addr >= 0xE000 && addr <= 0xFDFF) {
 		// echo ram, prohibited

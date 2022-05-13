@@ -5,6 +5,7 @@
 
 #include "MBC0.h"
 #include "MBC1.h"
+#include "MBC3.h"
 
 class Cartridge {
 public:
@@ -12,8 +13,9 @@ public:
 	~Cartridge();
 
 public:
-	uint8_t read(uint16_t addr);
-	void write(uint16_t addr, uint8_t data);
+	uint8_t readRom(uint16_t addr);
+	uint8_t readRam(uint16_t addr);
+	void writeRam(uint16_t addr, uint8_t data);
 	void setRegister(uint16_t addr, uint8_t data);
 
 private:

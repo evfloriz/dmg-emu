@@ -32,8 +32,9 @@ bool DMG::init() {
 
 	//romName = "roms/tetris.gb";
 	//romName = "roms/tennis.gb";
-	romName = "roms/super-mario-land.gb";
-	//romName = "roms/pokemon-red.gb";
+	//romName = "roms/super-mario-land.gb";
+	romName = "roms/pokemon-red.gb";
+	//romName = "roms/loz-la.gb";
 
 	// Create cartridge
 	cart = std::make_shared<Cartridge>(romName);

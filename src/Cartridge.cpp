@@ -51,8 +51,11 @@ Cartridge::Cartridge(const std::string& fileName) {
 		if (header.mbcType == 0x00) {
 			mbc = std::make_shared<MBC0>();
 		}
-		else if (header.mbcType == 0x01) {
+		else if (header.mbcType >= 0x01 || header.mbcType <= 0x05) {
 			mbc = std::make_shared<MBC1>();
+		}
+		else if (header.mbcType >= 0x0F || header.mbcType <= 0x13) {
+			mbc = std::make_shared<MBC3>();
 		}
 	}
 	else {
@@ -63,8 +66,8 @@ Cartridge::Cartridge(const std::string& fileName) {
 Cartridge::~Cartridge() {
 }
 
-uint8_t Cartridge::read(uint16_t addr) {
-	uint32_t mappedAddr = mbc->mapAddr(addr);
+uint8_t Cartridge::readRom(uint16_t addr) {
+	uint32_t mappedAddr = mbc->mapRomAddr(addr);
 	if (mappedAddr == 0xFFFFFFFF) {
 		return 0xFF;
 	}
@@ -72,13 +75,22 @@ uint8_t Cartridge::read(uint16_t addr) {
 	return rom[mappedAddr];
 }
 
-void Cartridge::write(uint16_t addr, uint8_t data) {
+uint8_t Cartridge::readRam(uint16_t addr) {
+	uint32_t mappedAddr = mbc->mapRamAddr(addr);
+	if (mappedAddr == 0xFFFFFFFF) {
+		return 0xFF;
+	}
+
+	return ram[mappedAddr];
+}
+
+void Cartridge::writeRam(uint16_t addr, uint8_t data) {
 	if (ramSize == 0) {
 		return;
 	}
 
 	// Only external ram is writable, and only if ram is enabled
-	uint32_t mappedAddr = mbc->mapAddr(addr);
+	uint32_t mappedAddr = mbc->mapRamAddr(addr);
 	if (mappedAddr == 0xFFFFFFFF) {
 		return;
 	}

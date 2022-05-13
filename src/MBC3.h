@@ -2,7 +2,7 @@
 
 #include "MBC.h"
 
-class MBC1 : public MBC {
+class MBC3 : public MBC {
 public:
 	uint32_t mapRomAddr(uint16_t addr) override;
 	uint32_t mapRamAddr(uint16_t addr) override;

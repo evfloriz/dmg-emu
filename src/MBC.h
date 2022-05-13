@@ -4,7 +4,8 @@
 
 class MBC {
 public:
-	virtual uint32_t mapAddr(uint16_t addr) = 0;
+	virtual uint32_t mapRomAddr(uint16_t addr) = 0;
+	virtual uint32_t mapRamAddr(uint16_t addr) = 0;
 	virtual void setRegister(uint16_t addr, uint8_t data) = 0;
 
 protected:
