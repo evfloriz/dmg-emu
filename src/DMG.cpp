@@ -9,29 +9,24 @@ DMG::DMG()
 	, ppu(&mmu) {}
 
 bool DMG::init() {
-	// Passing tests 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, instr_timing
-	size_t test_num = 12;
-
-	// Get rom name
+	// Test roms
+	size_t testRomNum = 0;
 	std::string test_roms[] = {
 		"cpu_instrs.gb",
-		"01-special.gb",
-		"02-interrupts.gb",
-		"03-op sp,hl.gb",
-		"04-op r,imm.gb",
-		"05-op rp.gb",
-		"06-ld r,r.gb",
-		"07-jr,jp,call,ret,rst.gb",
-		"08-misc instrs.gb",
-		"09-op r,r.gb",
-		"10-bit ops.gb",
-		"11-op a,(hl).gb",
 		"instr_timing.gb"
 	};
-	std::string romName = "test-roms/" + test_roms[test_num];
+	std::string testRomName = "test-roms/" + test_roms[testRomNum];
 
-	//romName = "roms/tetris.gb";
-	romName = "roms/tennis.gb";
+	// Games
+	size_t romNum = 2;
+	std::string roms[] = {
+		"tetris.gb",
+		"tennis.gb",
+		"super-mario-land.gb",
+		"pokemon-red.gb",
+		"loz-la.gb"
+	};
+	std::string romName = "roms/" + roms[romNum];
 
 	// Create cartridge
 	cart = std::make_shared<Cartridge>(romName);
@@ -39,9 +34,10 @@ bool DMG::init() {
 
 	std::cout << "Beginning execution of " << romName << std::endl;
 
+	// TODO: Clean up printing and logging
 	cpu.print_toggle = false;
 	cpu.log_toggle = false;
-	cpu.log_file = "log/l" + std::to_string(test_num) + ".txt";
+	cpu.log_file = "log/l" + std::to_string(testRomNum) + ".txt";
 
 	// Initialize output file
 	if (cpu.log_toggle) {
