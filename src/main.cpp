@@ -34,7 +34,7 @@ public:
 	}
 
 	int init() {
-		if (SDL_Init(SDL_INIT_VIDEO) < 0) {
+		if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO) < 0) {
 			std::cout << "SDL could not initialize. SDL_Error: " << SDL_GetError() << std::endl;
 			return -1;
 		}
@@ -89,6 +89,19 @@ public:
 			close();
 			return -1;
 		}
+
+		audioSpec.freq = 44100;
+		audioSpec.format = AUDIO_F32SYS;
+		audioSpec.channels = 1;
+		audioSpec.samples = 4096;
+		audioDevice = SDL_OpenAudioDevice(nullptr, 0, &audioSpec, nullptr, SDL_AUDIO_ALLOW_ANY_CHANGE);
+		if (audioDevice == NULL) {
+			std::cout << "Audio device error. SDL_Error: " << SDL_GetError() << std::endl;
+			close();
+			return -1;
+		}
+
+		SDL_PauseAudioDevice(audioDevice, 0);
 
 		// Start dmg
 		dmg.init();
@@ -147,6 +160,25 @@ public:
 			std::string fps = std::to_string((int)(1.0f / elapsed));
 			std::string capped_fps = std::to_string((int)(1.0f / capped_elapsed));
 			std::cout << capped_fps << " | " << fps << "\r" << std::flush;
+
+			int i, count = SDL_GetNumAudioDevices(0);
+			for (i = 0; i < count; ++i) {
+				printf("Audio device %d: %s", i, SDL_GetAudioDeviceName(i, 0));
+			}
+
+			const int size = 20000;
+			float output[size];
+			float tone = 440;
+			float index = 0;
+			for (int j = 0; j < size; j++) {
+				output[j] = sin(index);
+				index += tone * 3.14f * 2 / 44100;
+				if (index >= 3.14f * 2) {
+					index -= 3.14f * 2;
+				}
+
+			}
+			SDL_QueueAudio(audioDevice, output, size * 4);			
 			
 		}
 		return 0;
@@ -219,6 +251,11 @@ public:
 		return 0;
 	}
 
+	void playAudio() {
+		int status = SDL_QueueAudio(audioDevice, waveStart, waveLength);
+		SDL_PauseAudioDevice(audioDevice, 0);
+	}
+
 	void close() {
 		if (screenTexture) {
 			SDL_DestroyTexture(screenTexture);
@@ -254,6 +291,8 @@ public:
 			SDL_DestroyWindow(window);
 			window = nullptr;
 		}
+
+		SDL_CloseAudioDevice(audioDevice);
 		
 		SDL_Quit();
 	}
@@ -279,6 +318,11 @@ private:
 	SDL_Rect destWindowRect;
 	SDL_Rect srcObjectsRect;
 	SDL_Rect destObjectsRect;
+
+	SDL_AudioDeviceID audioDevice;
+	SDL_AudioSpec audioSpec;
+	uint8_t* waveStart;
+	uint32_t waveLength;
 
 	DMG dmg;
 
