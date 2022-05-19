@@ -161,25 +161,7 @@ public:
 			std::string capped_fps = std::to_string((int)(1.0f / capped_elapsed));
 			std::cout << capped_fps << " | " << fps << "\r" << std::flush;
 
-			int i, count = SDL_GetNumAudioDevices(0);
-			for (i = 0; i < count; ++i) {
-				printf("Audio device %d: %s", i, SDL_GetAudioDeviceName(i, 0));
-			}
-
-			const int size = 20000;
-			float output[size];
-			float tone = 440;
-			float index = 0;
-			for (int j = 0; j < size; j++) {
-				output[j] = sin(index);
-				index += tone * 3.14f * 2 / 44100;
-				if (index >= 3.14f * 2) {
-					index -= 3.14f * 2;
-				}
-
-			}
-			SDL_QueueAudio(audioDevice, output, size * 4);			
-			
+			playAudio();
 		}
 		return 0;
 	}
@@ -252,7 +234,30 @@ public:
 	}
 
 	void playAudio() {
-		int status = SDL_QueueAudio(audioDevice, waveStart, waveLength);
+		printf("queued audio size: %d\n", SDL_GetQueuedAudioSize(audioDevice));
+
+		//SDL_ClearQueuedAudio(audioDevice);
+		
+		const int size = 2000;
+		float output[size];
+		float tone = 440;
+		for (int i = 0; i < size; i++) {
+			output[i] = sin(index);
+			index += tone * 3.14f * 2 / 44100;
+			if (index >= 3.14f * 2) {
+				index -= 3.14f * 2;
+			}
+
+		}
+		SDL_QueueAudio(audioDevice, output, size * 4);
+
+		/*int i, count = SDL_GetNumAudioDevices(0);
+		for (i = 0; i < count; ++i) {
+			printf("Audio device %d: %s", i, SDL_GetAudioDeviceName(i, 0));
+		}*/
+
+		
+
 		SDL_PauseAudioDevice(audioDevice, 0);
 	}
 
@@ -321,8 +326,8 @@ private:
 
 	SDL_AudioDeviceID audioDevice;
 	SDL_AudioSpec audioSpec;
-	uint8_t* waveStart;
-	uint32_t waveLength;
+
+	float index = 0;
 
 	DMG dmg;
 
