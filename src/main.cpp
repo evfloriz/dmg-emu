@@ -93,8 +93,16 @@ public:
 		audioSpec.freq = 44100;
 		audioSpec.format = AUDIO_F32SYS;
 		audioSpec.channels = 1;
-		audioSpec.samples = 4096;
-		audioDevice = SDL_OpenAudioDevice(nullptr, 0, &audioSpec, nullptr, SDL_AUDIO_ALLOW_ANY_CHANGE);
+		//audioSpec.samples = 4096;
+		audioSpec.samples = 1024;
+		audioSpec.callback = fillAudioBuffer;
+		audioSpec.userdata = &dmg;
+		//audioDevice = SDL_OpenAudioDevice(nullptr, 0, &audioSpec, nullptr, SDL_AUDIO_ALLOW_ANY_CHANGE);
+		audioDevice = SDL_OpenAudioDevice(nullptr, 0, &audioSpec, nullptr, 0);
+		//audioDevice = SDL_OpenAudioDevice(nullptr, 0, &audioSpec, nullptr, SDL_AUDIO_ALLOW_SAMPLES_CHANGE); // 16384 -> 1764
+		//audioDevice = SDL_OpenAudioDevice(nullptr, 0, &audioSpec, nullptr, SDL_AUDIO_ALLOW_CHANNELS_CHANGE); // 16384 -> 32768
+		//SDL_AUDIO_ALLOW_FORMAT_CHANGE - unchange
+		//SDL_AUDIO_ALLOW_FREQUENCY_CHANGE - unchanged
 		if (audioDevice == NULL) {
 			std::cout << "Audio device error. SDL_Error: " << SDL_GetError() << std::endl;
 			close();
@@ -161,7 +169,6 @@ public:
 			std::string capped_fps = std::to_string((int)(1.0f / capped_elapsed));
 			std::cout << capped_fps << " | " << fps << "\r" << std::flush;
 
-			playAudio();
 		}
 		return 0;
 	}
@@ -233,32 +240,12 @@ public:
 		return 0;
 	}
 
-	void playAudio() {
-		printf("queued audio size: %d\n", SDL_GetQueuedAudioSize(audioDevice));
+	static void fillAudioBuffer(void* userdata, uint8_t* stream, int len) {
+		DMG* dmg = (DMG*)userdata;
+		float* buffer = (float*)stream;
+		len /= 4;			// since the data is in floats
 
-		//SDL_ClearQueuedAudio(audioDevice);
-		
-		const int size = 2000;
-		float output[size];
-		float tone = 440;
-		for (int i = 0; i < size; i++) {
-			output[i] = sin(index);
-			index += tone * 3.14f * 2 / 44100;
-			if (index >= 3.14f * 2) {
-				index -= 3.14f * 2;
-			}
-
-		}
-		SDL_QueueAudio(audioDevice, output, size * 4);
-
-		/*int i, count = SDL_GetNumAudioDevices(0);
-		for (i = 0; i < count; ++i) {
-			printf("Audio device %d: %s", i, SDL_GetAudioDeviceName(i, 0));
-		}*/
-
-		
-
-		SDL_PauseAudioDevice(audioDevice, 0);
+		dmg->apu.fillBuffer(buffer, len);
 	}
 
 	void close() {
@@ -326,8 +313,6 @@ private:
 
 	SDL_AudioDeviceID audioDevice;
 	SDL_AudioSpec audioSpec;
-
-	float index = 0;
 
 	DMG dmg;
 

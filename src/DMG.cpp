@@ -6,7 +6,8 @@
 DMG::DMG()
 	: mmu()
 	, cpu(&mmu)
-	, ppu(&mmu) {}
+	, ppu(&mmu)
+	, apu() {}
 
 bool DMG::init() {
 	// Test roms
@@ -60,6 +61,7 @@ bool DMG::tick() {
 	do {
 		cpu.clock();
 		ppu.clock();
+		apu.clock();
 	} while (!cpu.complete());
 
 	return true;
