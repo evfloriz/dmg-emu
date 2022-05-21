@@ -7,7 +7,7 @@ DMG::DMG()
 	: mmu()
 	, cpu(&mmu)
 	, ppu(&mmu)
-	, apu() {}
+	, apu(&mmu) {}
 
 bool DMG::init() {
 	// Test roms

@@ -93,7 +93,6 @@ public:
 		audioSpec.freq = 44100;
 		audioSpec.format = AUDIO_F32SYS;
 		audioSpec.channels = 1;
-		//audioSpec.samples = 4096;
 		audioSpec.samples = 1024;
 		audioSpec.callback = fillAudioBuffer;
 		audioSpec.userdata = &dmg;
