@@ -6,13 +6,16 @@
 
 #include "Cartridge.h"
 
+class CPU;
+
 class MMU {
 public:
-	MMU();
+	MMU(CPU* cpu);
 	~MMU();
 
 public:
 	std::shared_ptr<Cartridge> cart;
+	CPU* cpu = nullptr;
 
 	// Main memory, bottom half is unused but simplifies addressing
 	uint8_t* memory = new uint8_t[64 * 1024];

@@ -3,14 +3,14 @@
 #include "DMG.h"
 
 DMG::DMG()
-	: mmu()
+	: mmu(&cpu)
 	, cpu(&mmu)
 	, ppu(&mmu)
 	, apu(&mmu) {}
 
 bool DMG::init() {
 	// Test roms
-	size_t testRomNum = 5;		// failing 14, 15
+	size_t testRomNum = 19;
 	std::string test_roms[] = {
 		"cpu_instrs.gb",		// 0
 		"instr_timing.gb",		// 1
@@ -28,11 +28,16 @@ bool DMG::init() {
 		"mbc1/rom_4Mb.gb",		// 13
 		"mbc1/rom_8Mb.gb",		// 14
 		"mbc1/rom_16Mb.gb",		// 15
-		"mbc1/rom_512kb.gb"		// 16
+		"mbc1/rom_512kb.gb",	// 16
+		"mts/acceptance/interrupts/ie_push.gb",	// 17
+		"mts/acceptance/instr/daa.gb",	// 18
+		"mts/acceptance/timer/div_write.gb",	// 19
+		"mts/acceptance/timer/tim00.gb",	// 20
+		"mts/acceptance/timer/tim00_div_trigger.gb",	// 21
 	};
 
 	// Games
-	size_t romNum = 3;
+	size_t romNum = 2;
 	std::string roms[] = {
 		"tetris.gb",
 		"tennis.gb",
@@ -42,8 +47,8 @@ bool DMG::init() {
 		"metroid.gb"
 	};
 	
-	std::string romName = "test-roms/" + test_roms[testRomNum];
-	//std::string romName = "roms/" + roms[romNum];
+	//std::string romName = "test-roms/" + test_roms[testRomNum];
+	std::string romName = "roms/" + roms[romNum];
 
 	// Create cartridge
 	cart = std::make_shared<Cartridge>(romName);

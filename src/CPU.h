@@ -36,6 +36,7 @@ public:
 	uint8_t timer();
 	uint8_t interrupt_handler();
 	uint8_t halt_cycle();
+	void resetDivider();
 
 	// Signal that instruction is complete
 	bool complete();
@@ -225,9 +226,6 @@ private:
 	uint8_t SRA();
 	uint8_t SWAP();
 	uint8_t SRL();
-
-	// Print Blargg test rom output
-	void print_test();
 
 public:
 	// Debug and log related things

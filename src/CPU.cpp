@@ -2088,6 +2088,12 @@ uint8_t CPU::interrupt_handler() {
 	return 0;
 }
 
+void CPU::resetDivider() {
+	divider_clock = 0;
+	timer_clock = 0;
+	mmu->directWrite(0xFF04, 0);
+}
+
 uint8_t CPU::timer() {
 	// Divider
 	// 16384 Hz is every 256 cycles at 4 MHz
