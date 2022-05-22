@@ -54,6 +54,12 @@ bool DMG::init() {
 	mmu.directWrite(0xFF06, 0x00);
 	mmu.directWrite(0xFF07, 0xF8);
 
+	// Reset audio registers
+	mmu.directWrite(0xFF16, 0x3F);
+	mmu.directWrite(0xFF17, 0x00);
+	mmu.directWrite(0xFF18, 0xFF);
+	mmu.directWrite(0xFF19, 0xBF);
+
 	return true;
 }
 

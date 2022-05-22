@@ -17,6 +17,7 @@ private:
 private:
 	MMU* mmu = nullptr;
 
+	// One frame is 17556 ticks
 	static const int size = 2048;
 	
 	float sinIndex = 0;

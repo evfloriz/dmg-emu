@@ -64,21 +64,20 @@ void APU::updateChannel2() {
 	frequency |= (uint16_t)(nr24 & 0x07) << 8;		// upper 8 bits
 
 	// Restart sound
-	if (restart) {
+	if (restart == 1) {
 		soundOn = 1;
 		volume2 = initialVolume;
 
+		// Reset counters
 		soundLengthCounter = 4096 * (64 - soundLength);
-		envelopeCounter = 65536 * envelopePeriod;
+		envelopeCounter = 16384 * envelopePeriod;
 
 		// For now, consume the bit
 		mmu->setBit(0xFF19, 7, 0);
 	}
 	
-	// If sound is off, reset counters and return
+	// If sound is off, simply return
 	if (soundOn == 0) {
-		soundLengthCounter = 4096 * (64 - soundLength);
-		envelopeCounter = 65536 * envelopePeriod;
 		return;
 	}
 
@@ -98,9 +97,9 @@ void APU::updateChannel2() {
 	}
 	soundLengthCounter--;
 
-	// Envelop counter, tick once every 64 Hz or 65536 cycles
+	// Envelop counter, tick once every 64 Hz or 16384 cycles
 	if (envelopeCounter == 0) {
-		envelopeCounter = 65536 * envelopePeriod;
+		envelopeCounter = 16384 * envelopePeriod;
 
 		// Only use envelope if envelope period is greater than 0
 		if (envelopePeriod > 0) {
