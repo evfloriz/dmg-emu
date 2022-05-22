@@ -48,10 +48,10 @@ Cartridge::Cartridge(const std::string& fileName) {
 			mbc = std::make_shared<MBC0>();
 		}
 		else if (header.mbcType >= 0x01 && header.mbcType <= 0x05) {
-			mbc = std::make_shared<MBC1>();
+			mbc = std::make_shared<MBC1>(romBanks, ramBanks);
 		}
 		else if (header.mbcType >= 0x0F && header.mbcType <= 0x13) {
-			mbc = std::make_shared<MBC3>();
+			mbc = std::make_shared<MBC3>(romBanks, ramBanks);
 		}
 		else {
 			printf("MBC not implemented");

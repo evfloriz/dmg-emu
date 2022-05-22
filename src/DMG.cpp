@@ -10,18 +10,29 @@ DMG::DMG()
 
 bool DMG::init() {
 	// Test roms
-	size_t testRomNum = 0;
+	size_t testRomNum = 5;		// failing 14, 15
 	std::string test_roms[] = {
-		"cpu_instrs.gb",
-		"instr_timing.gb",
-		"interrupt_time.gb",
-		"mem_timing.gb",
-		"dmg_sound.gb"
+		"cpu_instrs.gb",		// 0
+		"instr_timing.gb",		// 1
+		"interrupt_time.gb",	// 2
+		"mem_timing.gb",		// 3
+		"dmg_sound.gb",			// 4
+		"mbc1/bits_bank1.gb",	// 5
+		"mbc1/bits_bank2.gb",	// 6
+		"mbc1/bits_mode.gb",	// 7
+		"mbc1/bits_ramg.gb",	// 8
+		"mbc1/ram_64kb.gb",		// 9
+		"mbc1/ram_256kb.gb",	// 10
+		"mbc1/rom_1Mb.gb",		// 11
+		"mbc1/rom_2Mb.gb",		// 12
+		"mbc1/rom_4Mb.gb",		// 13
+		"mbc1/rom_8Mb.gb",		// 14
+		"mbc1/rom_16Mb.gb",		// 15
+		"mbc1/rom_512kb.gb"		// 16
 	};
-	std::string testRomName = "test-roms/" + test_roms[testRomNum];
 
 	// Games
-	size_t romNum = 2;
+	size_t romNum = 3;
 	std::string roms[] = {
 		"tetris.gb",
 		"tennis.gb",
@@ -30,14 +41,14 @@ bool DMG::init() {
 		"loz-la.gb",
 		"metroid.gb"
 	};
-	std::string romName = "roms/" + roms[romNum];
+	
+	std::string romName = "test-roms/" + test_roms[testRomNum];
+	//std::string romName = "roms/" + roms[romNum];
 
 	// Create cartridge
-	//cart = std::make_shared<Cartridge>(testRomName);
 	cart = std::make_shared<Cartridge>(romName);
 	mmu.insertCartridge(cart);
 
-	//std::cout << "Beginning execution of " << testRomName << std::endl;
 	std::cout << "Beginning execution of " << romName << std::endl;
 
 	// TODO: Clean up printing and logging

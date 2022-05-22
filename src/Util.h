@@ -24,6 +24,9 @@ const int TILE_DATA_HEIGHT = 192;
 const int SCREEN_WIDTH = 1000;
 const int SCREEN_HEIGHT = 800;
 
+const uint32_t ROM_BANK_SIZE = 16 * 1024;
+const uint32_t RAM_BANK_SIZE = 8 * 1024;
+
 inline uint32_t ARGB(uint32_t red, uint32_t green, uint32_t blue, uint32_t alpha = 255) {
 	return (alpha << 24) | (red << 16) | (green << 8) | blue;
 }
