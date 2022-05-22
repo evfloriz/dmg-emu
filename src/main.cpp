@@ -141,6 +141,11 @@ public:
 			dmg.mmu.writeActionButton(2, !keyboardState[SDL_SCANCODE_S]);		// Select
 			dmg.mmu.writeActionButton(3, !keyboardState[SDL_SCANCODE_A]);		// Start
 
+			if (keyboardState[SDL_SCANCODE_Q]) {
+				// log toggle
+				dmg.cpu.log_toggle = !dmg.cpu.log_toggle;
+			}
+
 			// Keep track of performance for fps display
 			uint64_t start = SDL_GetPerformanceCounter();
 

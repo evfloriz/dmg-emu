@@ -62,9 +62,7 @@ bool DMG::init() {
 	cpu.log_file = "log/l" + std::to_string(testRomNum) + ".txt";
 
 	// Initialize output file
-	if (cpu.log_toggle) {
-		cpu.file = fopen(cpu.log_file.c_str(), "w");
-	}
+	cpu.file = fopen(cpu.log_file.c_str(), "w");
 
 	// Reset LY
 	mmu.directWrite(0xFF44, 0x00);

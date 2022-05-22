@@ -373,7 +373,10 @@ void CPU::clock() {
 		}
 
 		if (log_toggle) {
-			fprintf(file, "A: %02X F: %02X B: %02X C: %02X D: %02X E: %02X H: %02X L: %02X SP: %04X PC: 00:%04X\n", a, f, b, c, d, e, h, l, sp, pc);
+			//fprintf(file, "A: %02X F: %02X B: %02X C: %02X D: %02X E: %02X H: %02X L: %02X SP: %04X PC: 00:%04X\n", a, f, b, c, d, e, h, l, sp, pc);
+			fprintf(file, "0x%04x: 0x%02x ", pc, opcode);
+			fprintf(file, "%-15s ", name_lookup[opcode].c_str());
+			fprintf(file, "a: 0x%02x f: 0x%02x b: 0x%02x c: 0x%02x d: 0x%02x e: 0x%02x h: 0x%02x l: 0x%02x pc: 0x%04x sp: 0x%04x\n", a, f, b, c, d, e, h, l, pc, sp);
 		}
 
 		pc++;
