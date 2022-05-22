@@ -1,4 +1,3 @@
-
 #include <iostream>
 
 #include "DMG.h"
@@ -14,12 +13,15 @@ bool DMG::init() {
 	size_t testRomNum = 0;
 	std::string test_roms[] = {
 		"cpu_instrs.gb",
-		"instr_timing.gb"
+		"instr_timing.gb",
+		"interrupt_time.gb",
+		"mem_timing.gb",
+		"dmg_sound.gb"
 	};
 	std::string testRomName = "test-roms/" + test_roms[testRomNum];
 
 	// Games
-	size_t romNum = 5;
+	size_t romNum = 2;
 	std::string roms[] = {
 		"tetris.gb",
 		"tennis.gb",
@@ -31,9 +33,11 @@ bool DMG::init() {
 	std::string romName = "roms/" + roms[romNum];
 
 	// Create cartridge
+	//cart = std::make_shared<Cartridge>(testRomName);
 	cart = std::make_shared<Cartridge>(romName);
 	mmu.insertCartridge(cart);
 
+	//std::cout << "Beginning execution of " << testRomName << std::endl;
 	std::cout << "Beginning execution of " << romName << std::endl;
 
 	// TODO: Clean up printing and logging

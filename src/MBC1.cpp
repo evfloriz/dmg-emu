@@ -42,8 +42,7 @@ uint32_t MBC1::mapRamAddr(uint16_t addr) {
 void MBC1::setRegister(uint16_t addr, uint8_t data) {
 	if (addr <= 0x1FFF) {
 		// Ram enable
-		data &= 0x0A;
-		ramEnable = data;
+		ramEnable = (data & 0x0A) == 0x0A;
 	}
 	else if (addr <= 0x3FFF) {
 		// Rom bank number, bottom 5 bits
