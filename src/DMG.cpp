@@ -10,7 +10,7 @@ DMG::DMG()
 
 bool DMG::init() {
 	// Test roms
-	size_t testRomNum = 19;
+	size_t testRomNum = 24;
 	std::string test_roms[] = {
 		"cpu_instrs.gb",		// 0
 		"instr_timing.gb",		// 1
@@ -34,6 +34,10 @@ bool DMG::init() {
 		"mts/acceptance/timer/div_write.gb",	// 19
 		"mts/acceptance/timer/tim00.gb",	// 20
 		"mts/acceptance/timer/tim00_div_trigger.gb",	// 21
+		"mts/acceptance/halt_ime0_ei.gb",	// 22
+		"mts/acceptance/halt_ime0_nointr_timing.gb",	// 23
+		"mts/acceptance/halt_ime1_timing.gb",	// 24
+		"mts/acceptance/halt_ime1_timing2-GS.gb",	// 25
 	};
 
 	// Games
@@ -47,8 +51,8 @@ bool DMG::init() {
 		"metroid.gb"
 	};
 	
-	//std::string romName = "test-roms/" + test_roms[testRomNum];
-	std::string romName = "roms/" + roms[romNum];
+	std::string romName = "test-roms/" + test_roms[testRomNum];
+	//std::string romName = "roms/" + roms[romNum];
 
 	// Create cartridge
 	cart = std::make_shared<Cartridge>(romName);
