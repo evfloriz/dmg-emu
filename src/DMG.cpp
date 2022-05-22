@@ -19,13 +19,14 @@ bool DMG::init() {
 	std::string testRomName = "test-roms/" + test_roms[testRomNum];
 
 	// Games
-	size_t romNum = 2;
+	size_t romNum = 5;
 	std::string roms[] = {
 		"tetris.gb",
 		"tennis.gb",
 		"super-mario-land.gb",
 		"pokemon-red.gb",
-		"loz-la.gb"
+		"loz-la.gb",
+		"metroid.gb"
 	};
 	std::string romName = "roms/" + roms[romNum];
 
