@@ -51,8 +51,9 @@ bool DMG::init() {
 		"metroid.gb"
 	};
 	
-	std::string romName = "test-roms/" + test_roms[testRomNum];
-	//std::string romName = "roms/" + roms[romNum];
+	// TODO: Add config file to set these parameters
+	//std::string romName = "test-roms/" + test_roms[testRomNum];
+	std::string romName = "roms/" + roms[romNum];
 
 	// Create cartridge
 	cart = std::make_shared<Cartridge>(romName);

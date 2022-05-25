@@ -2128,17 +2128,21 @@ uint8_t CPU::timer() {
 		timer_clock++;
 		// Divide speeds by 4 to count M-cycles
 		if (timer_clock > speed / 4 - 1) {
+			timer_clock = 0;
+			
 			uint8_t timer_counter = mmu->directRead(0xFF05);
 			uint8_t timer_modulo = mmu->directRead(0xFF06);
-
-			timer_clock = timer_modulo;
 
 			// Increment timer after correct number of cycles
 			timer_counter++;
 			if (timer_counter == 0) {
 				// Set timer interrupt if overflow occurred
 				mmu->setBit(0xFF0F, 2, 1);
+
+				// Set the timer counter to the timer modulo if overflow occurred
+				timer_counter = timer_modulo;
 			}
+
 			mmu->directWrite(0xFF05, timer_counter);
 		}
 	}
