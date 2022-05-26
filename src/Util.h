@@ -7,7 +7,7 @@
 // TODO: Should these be put into a namespace?
 // TODO: Do a pass on where these should be used vs. where values should be hard coded.
 
-const int SCREEN_SCALE = 2;
+const int SCREEN_SCALE = 3;
 const int TILE_SCALE = 2;
 
 const int DMG_WIDTH = 160;
