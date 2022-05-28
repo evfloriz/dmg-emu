@@ -29,7 +29,7 @@ private:
 	float wavePatternDuty[4] = { 0.924f, 0.707f, 0.0f, -0.707f };
 	
 	// Channel 1 data
-	float sinIndex1 = 0;
+	uint32_t sampleIndex1 = 0;
 	float tone1 = 0;
 	uint8_t waveIndex1 = 0;
 	uint16_t soundLengthCounter1 = 0;
@@ -39,7 +39,7 @@ private:
 	uint8_t volume1 = 0x00;
 	
 	// Channel 2 data
-	float sinIndex2 = 0;
+	uint32_t sampleIndex2 = 0;
 	float tone2 = 0;
 	uint8_t waveIndex2 = 0;
 	uint16_t soundLengthCounter2 = 0;
@@ -47,15 +47,21 @@ private:
 	uint8_t soundOn2 = 0;
 	uint8_t volume2 = 0x00;
 
+	float testWave[32] = {};
+
 	// Channel 3 data
+	uint32_t sampleIndex3 = 0;
 	uint16_t soundLengthCounter3 = 0;
 	uint8_t soundOn3 = 0;
-	float volume3 = 0x00;
+	uint8_t volume3 = 0x00;
 	uint32_t frequencyCounter3 = 0;
-	uint8_t sampleIndex = 0;
+	uint8_t waveSampleIndex = 0;
 	uint8_t sampleByte = 0;
+	float sampleWave[32] = {};
+	float tone3 = 0;
 
 	// Channel 4 data
+	uint32_t sampleIndex4 = 0;
 	uint16_t soundLengthCounter4 = 0;
 	uint32_t envelopeCounter4 = 0;
 	uint8_t soundOn4 = 0;
