@@ -94,6 +94,13 @@ bool DMG::init() {
 	mmu.directWrite(0xFF19, 0xBF);
 
 	// Channel 3
+	mmu.directWrite(0xFF1A, 0x7F);
+	mmu.directWrite(0xFF1B, 0xFF);
+	mmu.directWrite(0xFF1C, 0x9F);
+	mmu.directWrite(0xFF1D, 0xFF);
+	mmu.directWrite(0xFF1E, 0xBF);
+
+	// Channel 4
 	mmu.directWrite(0xFF20, 0xFF);
 	mmu.directWrite(0xFF21, 0x00);
 	mmu.directWrite(0xFF22, 0x00);

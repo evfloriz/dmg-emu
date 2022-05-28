@@ -14,13 +14,6 @@ APU::APU(MMU* mmu) {
 	for (int i = 16; i < 32; i++) {
 		testWave[i] = 1.0;
 	}
-
-	for (int i = 0; i < 16; i++) {
-		sampleWave[i] = -1.0;
-	}
-	for (int i = 16; i < 32; i++) {
-		sampleWave[i] = 1.0;
-	}
 }
 
 void APU::clock() {
@@ -42,7 +35,7 @@ void APU::clock() {
 	uint16_t halfSquareWavePeriod1 = squareWavePeriod1 / 2;
 	int sample1 = 1;
 	if (halfSquareWavePeriod1 != 0) {
-		sample1 = (sampleIndex1 / halfSquareWavePeriod1) % 2 == 1 ? 1 : -1;
+		sample1 = (sampleIndex1 / halfSquareWavePeriod1) % 8 < waveRatio1 ? 1 : -1;
 	}
 
 	float channel1 = (float)soundOn1 * volume1 * sample1;
@@ -56,7 +49,7 @@ void APU::clock() {
 	uint16_t halfSquareWavePeriod2 = squareWavePeriod2 / 2;
 	int sample2 = 1;
 	if (halfSquareWavePeriod2 != 0) {
-		sample2 = (sampleIndex2 / halfSquareWavePeriod2) % 2 == 1 ? 1 : -1;
+		sample2 = (sampleIndex2 / halfSquareWavePeriod2) % 8 < waveRatio2 ? 1 : -1;
 	}
 
 	float channel2 = (float)soundOn2 * volume2 * sample2;
@@ -67,9 +60,8 @@ void APU::clock() {
 	}
 	
 	uint16_t wavePeriod3 = 44100 / tone3;
-	uint8_t waveIndex = (float)sampleIndex3 / (float)wavePeriod3 * 32 - 1;
-	float sample3 = sampleWave[waveIndex];
-	float test3 = testWave[waveIndex];
+	uint8_t waveIndex3 = (float)sampleIndex3 / (float)wavePeriod3 * 32 - 1;
+	float sample3 = sampleWave3[waveIndex3];
 
 	float channel3 = (float)soundOn3 * volume3 * sample3;
 
@@ -207,7 +199,22 @@ void APU::updateChannel1() {
 	envelopeCounter1--;
 
 	tone1 = (float)131072 / (float)(2048 - frequency);				// from pandocs
-	waveIndex1 = wavePatternDutyIndex;
+	
+	// Set the wave duty ratio (will be divided by 8)
+	switch (wavePatternDutyIndex) {
+	case 0:
+		waveRatio1 = 1;
+		break;
+	case 1:
+		waveRatio1 = 2;
+		break;
+	case 2:
+		waveRatio1 = 4;
+		break;
+	case 4:
+		waveRatio1 = 6;
+		break;
+	}
 }
 
 void APU::updateChannel2() {
@@ -278,7 +285,22 @@ void APU::updateChannel2() {
 	envelopeCounter2--;
 
 	tone2 = (float)131072 / (float)(2048 - frequency);				// from pandocs
-	waveIndex2 = wavePatternDutyIndex;
+	
+	// Set the wave duty ratio (will be divided by 8)
+	switch (wavePatternDutyIndex) {
+	case 0:
+		waveRatio2 = 1;
+		break;
+	case 1:
+		waveRatio2 = 2;
+		break;
+	case 2:
+		waveRatio2 = 4;
+		break;
+	case 4:
+		waveRatio2 = 6;
+		break;
+	}
 }
 
 void APU::updateChannel3() {
@@ -370,9 +392,7 @@ void APU::updateChannel3() {
 		}
 
 		// Store it in the sample wave array to be indexed
-		//sampleWave[waveSampleIndex] = 2 * float(sampleByte) / 0xF - 1;
-		sampleWave[waveSampleIndex] = 2 * ((waveSampleIndex / 16) % 2) - 1;
-		
+		sampleWave3[waveSampleIndex] = 2 * float(sampleByte) / 0xF - 1;
 
 		// Every tick of the frequency counter, consume the next sample
 		waveSampleIndex++;

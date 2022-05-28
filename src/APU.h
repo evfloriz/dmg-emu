@@ -31,7 +31,7 @@ private:
 	// Channel 1 data
 	uint32_t sampleIndex1 = 0;
 	float tone1 = 0;
-	uint8_t waveIndex1 = 0;
+	uint8_t waveRatio1 = 0;
 	uint16_t soundLengthCounter1 = 0;
 	uint32_t sweepCounter1 = 0;
 	uint32_t envelopeCounter1 = 0;
@@ -41,7 +41,7 @@ private:
 	// Channel 2 data
 	uint32_t sampleIndex2 = 0;
 	float tone2 = 0;
-	uint8_t waveIndex2 = 0;
+	uint8_t waveRatio2 = 0;
 	uint16_t soundLengthCounter2 = 0;
 	uint32_t envelopeCounter2 = 0;
 	uint8_t soundOn2 = 0;
@@ -57,7 +57,7 @@ private:
 	uint32_t frequencyCounter3 = 0;
 	uint8_t waveSampleIndex = 0;
 	uint8_t sampleByte = 0;
-	float sampleWave[32] = {};
+	float sampleWave3[32] = {};
 	float tone3 = 0;
 
 	// Channel 4 data
