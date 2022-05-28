@@ -14,6 +14,7 @@ void APU::clock() {
 	// Write a new value on every clock tick until the write position is the same as the read position.
 	updateChannel1();
 	updateChannel2();
+	updateChannel3();
 	updateChannel4();
 	
 	if (writePos == readPos) {
@@ -35,11 +36,14 @@ void APU::clock() {
 		sinIndex2 -= 3.14f * 2;
 	}
 
+	// Normalize 4 bit values to between -1 and 1
+	float channel3 = soundOn3 * 10 * volume3 * (2 * float(sampleByte) / 0xF - 1);
+
 	// Invert the noise bit
 	float channel4 = (float)soundOn4 * volume4 * (noiseBit ? -1 : 1);
 
-	output[writePos] = volume * (channel1 + channel2 + channel4);
-	//output[writePos] = volume * channel4;
+	//output[writePos] = volume * (channel1 + channel2 + channel4);
+	output[writePos] = volume * channel3;
 
 	// Wrap around to 0 if writePos exceeds the size
 	writePos++;
@@ -232,6 +236,97 @@ void APU::updateChannel2() {
 
 	tone2 = (float)131072 / (float)(2048 - frequency);				// from pandocs
 	waveIndex2 = wavePatternDutyIndex;
+}
+
+void APU::updateChannel3() {
+	// Read relevant memory locations
+	uint8_t nr30 = mmu->directRead(0xFF1A);
+	uint8_t nr31 = mmu->directRead(0xFF1B);
+	uint8_t nr32 = mmu->directRead(0xFF1C);
+	uint8_t nr33 = mmu->directRead(0xFF1D);
+	uint8_t nr34 = mmu->directRead(0xFF1E);
+
+	// Split registers into their encoded information
+	uint8_t soundOn = (nr30 & 0x80) >> 6;
+	uint8_t soundLength = nr31;
+	uint8_t volume = (nr32 & 0x60) >> 5;
+	uint8_t restart = (nr34 & 0x80) >> 7;
+	uint8_t selection = (nr34 & 0x40) >> 6;
+
+	uint16_t frequency = nr33;						// lower 8 bits
+	frequency |= (uint16_t)(nr34 & 0x07) << 8;		// upper 8 bits
+
+	// Return right away if sound is off
+	if (soundOn == 0) {
+		return;
+	}
+
+	// Restart sound
+	if (restart == 1) {
+		soundOn3 = 1;
+		switch (volume) {
+		case 0:
+			volume3 = 0;
+			break;
+		case 1:
+			volume3 = 1;
+			break;
+		case 2:
+			volume3 = 0.5f;
+			break;
+		case 3:
+			volume3 = 0.25f;
+			break;
+		}
+
+
+		// Reset counters
+		soundLengthCounter3 = 4096 * (256 - soundLength);
+
+		// For now, consume the bit
+		mmu->setBit(0xFF34, 7, 0);
+	}
+
+	// If sound is off, simply return
+	if (soundOn3 == 0) {
+		return;
+	}
+
+	// Sound length counter, tick once every 256 Hz or 4096 cycles
+	if (soundLengthCounter3 == 0) {
+		soundLengthCounter3 = 4096 * (256 - soundLength);
+
+		// If selection is true, stop the sound. Otherwise keep playing
+		if (selection) {
+			soundOn3 = 0;
+		}
+	}
+	soundLengthCounter3--;
+
+	// Frequency is every 65536 / (2048 - x) Hz or 16 * (2048 - x) ticks
+	if (frequencyCounter3 == 0) {
+		// Convert frequency to cycle counter
+		//frequencyCounter3 = 16 * (2048 - frequency);
+		frequencyCounter3 = (2048 - frequency) / 2;
+
+		// I think I only need to read in the wave whenever a sample needs to be produced
+		sampleByte = mmu->directRead(0xFF30 + (sampleIndex / 2));
+
+		// If it's even, use the upper 4 bits, otherwise read the lower 4 bits
+		if (sampleIndex % 2 == 0) {
+			sampleByte = (sampleByte & 0xF0) >> 4;
+		}
+		else {
+			sampleByte &= 0x0F;
+		}
+
+		// Every tick of the frequency counter, consume the next sample
+		sampleIndex++;
+		if (sampleIndex > 31) {
+			sampleIndex = 0;
+		}
+	}
+	frequencyCounter3--;
 }
 
 void APU::updateChannel4() {

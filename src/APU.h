@@ -14,6 +14,7 @@ public:
 private:
 	void updateChannel1();
 	void updateChannel2();
+	void updateChannel3();
 	void updateChannel4();
 
 private:
@@ -47,6 +48,12 @@ private:
 	uint8_t volume2 = 0x00;
 
 	// Channel 3 data
+	uint16_t soundLengthCounter3 = 0;
+	uint8_t soundOn3 = 0;
+	float volume3 = 0x00;
+	uint32_t frequencyCounter3 = 0;
+	uint8_t sampleIndex = 0;
+	uint8_t sampleByte = 0;
 
 	// Channel 4 data
 	uint16_t soundLengthCounter4 = 0;
