@@ -79,10 +79,25 @@ bool DMG::init() {
 	mmu.directWrite(0xFF07, 0xF8);
 
 	// Reset audio registers
+	// Channel 1
+	mmu.directWrite(0xFF10, 0x80);
+	mmu.directWrite(0xFF11, 0xBF);
+	//mmu.directWrite(0xFF12, 0xF3);	// This starts channel 1 with a volume of 15
+	mmu.directWrite(0xFF12, 0x00);
+	mmu.directWrite(0xFF13, 0xFF);
+	mmu.directWrite(0xFF14, 0xBF);
+	
+	// Channel 2
 	mmu.directWrite(0xFF16, 0x3F);
 	mmu.directWrite(0xFF17, 0x00);
 	mmu.directWrite(0xFF18, 0xFF);
 	mmu.directWrite(0xFF19, 0xBF);
+
+	// Channel 3
+	mmu.directWrite(0xFF20, 0xFF);
+	mmu.directWrite(0xFF21, 0x00);
+	mmu.directWrite(0xFF22, 0x00);
+	mmu.directWrite(0xFF23, 0xBF);
 
 	return true;
 }

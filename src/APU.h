@@ -12,28 +12,51 @@ public:
 	void fillBuffer(float* stream, int len);
 
 private:
+	void updateChannel1();
 	void updateChannel2();
+	void updateChannel4();
 
 private:
 	MMU* mmu = nullptr;
 
 	// One frame is 17556 ticks
 	static const int size = 2048;
-	
-	float sinIndex = 0;
 	float output[size] = {};
-	float tone = 440;
-	
+
 	// Values correspond to the value the sine wave must be greater than to convert into a square wave at each duty cycle
 	// 12.5%, 25%, 50%, 75%
 	float wavePatternDuty[4] = { 0.924f, 0.707f, 0.0f, -0.707f };
 	
+	// Channel 1 data
+	float sinIndex1 = 0;
+	float tone1 = 0;
+	uint8_t waveIndex1 = 0;
+	uint16_t soundLengthCounter1 = 0;
+	uint32_t sweepCounter1 = 0;
+	uint32_t envelopeCounter1 = 0;
+	uint8_t soundOn1 = 0;
+	uint8_t volume1 = 0x00;
+	
 	// Channel 2 data
-	uint8_t waveIndex = 0;
-	uint16_t soundLengthCounter = 0;
-	uint32_t envelopeCounter = 0;
-	uint8_t soundOn = 0;
+	float sinIndex2 = 0;
+	float tone2 = 0;
+	uint8_t waveIndex2 = 0;
+	uint16_t soundLengthCounter2 = 0;
+	uint32_t envelopeCounter2 = 0;
+	uint8_t soundOn2 = 0;
 	uint8_t volume2 = 0x00;
+
+	// Channel 3 data
+
+	// Channel 4 data
+	uint16_t soundLengthCounter4 = 0;
+	uint32_t envelopeCounter4 = 0;
+	uint8_t soundOn4 = 0;
+	uint8_t volume4 = 0x00;
+	uint32_t frequencyCounter4 = 0;
+	uint8_t noiseBit = 0;
+	uint16_t shiftRegister = 0xFFFF;
+
 	
 	float volume = 0.01f;
 

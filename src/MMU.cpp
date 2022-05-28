@@ -48,7 +48,7 @@ void MMU::write(uint16_t addr, uint8_t data) {
 		// If the divider is written to, set it to 0
 		cpu->resetDivider();
 	}
-	else if (addr == 0xFF19) {
+	else if (addr == 0xFF14 || addr == 0xFF19) {
 		// Channel 2 data register
 		// Only bits 7-6 and 2-0 are writable
 		memory[addr] &= ~0xC7;
