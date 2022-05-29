@@ -171,7 +171,7 @@ public:
 			// Display both the capped and uncapped fps
 			std::string fps = std::to_string((int)(1.0f / elapsed));
 			std::string capped_fps = std::to_string((int)(1.0f / capped_elapsed));
-			std::cout << capped_fps << " | " << fps << "\r" << std::flush;
+			std::cout << capped_fps << " | " << fps << "    \r" << std::flush;
 
 		}
 		return 0;

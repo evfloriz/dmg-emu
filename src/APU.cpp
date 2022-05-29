@@ -7,13 +7,6 @@
 
 APU::APU(MMU* mmu) {
 	this->mmu = mmu;
-
-	for (int i = 0; i < 16; i++) {
-		testWave[i] = -1.0;
-	}
-	for (int i = 16; i < 32; i++) {
-		testWave[i] = 1.0;
-	}
 }
 
 void APU::clock() {
@@ -31,44 +24,48 @@ void APU::clock() {
 		return;
 	}
 
-	uint16_t squareWavePeriod1 = 44100 / tone1;
-	uint16_t halfSquareWavePeriod1 = squareWavePeriod1 / 2;
-	int sample1 = 1;
-	if (halfSquareWavePeriod1 != 0) {
-		sample1 = (sampleIndex1 / halfSquareWavePeriod1) % 8 < waveRatio1 ? 1 : -1;
+	float channel1 = 0.0f;
+	if (tone1 != 0) {
+		uint32_t squareWavePeriod1 = 44100 / tone1;
+		uint8_t waveIndex1 = float(sampleIndex1) / (float)squareWavePeriod1 * 8;
+		int sample1 = (waveIndex1 < waveRatio1) ? 1 : -1;
+
+		channel1 = (float)soundOn1 * volume1 * sample1;
+
+		sampleIndex1++;
+		if (sampleIndex1 > squareWavePeriod1 - 1) {
+			sampleIndex1 = 0;
+		}
 	}
 
-	float channel1 = (float)soundOn1 * volume1 * sample1;
+	float channel2 = 0.0f;
+	if (tone2 != 0) {
+		uint32_t squareWavePeriod2 = 44100 / tone2;
+		uint8_t waveIndex2 = float(sampleIndex2) / (float)squareWavePeriod2 * 8;
+		int sample2 = (waveIndex2 < waveRatio2) ? 1 : -1;
 
-	sampleIndex1++;
-	if (sampleIndex1 > squareWavePeriod1) {
-		sampleIndex1 = 0;
-	}
+		channel2 = (float)soundOn2 * volume2 * sample2;
 
-	uint16_t squareWavePeriod2 = 44100 / tone2;
-	uint16_t halfSquareWavePeriod2 = squareWavePeriod2 / 2;
-	int sample2 = 1;
-	if (halfSquareWavePeriod2 != 0) {
-		sample2 = (sampleIndex2 / halfSquareWavePeriod2) % 8 < waveRatio2 ? 1 : -1;
-	}
-
-	float channel2 = (float)soundOn2 * volume2 * sample2;
-
-	sampleIndex2++;
-	if (sampleIndex2 > squareWavePeriod2) {
-		sampleIndex2 = 0;
+		sampleIndex2++;
+		if (sampleIndex2 > squareWavePeriod2 - 1) {
+			sampleIndex2 = 0;
+		}
 	}
 	
-	uint16_t wavePeriod3 = 44100 / tone3;
-	uint8_t waveIndex3 = (float)sampleIndex3 / (float)wavePeriod3 * 32 - 1;
-	float sample3 = sampleWave3[waveIndex3];
+	float channel3 = 0.0f;
+	if (tone3 != 0) {
+		uint32_t wavePeriod3 = 44100 / tone3;
+		uint8_t waveIndex3 = (float)sampleIndex3 / (float)wavePeriod3 * 32;
+		float sample3 = sampleWave3[waveIndex3];
 
-	float channel3 = (float)soundOn3 * volume3 * sample3;
+		channel3 = (float)soundOn3 * volume3 * sample3;
 
-	sampleIndex3++;
-	if (sampleIndex3 > wavePeriod3) {
-		sampleIndex3 = 0;
+		sampleIndex3++;
+		if (sampleIndex3 > wavePeriod3 - 1) {
+			sampleIndex3 = 0;
+		}
 	}
+	
 
 	// Noise is has a clock cycle period of either 127 or 32767 (7 or 15 bit)
 	// 31 or 8192 M-cycles
@@ -78,7 +75,8 @@ void APU::clock() {
 	float channel4 = (float)soundOn4 * volume4 * (noiseBit ? -1 : 1);
 
 	//output[writePos] = volume * (channel1 + channel2 + channel3 + channel4);
-	output[writePos] = volume * channel3;
+	output[writePos] = volume * (channel1 + channel2 + channel3);
+	//output[writePos] = volume * channel3;
 
 	// Wrap around to 0 if writePos exceeds the size
 	writePos++;
@@ -198,7 +196,7 @@ void APU::updateChannel1() {
 	}
 	envelopeCounter1--;
 
-	tone1 = (float)131072 / (float)(2048 - frequency);				// from pandocs
+	tone1 = 131072 / (2048 - frequency);				// from pandocs
 	
 	// Set the wave duty ratio (will be divided by 8)
 	switch (wavePatternDutyIndex) {
@@ -284,7 +282,7 @@ void APU::updateChannel2() {
 	}
 	envelopeCounter2--;
 
-	tone2 = (float)131072 / (float)(2048 - frequency);				// from pandocs
+	tone2 = 131072 / (2048 - frequency);				// from pandocs
 	
 	// Set the wave duty ratio (will be divided by 8)
 	switch (wavePatternDutyIndex) {
@@ -328,8 +326,7 @@ void APU::updateChannel3() {
 	}
 
 	// Restart sound
-	if (restart == 1) {
-		sampleIndex3 = 0;
+	if (restart == 1) {	
 		soundOn3 = 1;
 		switch (volume) {
 		case 0:
@@ -345,7 +342,6 @@ void APU::updateChannel3() {
 			volume3 = 0x03;		// 25%
 			break;
 		}
-
 
 		// Reset counters
 		soundLengthCounter3 = 4096 * (256 - soundLength);
@@ -371,14 +367,16 @@ void APU::updateChannel3() {
 	soundLengthCounter3--;
 
 	// Turn frequency into Hz to use for sampling in main loop
-	tone3 = (float)65536 / (float)(2048 - frequency);
+	tone3 = 65536 / (2048 - frequency);
 
 	// Frequency is every 65536 / (2048 - x) Hz or 16 * (2048 - x) ticks
 	if (frequencyCounter3 == 0) {
 		// Convert frequency to cycle counter
 		//frequencyCounter3 = 16 * (2048 - frequency);
-		frequencyCounter3 = (2048 - frequency) / 2;
-		//frequencyCounter3 = 1;
+		//frequencyCounter3 = (2048 - frequency) / 2;
+
+		// TODO: How often should I update the wave data? It probably doesn't need to happen very frequently
+		frequencyCounter3 = 32;
 
 		// I think I only need to read in the wave whenever a sample needs to be produced
 		sampleByte = mmu->directRead(0xFF30 + (waveSampleIndex / 2));
