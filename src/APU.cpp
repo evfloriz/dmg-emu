@@ -70,13 +70,25 @@ void APU::clock() {
 	// Noise is has a clock cycle period of either 127 or 32767 (7 or 15 bit)
 	// 31 or 8192 M-cycles
 	// Sampling period is therefore either 32768 Hz or 32 Hz
+
+	float channel4 = 0.0f;
+	if (tone4 != 0) {
+		float wavePeriod4 = 44100 / (float)tone4;
+		uint8_t waveIndex4 = (float)sampleIndex4 / (float)wavePeriod4 * 256;
+		float sample4 = sampleWave4[waveIndex4];
+
+		channel4 = (float)soundOn4 * volume4 * sample4;
+
+		sampleIndex4++;
+		if (sampleIndex4 > wavePeriod4 - 1) {
+			sampleIndex4 = 0;
+		}
+	}
 	
-	// Invert the noise bit
-	float channel4 = (float)soundOn4 * volume4 * (noiseBit ? -1 : 1);
 
 	//output[writePos] = volume * (channel1 + channel2 + channel3 + channel4);
-	output[writePos] = volume * (channel1 + channel2 + channel3);
-	//output[writePos] = volume * channel3;
+	//output[writePos] = volume * (channel1 + channel2 + channel3);
+	output[writePos] = volume * channel4;
 
 	// Wrap around to 0 if writePos exceeds the size
 	writePos++;
@@ -379,10 +391,10 @@ void APU::updateChannel3() {
 		frequencyCounter3 = 32;
 
 		// I think I only need to read in the wave whenever a sample needs to be produced
-		sampleByte = mmu->directRead(0xFF30 + (waveSampleIndex / 2));
+		sampleByte = mmu->directRead(0xFF30 + (waveSampleIndex3 / 2));
 
 		// If it's even, use the upper 4 bits, otherwise read the lower 4 bits
-		if (waveSampleIndex % 2 == 0) {
+		if (waveSampleIndex3 % 2 == 0) {
 			sampleByte = (sampleByte & 0xF0) >> 4;
 		}
 		else {
@@ -390,12 +402,12 @@ void APU::updateChannel3() {
 		}
 
 		// Store it in the sample wave array to be indexed
-		sampleWave3[waveSampleIndex] = 2 * float(sampleByte) / 0xF - 1;
+		sampleWave3[waveSampleIndex3] = 2 * float(sampleByte) / 0xF - 1;
 
 		// Every tick of the frequency counter, consume the next sample
-		waveSampleIndex++;
-		if (waveSampleIndex > 31) {
-			waveSampleIndex = 0;
+		waveSampleIndex3++;
+		if (waveSampleIndex3 > 31) {
+			waveSampleIndex3 = 0;
 		}
 	}
 	frequencyCounter3--;
@@ -470,14 +482,26 @@ void APU::updateChannel4() {
 	if (dividingRatio == 0) {
 		dividingRatio = 0.5;
 	}
+
+	uint32_t frequency = 524288 / dividingRatio / (1 << (shiftClockFrequency + 1));
+	
+	// It takes 128 frequency ticks to fill the full noise buffer
+	tone4 = frequency / 256;
 	
 	if (frequencyCounter4 == 0) {
-		uint32_t frequency = 524288 / dividingRatio / (1 << (shiftClockFrequency + 1));
-		
 		// Convert frequency to cycle counter
 		frequencyCounter4 = (1 << 20) / frequency;
 		
 		noiseBit = shiftRegister & 0x01;
+
+		// Invert the noise bit and put it in the array
+		sampleWave4[waveSampleIndex4] = noiseBit ? -1.0f : 1.0f;
+
+		// Every tick of the frequency counter, consume the next sample
+		waveSampleIndex4++;
+		if (waveSampleIndex4 > 256) {
+			waveSampleIndex4 = 0;
+		}
 
 		// Shift register function
 		uint16_t result = (shiftRegister & 0x01) ^ ((shiftRegister & 0x02) >> 1);

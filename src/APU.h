@@ -54,12 +54,13 @@ private:
 	uint8_t soundOn3 = 0;
 	uint8_t volume3 = 0x00;
 	uint32_t frequencyCounter3 = 0;
-	uint8_t waveSampleIndex = 0;
+	uint8_t waveSampleIndex3 = 0;
 	uint8_t sampleByte = 0;
 	float sampleWave3[32] = {};
 
 	// Channel 4 data
 	uint32_t sampleIndex4 = 0;
+	uint32_t tone4 = 0;
 	uint16_t soundLengthCounter4 = 0;
 	uint32_t envelopeCounter4 = 0;
 	uint8_t soundOn4 = 0;
@@ -67,6 +68,8 @@ private:
 	uint32_t frequencyCounter4 = 0;
 	uint8_t noiseBit = 0;
 	uint16_t shiftRegister = 0xFFFF;
+	uint8_t waveSampleIndex4 = 0;
+	float sampleWave4[256] = {};
 
 	
 	float volume = 0.01f;
