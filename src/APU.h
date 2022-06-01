@@ -22,6 +22,7 @@ private:
 
 	// One frame is 17556 ticks
 	static const int size = 2048;
+	//static const int size = 10000;
 	float output[size] = {};
 
 	// Values correspond to the value the sine wave must be greater than to convert into a square wave at each duty cycle
@@ -37,6 +38,13 @@ private:
 	uint32_t envelopeCounter1 = 0;
 	uint8_t soundOn1 = 0;
 	uint8_t volume1 = 0x00;
+
+	uint32_t frequencyCounter1 = 0;
+	float buffer1[1024] = {};
+	uint16_t bufferIndex1 = 0;
+
+	uint8_t waveIndex1 = 0;
+	float sample1 = 0.0f;
 	
 	// Channel 2 data
 	uint32_t sampleIndex2 = 0;
@@ -46,6 +54,13 @@ private:
 	uint32_t envelopeCounter2 = 0;
 	uint8_t soundOn2 = 0;
 	uint8_t volume2 = 0x00;
+
+	uint32_t frequencyCounter2 = 0;
+	float buffer2[1024] = {};
+	uint16_t bufferIndex2 = 0;
+
+	uint8_t waveIndex2 = 0;
+	float sample2 = 0.0f;
 
 	// Channel 3 data
 	uint32_t sampleIndex3 = 0;
@@ -58,6 +73,12 @@ private:
 	uint8_t sampleByte = 0;
 	float sampleWave3[32] = {};
 
+	float buffer3[1024] = {};
+	uint16_t bufferIndex3 = 0;
+
+	uint8_t waveIndex3 = 0;
+	float sample3 = 0.0f;
+
 	// Channel 4 data
 	uint32_t sampleIndex4 = 0;
 	uint32_t tone4 = 0;
@@ -68,6 +89,11 @@ private:
 	uint32_t frequencyCounter4 = 0;
 	uint8_t noiseBit = 0;
 	uint16_t shiftRegister = 0xFFFF;
+
+	float buffer4[1024] = {};
+	uint16_t bufferIndex4 = 0;
+	uint8_t waveIndex4 = 0;
+	float sample4 = 0.0f;
 	
 	
 	uint16_t waveSampleIndex4 = 0;
@@ -79,6 +105,9 @@ private:
 	float noiseBitSample = 0;
 
 	float channel4 = 0.0f;
+	float channel3 = 0.0f;
+	float channel2 = 0.0f;
+	float channel1 = 0.0f;
 
 	
 	float volume = 0.01f;
