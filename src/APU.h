@@ -68,12 +68,24 @@ private:
 	uint32_t frequencyCounter4 = 0;
 	uint8_t noiseBit = 0;
 	uint16_t shiftRegister = 0xFFFF;
-	uint8_t waveSampleIndex4 = 0;
-	float sampleWave4[256] = {};
+	
+	
+	uint16_t waveSampleIndex4 = 0;
+	float sampleWave4[128] = {};
+	
+	float bufferIndex = 0;
+	float sampleCounter = 0;
+	float sampleTicks = 1048576.0f / 44100.0f;
+	float noiseBitSample = 0;
+
+	float channel4 = 0.0f;
 
 	
 	float volume = 0.01f;
 
 	uint16_t readPos = 0;
 	uint16_t writePos = 0;
+
+public:
+	float lowPassFilter(uint16_t index);
 };

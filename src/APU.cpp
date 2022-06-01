@@ -19,9 +19,40 @@ void APU::clock() {
 	updateChannel2();
 	updateChannel3();
 	updateChannel4();
+
+	//printf("sample ticks: %f\n", sampleTicks);
+	//printf("sample counter: %f\n", sampleCounter);
+
+	// Need this after since I'll need keep things ticking I think	
 	
+	
+	if (sampleCounter <= 0) {
+		sampleCounter += sampleTicks;
+
+		// Generate sample
+
+		// Consume the freq / 44100 position in the buffer		
+		// Iterate through the buffer and wrap around when it's exceeded
+		bufferIndex += tone4 / 44100.0f;
+		if (bufferIndex > 128) {
+			bufferIndex -= 128;
+		}
+
+		float sample = 0;
+		uint16_t index = (uint16_t)bufferIndex;
+		if (index < 128) {
+			//sample = lowPassFilter(index);
+			sample = sampleWave4[index];
+		}
+
+		//noiseBitSample = sampleWave4[bufferIndex];
+		channel4 = (float)soundOn4 * volume4 * sample;
+		//channel4 = (float)soundOn4 * volume4 * sample;
+	}
+	sampleCounter--;
+
 	if (writePos == readPos) {
-		return;
+		//return;
 	}
 
 	float channel1 = 0.0f;
@@ -71,11 +102,20 @@ void APU::clock() {
 	// 31 or 8192 M-cycles
 	// Sampling period is therefore either 32768 Hz or 32 Hz
 
-	float channel4 = 0.0f;
+	// 2^20 / 44100 is 23.777, which means I would need to generate a sample every 23.777 ticks
+	// 2^19 is max freq, lets work with that
+	// 2^19 / 44100 would be the average jump between samples, ie how many audio outputs occur between samples
+	// 44100 / 2^19 would be how many samples are taken per audio output (< 1)
+	// for decimals, I would have to instead of subtracting by 0 subtract by the integer portion
+
+	
+	
+	/*float channel4 = 0.0f;
 	if (tone4 != 0) {
-		float wavePeriod4 = 44100 / (float)tone4;
-		uint8_t waveIndex4 = (float)sampleIndex4 / (float)wavePeriod4 * 256;
-		float sample4 = sampleWave4[waveIndex4];
+		float wavePeriod4 = 44100.0f / (float)tone4 * 128.0f;
+		uint8_t waveIndex4 = (float)sampleIndex4 / (float)wavePeriod4 * 128;
+		//float sample4 = sampleWave4[waveIndex4];
+		float sample4 = lowPassFilter(waveIndex4);
 
 		channel4 = (float)soundOn4 * volume4 * sample4;
 
@@ -84,7 +124,12 @@ void APU::clock() {
 			sampleIndex4 = 0;
 		}
 	}
+
 	
+	if (tone4 < 20000) {
+		printf("frequency: %d ", tone4);
+		printf("channel4: %f\n", channel4);
+	}*/
 
 	//output[writePos] = volume * (channel1 + channel2 + channel3 + channel4);
 	//output[writePos] = volume * (channel1 + channel2 + channel3);
@@ -95,6 +140,78 @@ void APU::clock() {
 	if (writePos >= size) {
 		writePos = 0;
 	}
+}
+
+float APU::lowPassFilter(uint16_t index) {
+	// Calculate the correct output for noise channel
+	double filter[57] = {
+		0.000208,
+		0.000297,
+		0.000338,
+		0.000281,
+		0.000072,
+		-0.000337,
+		-0.000983,
+		-0.001870,
+		-0.002969,
+		-0.004198,
+		-0.005425,
+		-0.006467,
+		-0.007096,
+		-0.007058,
+		-0.006092,
+		-0.003961,
+		-0.000477,
+		0.004468,
+		0.010879,
+		0.018644,
+		0.027523,
+		0.037160,
+		0.047099,
+		0.056816,
+		0.065756,
+		0.073380,
+		0.079209,
+		0.082867,
+		0.084114,
+		0.082867,
+		0.079209,
+		0.073380,
+		0.065756,
+		0.056816,
+		0.047099,
+		0.037160,
+		0.027523,
+		0.018644,
+		0.010879,
+		0.004468,
+		-0.000477,
+		-0.003961,
+		-0.006092,
+		-0.007058,
+		-0.007096,
+		-0.006467,
+		-0.005425,
+		-0.004198,
+		-0.002969,
+		-0.001870,
+		-0.000983,
+		-0.000337,
+		0.000072,
+		0.000281,
+		0.000338,
+		0.000297,
+		0.000208
+	};
+
+	double sum = 0.0f;
+
+	uint16_t lowBound = (index - 28 + 128) % 128;
+	for (uint16_t i = 0; i < 57; i++) {
+		sum += filter[i] * sampleWave4[(lowBound + i) % 128];
+	}
+
+	return (float)sum;
 }
 
 void APU::fillBuffer(float* stream, int len) {
@@ -486,7 +603,7 @@ void APU::updateChannel4() {
 	uint32_t frequency = 524288 / dividingRatio / (1 << (shiftClockFrequency + 1));
 	
 	// It takes 128 frequency ticks to fill the full noise buffer
-	tone4 = frequency / 256;
+	tone4 = frequency;
 	
 	if (frequencyCounter4 == 0) {
 		// Convert frequency to cycle counter
@@ -494,19 +611,23 @@ void APU::updateChannel4() {
 		
 		noiseBit = shiftRegister & 0x01;
 
+		
 		// Invert the noise bit and put it in the array
 		sampleWave4[waveSampleIndex4] = noiseBit ? -1.0f : 1.0f;
 
 		// Every tick of the frequency counter, consume the next sample
 		waveSampleIndex4++;
-		if (waveSampleIndex4 > 256) {
+		if (waveSampleIndex4 > 128) {
 			waveSampleIndex4 = 0;
 		}
+
+		noiseBitSample = noiseBit ? -1.0f : 1.0f;
 
 		// Shift register function
 		uint16_t result = (shiftRegister & 0x01) ^ ((shiftRegister & 0x02) >> 1);
 		shiftRegister >>= 1;
 
+		shiftRegister &= ~(result << 14); 
 		shiftRegister |= (result << 14);
 
 		if (widthMode) {
