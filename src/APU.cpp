@@ -19,35 +19,24 @@ void APU::clock() {
 	updateChannel2();
 	updateChannel3();
 	updateChannel4();
-
-	//printf("sample ticks: %f\n", sampleTicks);
-	//printf("sample counter: %f\n", sampleCounter);
-
-	// Need this after since I'll need keep things ticking I think	
 	
 	// Resample from every tick (2^20 Hz) to sample rate (44100 Hz)
 	if (sampleCounter <= 0) {
 		sampleCounter += sampleTicks;
-		//sampleCounter = sampleTicks;
 
 		if (writePos == readPos) {
 			return;
 		}
 
+		//while (writePos == readPos);
+
 		// Generate sample
-		float sample1 = buffer1[bufferIndex1];
-		float sample2 = buffer2[bufferIndex2];
-		float sample3 = buffer3[bufferIndex3];
-		float sample4 = buffer4[bufferIndex4];
+		float channel1 = buffer1[bufferIndex1];
+		float channel2 = buffer2[bufferIndex2];
+		float channel3 = buffer3[bufferIndex3];
+		float channel4 = buffer4[bufferIndex4];
 
-		//noiseBitSample = sampleWave4[bufferIndex];
-		channel1 = (float)soundOn1 * volume1 * sample1;
-		channel2 = (float)soundOn2 * volume2 * sample2;
-		channel3 = (float)soundOn3 * volume3 * sample3;
-		channel4 = (float)soundOn4 * volume4 * sample4;
-
-
-		//output[writePos] = volume * channel1;
+		//output[writePos] = volume * channel2;
 		output[writePos] = volume * (channel1 + channel2 + channel3 + channel4);
 
 		// Wrap around to 0 if writePos exceeds the size
@@ -58,172 +47,6 @@ void APU::clock() {
 
 	}
 	sampleCounter--;
-
-	
-
-	/*if (writePos == readPos) {
-		return;
-	}*/
-
-	
-
-	/*float channel1 = 0.0f;
-	if (tone1 != 0) {
-		uint32_t squareWavePeriod1 = 44100 / tone1;
-		uint8_t waveIndex1 = float(sampleIndex1) / (float)squareWavePeriod1 * 8;
-		int sample1 = (waveIndex1 < waveRatio1) ? 1 : -1;
-
-		channel1 = (float)soundOn1 * volume1 * sample1;
-
-		sampleIndex1++;
-		if (sampleIndex1 > squareWavePeriod1 - 1) {
-			sampleIndex1 = 0;
-		}
-	}*/
-
-	/*float channel2 = 0.0f;
-	if (tone2 != 0) {
-		uint32_t squareWavePeriod2 = 44100 / tone2;
-		uint8_t waveIndex2 = float(sampleIndex2) / (float)squareWavePeriod2 * 8;
-		int sample2 = (waveIndex2 < waveRatio2) ? 1 : -1;
-
-		channel2 = (float)soundOn2 * volume2 * sample2;
-
-		sampleIndex2++;
-		if (sampleIndex2 > squareWavePeriod2 - 1) {
-			sampleIndex2 = 0;
-		}
-	}*/
-	
-	/*float channel3 = 0.0f;
-	if (tone3 != 0) {
-		uint32_t wavePeriod3 = 44100 / tone3;
-		uint8_t waveIndex3 = (float)sampleIndex3 / (float)wavePeriod3 * 32;
-		float sample3 = sampleWave3[waveIndex3];
-
-		channel3 = (float)soundOn3 * volume3 * sample3;
-
-		sampleIndex3++;
-		if (sampleIndex3 > wavePeriod3 - 1) {
-			sampleIndex3 = 0;
-		}
-	}*/
-	
-
-	// Noise is has a clock cycle period of either 127 or 32767 (7 or 15 bit)
-	// 31 or 8192 M-cycles
-	// Sampling period is therefore either 32768 Hz or 32 Hz
-
-	// 2^20 / 44100 is 23.777, which means I would need to generate a sample every 23.777 ticks
-	// 2^19 is max freq, lets work with that
-	// 2^19 / 44100 would be the average jump between samples, ie how many audio outputs occur between samples
-	// 44100 / 2^19 would be how many samples are taken per audio output (< 1)
-	// for decimals, I would have to instead of subtracting by 0 subtract by the integer portion
-
-	
-	
-	/*float channel4 = 0.0f;
-	if (tone4 != 0) {
-		float wavePeriod4 = 44100.0f / (float)tone4 * 128.0f;
-		uint8_t waveIndex4 = (float)sampleIndex4 / (float)wavePeriod4 * 128;
-		//float sample4 = sampleWave4[waveIndex4];
-		float sample4 = lowPassFilter(waveIndex4);
-
-		channel4 = (float)soundOn4 * volume4 * sample4;
-
-		sampleIndex4++;
-		if (sampleIndex4 > wavePeriod4 - 1) {
-			sampleIndex4 = 0;
-		}
-	}
-
-	
-	if (tone4 < 20000) {
-		printf("frequency: %d ", tone4);
-		printf("channel4: %f\n", channel4);
-	}*/
-
-	//output[writePos] = volume * (channel1 + channel2 + channel3 + channel4);
-	//output[writePos] = volume * (channel1 + channel2 + channel3);
-	/*output[writePos] = volume * channel2
-
-	// Wrap around to 0 if writePos exceeds the size
-	writePos++;
-	if (writePos >= size) {
-		writePos = 0;
-	}*/
-}
-
-float APU::lowPassFilter(uint16_t index) {
-	// Calculate the correct output for noise channel
-	double filter[57] = {
-		0.000208,
-		0.000297,
-		0.000338,
-		0.000281,
-		0.000072,
-		-0.000337,
-		-0.000983,
-		-0.001870,
-		-0.002969,
-		-0.004198,
-		-0.005425,
-		-0.006467,
-		-0.007096,
-		-0.007058,
-		-0.006092,
-		-0.003961,
-		-0.000477,
-		0.004468,
-		0.010879,
-		0.018644,
-		0.027523,
-		0.037160,
-		0.047099,
-		0.056816,
-		0.065756,
-		0.073380,
-		0.079209,
-		0.082867,
-		0.084114,
-		0.082867,
-		0.079209,
-		0.073380,
-		0.065756,
-		0.056816,
-		0.047099,
-		0.037160,
-		0.027523,
-		0.018644,
-		0.010879,
-		0.004468,
-		-0.000477,
-		-0.003961,
-		-0.006092,
-		-0.007058,
-		-0.007096,
-		-0.006467,
-		-0.005425,
-		-0.004198,
-		-0.002969,
-		-0.001870,
-		-0.000983,
-		-0.000337,
-		0.000072,
-		0.000281,
-		0.000338,
-		0.000297,
-		0.000208
-	};
-
-	double sum = 0.0f;
-
-	uint16_t lowBound = (index - 28 + 128) % 128;
-	for (uint16_t i = 0; i < 57; i++) {
-		sum += filter[i] * sampleWave4[(lowBound + i) % 128];
-	}
-
-	return (float)sum;
 }
 
 void APU::fillBuffer(float* stream, int len) {
@@ -338,6 +161,7 @@ void APU::updateChannel1() {
 	envelopeCounter1--;
 	
 	// Set the wave duty ratio (will be divided by 8)
+	uint8_t waveRatio1 = 4;
 	switch (wavePatternDutyIndex) {
 	case 0:
 		waveRatio1 = 1;
@@ -348,12 +172,12 @@ void APU::updateChannel1() {
 	case 2:
 		waveRatio1 = 4;
 		break;
-	case 4:
+	case 3:
 		waveRatio1 = 6;
 		break;
 	}
 
-	tone1 = 131072 / (2048 - frequency);				// from pandocs
+	uint32_t tone1 = 131072 / (2048 - frequency);				// from pandocs
 
 	if (frequencyCounter1 == 0) {
 		// Split into 8 equal parts
@@ -368,7 +192,7 @@ void APU::updateChannel1() {
 	frequencyCounter1--;
 
 	// Fill the buffer every tick
-	buffer1[bufferIndex1] = sample1;
+	buffer1[bufferIndex1] = soundOn1 * volume1 * sample1;
 
 	bufferIndex1++;
 	if (bufferIndex1 > 1023) {
@@ -446,6 +270,7 @@ void APU::updateChannel2() {
 	envelopeCounter2--;
 
 	// Set the wave duty ratio (will be divided by 8)
+	uint8_t waveRatio2 = 4;
 	switch (wavePatternDutyIndex) {
 	case 0:
 		waveRatio2 = 1;
@@ -456,12 +281,12 @@ void APU::updateChannel2() {
 	case 2:
 		waveRatio2 = 4;
 		break;
-	case 4:
+	case 3:
 		waveRatio2 = 6;
 		break;
 	}
 
-	tone2 = 131072 / (2048 - frequency);				// from pandocs
+	uint32_t tone2 = 131072 / (2048 - frequency);				// from pandocs
 
 	if (frequencyCounter2 == 0) {
 		// Split into 8 equal parts
@@ -476,7 +301,7 @@ void APU::updateChannel2() {
 	frequencyCounter2--;
 
 	// Fill the buffer every tick
-	buffer2[bufferIndex2] = sample2;
+	buffer2[bufferIndex2] = soundOn2 * volume2 * sample2;
 
 	bufferIndex2++;
 	if (bufferIndex2 > 1023) {
@@ -550,7 +375,7 @@ void APU::updateChannel3() {
 	soundLengthCounter3--;
 
 	// Turn frequency into Hz to use for sampling in main loop
-	tone3 = 65536 / (2048 - frequency);
+	uint32_t tone3 = 65536 / (2048 - frequency);
 
 	// Frequency is every 65536 / (2048 - x) Hz or 16 * (2048 - x) ticks
 	if (frequencyCounter3 == 0) {
@@ -567,10 +392,10 @@ void APU::updateChannel3() {
 		//frequencyCounter3 = 32;
 
 		// I think I only need to read in the wave whenever a sample needs to be produced
-		sampleByte = mmu->directRead(0xFF30 + (waveSampleIndex3 / 2));
+		uint8_t sampleByte = mmu->directRead(0xFF30 + (waveIndex3 / 2));
 
 		// If it's even, use the upper 4 bits, otherwise read the lower 4 bits
-		if (waveSampleIndex3 % 2 == 0) {
+		if (waveIndex3 % 2 == 0) {
 			sampleByte = (sampleByte & 0xF0) >> 4;
 		}
 		else {
@@ -581,15 +406,15 @@ void APU::updateChannel3() {
 		sample3 = 2.0f * float(sampleByte) / 0xF - 1.0f;
 
 		// Every tick of the frequency counter, consume the next sample
-		waveSampleIndex3++;
-		if (waveSampleIndex3 > 31) {
-			waveSampleIndex3 = 0;
+		waveIndex3++;
+		if (waveIndex3 > 31) {
+			waveIndex3 = 0;
 		}
 	}
 	frequencyCounter3--;
 
 	// Fill the buffer every tick
-	buffer3[bufferIndex3] = sample3;
+	buffer3[bufferIndex3] = soundOn3 * volume3 * sample3;
 
 	bufferIndex3++;
 	if (bufferIndex3 > 1023) {
@@ -667,13 +492,13 @@ void APU::updateChannel4() {
 		dividingRatio = 0.5;
 	}
 
-	tone4 = 524288 / dividingRatio / (1 << (shiftClockFrequency + 1));
+	uint32_t tone4 = 524288 / dividingRatio / (1 << (shiftClockFrequency + 1));
 	
 	if (frequencyCounter4 == 0) {
 		// Convert frequency to cycle counter
 		frequencyCounter4 = (1 << 20) / tone4;
 		
-		noiseBit = shiftRegister & 0x01;
+		uint8_t noiseBit = shiftRegister & 0x01;
 
 		// Invert the noise bit and put it in the array
 		sample4 = noiseBit ? -1.0f : 1.0f;
@@ -693,7 +518,7 @@ void APU::updateChannel4() {
 	frequencyCounter4--;
 
 	// Fill the buffer every tick
-	buffer4[bufferIndex4] = sample4;
+	buffer4[bufferIndex4] = soundOn4 * volume4 * sample4;
 
 	bufferIndex4++;
 	if (bufferIndex4 > 1023) {
