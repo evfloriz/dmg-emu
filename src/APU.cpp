@@ -22,13 +22,26 @@ void APU::clock() {
 	
 	// Resample from every tick (2^20 Hz) to sample rate (44100 Hz)
 	if (sampleCounter <= 0) {
-		sampleCounter += sampleTicks;
+		int posDifference = getPosDifference();
+		
+		if (posDifference > 3072) {
+			// Writing too fast, slow down
+			sampleCounter += slowerTicks;
+		}
+		else if (posDifference < 2048) {
+			// Writing too slow, speed up
+			sampleCounter += fasterTicks;
+		}
+		else {
+			sampleCounter += sampleTicks;
+		}
+		
+		writeCounter++;
 
 		if (writePos == readPos) {
+			writesDropped++;
 			return;
 		}
-
-		//while (writePos == readPos);
 
 		// Generate sample
 		float channel1 = buffer1[bufferIndex1];
@@ -41,12 +54,16 @@ void APU::clock() {
 
 		// Wrap around to 0 if writePos exceeds the size
 		writePos++;
-		if (writePos >= size) {
+		if (writePos > size - 1) {
 			writePos = 0;
 		}
 
 	}
 	sampleCounter--;
+}
+
+int APU::getPosDifference() {
+	return (writePos - readPos + size) % size;
 }
 
 void APU::fillBuffer(float* stream, int len) {
@@ -55,7 +72,13 @@ void APU::fillBuffer(float* stream, int len) {
 	for (int i = 0; i < len; i++) {
 		stream[i] = output[readPos];
 		readPos++;
-		if (readPos >= size) {
+		readCounter++;
+
+		if (readPos == writePos) {
+			readsDropped++;
+		}
+
+		if (readPos > size - 1) {
 			readPos = 0;
 		}
 	}

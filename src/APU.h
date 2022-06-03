@@ -20,12 +20,13 @@ private:
 private:
 	MMU* mmu = nullptr;
 
-	// One frame is 17556 ticks
-	static const int size = 2048;
+	static const int size = 4096;
 	float output[size] = {};
 
 	float sampleCounter = 0;
 	float sampleTicks = 1048576.0f / 44100.0f;
+	float fasterTicks = 1048576.0f / (44100.0f * 1.005f);
+	float slowerTicks = 1048576.0f / (44100.0f * 0.995f);
 
 	float volume = 0.01f;
 
@@ -79,4 +80,13 @@ private:
 	uint32_t envelopeCounter4 = 0;
 	uint32_t frequencyCounter4 = 0;
 	uint16_t bufferIndex4 = 0;
+
+public:
+	int readCounter = 0;
+	int writeCounter = 0;
+	int writesDropped = 0;
+	int readsDropped = 0;
+
+	int getPosDifference();
+
 };

@@ -119,6 +119,10 @@ public:
 	int execute() {
 		SDL_Event e;
 		const uint8_t* keyboardState = SDL_GetKeyboardState(NULL);
+
+		int secondCounter = 0;
+		uint64_t secondStart = 0;
+		int averageDistance = 0;
 		
 		bool quit = false;
 		while (!quit) {
@@ -149,29 +153,63 @@ public:
 			// Keep track of performance for fps display
 			uint64_t start = SDL_GetPerformanceCounter();
 
+			
+			if (secondCounter == 0) {
+				secondStart = SDL_GetPerformanceCounter();
+			}
+
 			// Execute one full frame of the Game Boy
 			dmg.tickFrame();
 			
 			// Render the result in the pixel buffer (and debug pixel buffer)
 			render();
 
-			// Calculate fps
-			uint64_t end = SDL_GetPerformanceCounter();
-			float elapsed = (end - start) / (float)SDL_GetPerformanceFrequency();
-			
-			// Delay until 16.666f ms have past (for 60 fps)
-			float elapsedMS = elapsed * 1000.0f;
-			if (elapsedMS < 16.666f) {
-				SDL_Delay(static_cast<uint32_t>(16.666f - elapsedMS));
-			}
+			// Keep track of the write and read position difference for debugging
+			averageDistance += dmg.apu.getPosDifference();
 
-			uint64_t capped_end = SDL_GetPerformanceCounter();
-			float capped_elapsed = (capped_end - start) / (float)SDL_GetPerformanceFrequency();
+			// Calculate elapsted time and delay until 16.666 ms have passed
+			uint64_t end = SDL_GetPerformanceCounter();
+			double elapsed = (end - start) / (double)SDL_GetPerformanceFrequency();
+			double delay = elapsed;
+
+			while (delay < 0.016666) {
+				end = SDL_GetPerformanceCounter();
+				delay = (end - start) / (double)SDL_GetPerformanceFrequency();
+			}			
+
+			uint64_t cappedEnd = SDL_GetPerformanceCounter();
+			float cappedElapsed = (cappedEnd - start) / (float)SDL_GetPerformanceFrequency();
 			
 			// Display both the capped and uncapped fps
-			std::string fps = std::to_string((int)(1.0f / elapsed));
-			std::string capped_fps = std::to_string((int)(1.0f / capped_elapsed));
-			std::cout << capped_fps << " | " << fps << "    \r" << std::flush;
+			std::string uncappedFPS = std::to_string((int)(1.0f / elapsed));
+			std::string cappedFPS = std::to_string((int)(1.0f / cappedElapsed));
+			std::cout << cappedFPS << " | " << uncappedFPS << "    \r" << std::flush;
+
+			// Display some debug information once a second
+			/*secondCounter++;
+			if (secondCounter > 59) {
+				secondCounter = 0;
+
+				uint64_t secondEnd = SDL_GetPerformanceCounter();
+				float secondElapsed = (secondEnd - secondStart) / (float)SDL_GetPerformanceFrequency();
+
+				std::cout << "writes per second: " << dmg.apu.writeCounter << std::endl;
+				std::cout << "reads per second: " << dmg.apu.readCounter << std::endl;
+				std::cout << "writes dropped per second: " << dmg.apu.writesDropped << std::endl;
+				std::cout << "reads dropped per second: " << dmg.apu.readsDropped << std::endl;
+				std::cout << "average write pos to read pos distance: " << averageDistance / 60 << std::endl;
+				std::cout << "seconds per 60 frames: " << secondElapsed << std::endl;
+				dmg.apu.writeCounter = 0;
+				dmg.apu.readCounter = 0;
+				dmg.apu.writesDropped = 0;
+				dmg.apu.readsDropped = 0;
+				averageDistance = 0;
+			}*/
+
+			
+
+			
+			
 
 		}
 		return 0;
