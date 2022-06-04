@@ -92,18 +92,14 @@ public:
 
 		audioSpec.freq = 44100;
 		audioSpec.format = AUDIO_F32SYS;
-		//audioSpec.channels = 1;
 		audioSpec.channels = 2;
-		//audioSpec.samples = 1024;
 		audioSpec.samples = 2048;
 		audioSpec.callback = fillAudioBuffer;
 		audioSpec.userdata = &dmg;
-		//audioDevice = SDL_OpenAudioDevice(nullptr, 0, &audioSpec, nullptr, SDL_AUDIO_ALLOW_ANY_CHANGE);
+		
+		// TODO: Investigate audio device flags
 		audioDevice = SDL_OpenAudioDevice(nullptr, 0, &audioSpec, nullptr, 0);
-		//audioDevice = SDL_OpenAudioDevice(nullptr, 0, &audioSpec, nullptr, SDL_AUDIO_ALLOW_SAMPLES_CHANGE); // 16384 -> 1764
-		//audioDevice = SDL_OpenAudioDevice(nullptr, 0, &audioSpec, nullptr, SDL_AUDIO_ALLOW_CHANNELS_CHANGE); // 16384 -> 32768
-		//SDL_AUDIO_ALLOW_FORMAT_CHANGE - unchange
-		//SDL_AUDIO_ALLOW_FREQUENCY_CHANGE - unchanged
+		
 		if (audioDevice == NULL) {
 			std::cout << "Audio device error. SDL_Error: " << SDL_GetError() << std::endl;
 			close();
@@ -207,11 +203,6 @@ public:
 				dmg.apu.readsDropped = 0;
 				averageDistance = 0;
 			}*/
-
-			
-
-			
-			
 
 		}
 		return 0;

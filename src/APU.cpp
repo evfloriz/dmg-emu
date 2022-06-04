@@ -14,6 +14,8 @@ void APU::clock() {
 	// Write a new value on every clock tick until the write position is the same as the read position.
 	
 	// TODO: Consider switching to using the frame sequencer
+
+	updateControl();
 	
 	updateChannel1();
 	updateChannel2();
@@ -36,22 +38,30 @@ void APU::clock() {
 			sampleCounter += sampleTicks;
 		}
 		
+		// Drop the sample if write is about to overflow into the read position
 		writeCounter++;
-
 		if (writePos == readPos) {
 			writesDropped++;
 			return;
 		}
 
-		// Generate sample
-		float channel1 = buffer1[bufferIndex1];
-		float channel2 = buffer2[bufferIndex2];
-		float channel3 = buffer3[bufferIndex3];
-		float channel4 = buffer4[bufferIndex4];
+		// Mix samples
+		float channels[4] = {
+			buffer1[bufferIndex1],
+			buffer2[bufferIndex2],
+			buffer3[bufferIndex3],
+			buffer4[bufferIndex4]
+		};
+		
+		float mixSO2 = 0.0f;
+		float mixSO1 = 0.0f;
+		for (int i = 0; i < 4; i++) {
+			mixSO2 += channels[i] * selectionSO2[i];
+			mixSO1 += channels[i] * selectionSO1[i];
+		}
 
-		//output[writePos] = volume * channel2;
-		outputSO2[writePos] = volume * (channel1 + channel2 + channel3 + channel4);
-		outputSO1[writePos] = volume * (channel1 + channel2 + channel3 + channel4);
+		outputSO2[writePos] = volume * volumeSO2 * mixSO2;
+		outputSO1[writePos] = volume * volumeSO1 * mixSO1;
 
 		// Wrap around to 0 if writePos exceeds the size
 		writePos++;
@@ -75,8 +85,8 @@ void APU::fillBuffer(float* stream, int len) {
 		stream[i + 1] = outputSO1[readPos];
 		
 		readPos++;
-		readCounter++;
 
+		readCounter++;
 		if (readPos == writePos) {
 			readsDropped++;
 		}
@@ -559,11 +569,18 @@ void APU::toggleSound(uint8_t data) {
 
 void APU::updateControl() {
 	uint8_t nr50 = mmu->directRead(0xFF24);
-	uint8_t nr51 = mmu->directRead(0xFF24);
+	uint8_t nr51 = mmu->directRead(0xFF25);
 
 	volumeSO2 = (nr50 & 0x70) >> 4;
 	volumeSO1 = (nr50 & 0x07);
 
-	selectionSO2 = (nr51 & 0xF0) >> 4;
-	selectionSO1 = (nr51 & 0x0F);
+	selectionSO2[3] = (nr51 & 0x80) >> 7;
+	selectionSO2[2] = (nr51 & 0x40) >> 6;
+	selectionSO2[1] = (nr51 & 0x20) >> 5;
+	selectionSO2[0] = (nr51 & 0x10) >> 4;
+
+	selectionSO1[3] = (nr51 & 0x08) >> 3;
+	selectionSO1[2] = (nr51 & 0x04) >> 2;
+	selectionSO1[1] = (nr51 & 0x02) >> 1;
+	selectionSO1[0] = (nr51 & 0x01);
 }

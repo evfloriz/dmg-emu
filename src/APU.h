@@ -11,6 +11,8 @@ public:
 	void clock();
 	void fillBuffer(float* stream, int len);
 	void toggleSound(uint8_t data);
+	
+	int getPosDifference();
 
 private:
 	void updateChannel1();
@@ -32,14 +34,14 @@ private:
 	float fasterTicks = 1048576.0f / (44100.0f * 1.005f);
 	float slowerTicks = 1048576.0f / (44100.0f * 0.995f);
 
-	float volume = 0.01f;
+	float volume = 0.001f;
 	uint8_t soundOn = 1;
 
 	// Left and right sound output data
 	uint8_t volumeSO2 = 0;
 	uint8_t volumeSO1 = 0;
-	uint8_t selectionSO2 = 0;
-	uint8_t selectionSO1 = 0;
+	uint8_t selectionSO2[4] = {};
+	uint8_t selectionSO1[4] = {};
 
 	uint16_t readPos = 0;
 	uint16_t writePos = 0;
@@ -93,11 +95,10 @@ private:
 	uint16_t bufferIndex4 = 0;
 
 public:
+	// Debug related information
 	int readCounter = 0;
 	int writeCounter = 0;
 	int writesDropped = 0;
 	int readsDropped = 0;
-
-	int getPosDifference();
 
 };
