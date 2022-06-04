@@ -34,7 +34,7 @@ public:
 	}
 
 	int init() {
-		if (SDL_Init(SDL_INIT_VIDEO) < 0) {
+		if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO) < 0) {
 			std::cout << "SDL could not initialize. SDL_Error: " << SDL_GetError() << std::endl;
 			return -1;
 		}
@@ -90,6 +90,24 @@ public:
 			return -1;
 		}
 
+		audioSpec.freq = 44100;
+		audioSpec.format = AUDIO_F32SYS;
+		audioSpec.channels = 2;
+		audioSpec.samples = 2048;
+		audioSpec.callback = fillAudioBuffer;
+		audioSpec.userdata = &dmg;
+		
+		// TODO: Investigate audio device flags
+		audioDevice = SDL_OpenAudioDevice(nullptr, 0, &audioSpec, nullptr, 0);
+		
+		if (audioDevice == NULL) {
+			std::cout << "Audio device error. SDL_Error: " << SDL_GetError() << std::endl;
+			close();
+			return -1;
+		}
+
+		SDL_PauseAudioDevice(audioDevice, 0);
+
 		// Start dmg
 		dmg.init();
 
@@ -99,6 +117,10 @@ public:
 	int execute() {
 		SDL_Event e;
 		const uint8_t* keyboardState = SDL_GetKeyboardState(NULL);
+
+		int secondCounter = 0;
+		uint64_t secondStart = 0;
+		int averageDistance = 0;
 		
 		bool quit = false;
 		while (!quit) {
@@ -121,8 +143,18 @@ public:
 			dmg.mmu.writeActionButton(2, !keyboardState[SDL_SCANCODE_S]);		// Select
 			dmg.mmu.writeActionButton(3, !keyboardState[SDL_SCANCODE_A]);		// Start
 
+			if (keyboardState[SDL_SCANCODE_Q]) {
+				// log toggle
+				dmg.cpu.log_toggle = !dmg.cpu.log_toggle;
+			}
+
 			// Keep track of performance for fps display
 			uint64_t start = SDL_GetPerformanceCounter();
+
+			
+			if (secondCounter == 0) {
+				secondStart = SDL_GetPerformanceCounter();
+			}
 
 			// Execute one full frame of the Game Boy
 			dmg.tickFrame();
@@ -130,24 +162,48 @@ public:
 			// Render the result in the pixel buffer (and debug pixel buffer)
 			render();
 
-			// Calculate fps
-			uint64_t end = SDL_GetPerformanceCounter();
-			float elapsed = (end - start) / (float)SDL_GetPerformanceFrequency();
-			
-			// Delay until 16.666f ms have past (for 60 fps)
-			float elapsedMS = elapsed * 1000.0f;
-			if (elapsedMS < 16.666f) {
-				SDL_Delay(static_cast<uint32_t>(16.666f - elapsedMS));
-			}
+			// Keep track of the write and read position difference for debugging
+			averageDistance += dmg.apu.getPosDifference();
 
-			uint64_t capped_end = SDL_GetPerformanceCounter();
-			float capped_elapsed = (capped_end - start) / (float)SDL_GetPerformanceFrequency();
+			// Calculate elapsted time and delay until 16.666 ms have passed
+			uint64_t end = SDL_GetPerformanceCounter();
+			double elapsed = (end - start) / (double)SDL_GetPerformanceFrequency();
+			double delay = elapsed;
+
+			while (delay < 0.016666) {
+				end = SDL_GetPerformanceCounter();
+				delay = (end - start) / (double)SDL_GetPerformanceFrequency();
+			}			
+
+			uint64_t cappedEnd = SDL_GetPerformanceCounter();
+			float cappedElapsed = (cappedEnd - start) / (float)SDL_GetPerformanceFrequency();
 			
 			// Display both the capped and uncapped fps
-			std::string fps = std::to_string((int)(1.0f / elapsed));
-			std::string capped_fps = std::to_string((int)(1.0f / capped_elapsed));
-			std::cout << capped_fps << " | " << fps << "\r" << std::flush;
-			
+			std::string uncappedFPS = std::to_string((int)(1.0f / elapsed));
+			std::string cappedFPS = std::to_string((int)(1.0f / cappedElapsed));
+			std::cout << cappedFPS << " | " << uncappedFPS << "    \r" << std::flush;
+
+			// Display some debug information once a second
+			/*secondCounter++;
+			if (secondCounter > 59) {
+				secondCounter = 0;
+
+				uint64_t secondEnd = SDL_GetPerformanceCounter();
+				float secondElapsed = (secondEnd - secondStart) / (float)SDL_GetPerformanceFrequency();
+
+				std::cout << "writes per second: " << dmg.apu.writeCounter << std::endl;
+				std::cout << "reads per second: " << dmg.apu.readCounter << std::endl;
+				std::cout << "writes dropped per second: " << dmg.apu.writesDropped << std::endl;
+				std::cout << "reads dropped per second: " << dmg.apu.readsDropped << std::endl;
+				std::cout << "average write pos to read pos distance: " << averageDistance / 60 << std::endl;
+				std::cout << "seconds per 60 frames: " << secondElapsed << std::endl;
+				dmg.apu.writeCounter = 0;
+				dmg.apu.readCounter = 0;
+				dmg.apu.writesDropped = 0;
+				dmg.apu.readsDropped = 0;
+				averageDistance = 0;
+			}*/
+
 		}
 		return 0;
 	}
@@ -219,6 +275,14 @@ public:
 		return 0;
 	}
 
+	static void fillAudioBuffer(void* userdata, uint8_t* stream, int len) {
+		DMG* dmg = (DMG*)userdata;
+		float* buffer = (float*)stream;
+		len /= 4;			// since the data is in floats
+
+		dmg->apu.fillBuffer(buffer, len);
+	}
+
 	void close() {
 		if (screenTexture) {
 			SDL_DestroyTexture(screenTexture);
@@ -254,6 +318,10 @@ public:
 			SDL_DestroyWindow(window);
 			window = nullptr;
 		}
+
+		if (audioDevice) {
+			SDL_CloseAudioDevice(audioDevice);
+		}
 		
 		SDL_Quit();
 	}
@@ -279,6 +347,9 @@ private:
 	SDL_Rect destWindowRect;
 	SDL_Rect srcObjectsRect;
 	SDL_Rect destObjectsRect;
+
+	SDL_AudioDeviceID audioDevice;
+	SDL_AudioSpec audioSpec;
 
 	DMG dmg;
 

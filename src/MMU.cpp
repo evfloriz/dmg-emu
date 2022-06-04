@@ -1,6 +1,10 @@
+#include "CPU.h"
+
 #include "MMU.h"
 
-MMU::MMU() {
+MMU::MMU(CPU* cpu) {
+	this->cpu = cpu;
+
 	// Set joypad register to high for now
 	memory[0xFF00] = 0xFF;
 }
@@ -42,7 +46,14 @@ void MMU::write(uint16_t addr, uint8_t data) {
 	}
 	else if (addr == 0xFF04) {
 		// If the divider is written to, set it to 0
-		memory[addr] = 0x00;
+		cpu->resetDivider();
+	}
+	else if (addr == 0xFF26) {
+		// Bit 7 turns the sound on or off
+		data >>= 7;
+
+		memory[addr] &= ~0x80;
+		memory[addr] |= data;
 	}
 	else if (addr == 0xFF41) {
 		// LCD STAT

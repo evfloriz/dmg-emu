@@ -7,7 +7,7 @@
 // TODO: Should these be put into a namespace?
 // TODO: Do a pass on where these should be used vs. where values should be hard coded.
 
-const int SCREEN_SCALE = 2;
+const int SCREEN_SCALE = 3;
 const int TILE_SCALE = 2;
 
 const int DMG_WIDTH = 160;
@@ -23,6 +23,9 @@ const int TILE_DATA_HEIGHT = 192;
 
 const int SCREEN_WIDTH = 1000;
 const int SCREEN_HEIGHT = 800;
+
+const uint32_t ROM_BANK_SIZE = 16 * 1024;
+const uint32_t RAM_BANK_SIZE = 8 * 1024;
 
 inline uint32_t ARGB(uint32_t red, uint32_t green, uint32_t blue, uint32_t alpha = 255) {
 	return (alpha << 24) | (red << 16) | (green << 8) | blue;

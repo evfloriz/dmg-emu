@@ -19,6 +19,8 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\APU.cpp" />
+    <ClCompile Include="src\MBC.cpp" />
     <ClCompile Include="src\MBC0.cpp" />
     <ClCompile Include="src\MBC1.cpp" />
     <ClCompile Include="src\DMG.cpp" />
@@ -30,6 +32,7 @@
     <ClCompile Include="src\main.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\APU.h" />
     <ClInclude Include="src\MBC.h" />
     <ClInclude Include="src\MBC0.h" />
     <ClInclude Include="src\MBC1.h" />

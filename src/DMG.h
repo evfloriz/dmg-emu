@@ -3,6 +3,7 @@
 #include "MMU.h"
 #include "CPU.h"
 #include "PPU.h"
+#include "APU.h"
 #include "Cartridge.h"
 
 class DMG {
@@ -17,5 +18,6 @@ public:
 	MMU mmu;
 	CPU cpu;
 	PPU ppu;
+	APU apu;
 	std::shared_ptr<Cartridge> cart;
 };

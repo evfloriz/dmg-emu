@@ -1,8 +1,9 @@
-#include "CPU.h"
-
-#include "MMU.h"
 #include <iostream>
 #include <chrono>
+
+#include "MMU.h"
+
+#include "CPU.h"
 
 CPU::CPU(MMU* mmu) {
 	this->mmu = mmu;
@@ -373,7 +374,10 @@ void CPU::clock() {
 		}
 
 		if (log_toggle) {
-			fprintf(file, "A: %02X F: %02X B: %02X C: %02X D: %02X E: %02X H: %02X L: %02X SP: %04X PC: 00:%04X\n", a, f, b, c, d, e, h, l, sp, pc);
+			//fprintf(file, "A: %02X F: %02X B: %02X C: %02X D: %02X E: %02X H: %02X L: %02X SP: %04X PC: 00:%04X\n", a, f, b, c, d, e, h, l, sp, pc);
+			fprintf(file, "0x%04x: 0x%02x ", pc, opcode);
+			fprintf(file, "%-15s ", name_lookup[opcode].c_str());
+			fprintf(file, "a: 0x%02x f: 0x%02x b: 0x%02x c: 0x%02x d: 0x%02x e: 0x%02x h: 0x%02x l: 0x%02x pc: 0x%04x sp: 0x%04x\n", a, f, b, c, d, e, h, l, pc, sp);
 		}
 
 		pc++;
@@ -2088,6 +2092,12 @@ uint8_t CPU::interrupt_handler() {
 	return 0;
 }
 
+void CPU::resetDivider() {
+	divider_clock = 0;
+	timer_clock = 0;
+	mmu->directWrite(0xFF04, 0);
+}
+
 uint8_t CPU::timer() {
 	// Divider
 	// 16384 Hz is every 256 cycles at 4 MHz
@@ -2119,17 +2129,21 @@ uint8_t CPU::timer() {
 		timer_clock++;
 		// Divide speeds by 4 to count M-cycles
 		if (timer_clock > speed / 4 - 1) {
+			timer_clock = 0;
+			
 			uint8_t timer_counter = mmu->directRead(0xFF05);
 			uint8_t timer_modulo = mmu->directRead(0xFF06);
-
-			timer_clock = timer_modulo;
 
 			// Increment timer after correct number of cycles
 			timer_counter++;
 			if (timer_counter == 0) {
 				// Set timer interrupt if overflow occurred
 				mmu->setBit(0xFF0F, 2, 1);
+
+				// Set the timer counter to the timer modulo if overflow occurred
+				timer_counter = timer_modulo;
 			}
+
 			mmu->directWrite(0xFF05, timer_counter);
 		}
 	}
