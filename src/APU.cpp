@@ -60,6 +60,11 @@ void APU::clock() {
 			mixSO1 += channels[i] * selectionSO1[i];
 		}
 
+		// TODO: Make this an option in the options text file
+		/*int channel = 1;
+		mixSO2 = channels[channel - 1] * selectionSO2[channel - 1];
+		mixSO1 = channels[channel - 1] * selectionSO1[channel - 1];*/
+
 		outputSO2[writePos] = volume * volumeSO2 * mixSO2;
 		outputSO1[writePos] = volume * volumeSO1 * mixSO1;
 
@@ -106,7 +111,7 @@ void APU::updateChannel1() {
 	uint8_t nr14 = mmu->directRead(0xFF14);
 
 	// Split registers into their encoded information
-	uint8_t sweepPeriod = (nr10 & 0x60) >> 4;
+	uint8_t sweepPeriod = (nr10 & 0x70) >> 4;
 	uint8_t sweepDirection = (nr10 & 0x08) >> 3;
 	uint8_t sweepShift = (nr10 & 0x07);
 	uint8_t wavePatternDutyIndex = (nr11 & 0xC0) >> 6;
@@ -124,6 +129,7 @@ void APU::updateChannel1() {
 	if (restart == 1) {
 		soundOn1 = 1;
 		volume1 = initialVolume;
+		
 
 		// Reset counters
 		soundLengthCounter1 = 4096 * (64 - soundLength);
@@ -148,6 +154,7 @@ void APU::updateChannel1() {
 		// If selection is true, stop the sound. Otherwise keep playing
 		if (selection) {
 			soundOn1 = 0;
+			return;
 		}
 	}
 	soundLengthCounter1--;
@@ -157,23 +164,41 @@ void APU::updateChannel1() {
 		sweepCounter1 = 8192 * sweepPeriod;
 
 		// Only use sweep if sweep period is greater than 0
-		if (sweepPeriod > 0) {
+		if (sweepPeriod > 0 && sweepShift > 0) {
 			// Increase or decrease frequency within 0 and 2047, turning off the channel if it goes out of bounds
-			if (sweepDirection == 1) {
-				if (frequency < 2048) {
-					frequency = frequency + (frequency / (1 << sweepShift));
-				}
-				else {
-					soundOn1 = 0;
-				}
+			// 0 is an increase, 1 is a decrease
+			if (sweepDirection == 0) {
+				frequency = frequency + (frequency / (1 << sweepShift));
 			}
-			else if (sweepDirection == 0) {
-				if (frequency > 0) {
-					frequency = frequency - (frequency / (1 << sweepShift));
-				}
-				else {
-					soundOn1 = 0;
-				}
+			else {
+				frequency = frequency - (frequency / (1 << sweepShift));
+			}
+
+			if (frequency > 2047) {
+				soundOn1 = 0;
+				return;
+			}
+				
+			// Write frequency back to nr13 and nr14
+			nr13 = frequency & 0x00FF;
+				
+			nr14 &= 0xF8;
+			nr14 |= (frequency & 0x0700) >> 8;
+
+			mmu->directWrite(0xFF13, nr13);
+			mmu->directWrite(0xFF14, nr14);
+
+			// Do the frequency and overflow check again
+			if (sweepDirection == 0) {
+				frequency = frequency + (frequency / (1 << sweepShift));
+			}
+			else {
+				frequency = frequency - (frequency / (1 << sweepShift));
+			}
+
+			if (frequency > 2047) {
+				soundOn1 = 0;
+				return;
 			}
 		}
 	}
@@ -284,6 +309,7 @@ void APU::updateChannel2() {
 		// If selection is true, stop the sound. Otherwise keep playing
 		if (selection) {
 			soundOn2 = 0;
+			return;
 		}
 	}
 	soundLengthCounter2--;
@@ -406,6 +432,7 @@ void APU::updateChannel3() {
 		// If selection is true, stop the sound. Otherwise keep playing
 		if (selection) {
 			soundOn3 = 0;
+			return;
 		}
 	}
 	soundLengthCounter3--;
@@ -503,6 +530,7 @@ void APU::updateChannel4() {
 		// If selection is true, stop the sound. Otherwise keep playing
 		if (selection) {
 			soundOn4 = 0;
+			return;
 		}
 	}
 	soundLengthCounter4--;

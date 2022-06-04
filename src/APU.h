@@ -49,7 +49,7 @@ private:
 	// Channel 1 data
 	float buffer1[1024] = {};
 	uint8_t soundOn1 = 0;
-	uint8_t volume1 = 0x00;
+	uint8_t volume1 = 0;
 	float sample1 = 0.0f;
 
 	uint16_t soundLengthCounter1 = 0;
@@ -62,7 +62,7 @@ private:
 	// Channel 2 data
 	float buffer2[1024] = {};
 	uint8_t soundOn2 = 0;
-	uint8_t volume2 = 0x00;
+	uint8_t volume2 = 0;
 	float sample2 = 0.0f;
 	
 	uint16_t soundLengthCounter2 = 0;
@@ -74,7 +74,7 @@ private:
 	// Channel 3 data
 	float buffer3[1024] = {};
 	uint8_t soundOn3 = 0;
-	uint8_t volume3 = 0x00;
+	uint8_t volume3 = 0;
 	float sample3 = 0.0f;
 	
 	uint16_t soundLengthCounter3 = 0;
@@ -85,7 +85,7 @@ private:
 	// Channel 4 data
 	float buffer4[1024] = {};
 	uint8_t soundOn4 = 0;
-	uint8_t volume4 = 0x00;
+	uint8_t volume4 = 0;
 	float sample4 = 0.0f;
 	uint16_t shiftRegister = 0xFFFF;
 	
