@@ -175,6 +175,7 @@ void APU::updateChannel1() {
 
 			if (frequency > 2047) {
 				soundOn1 = 0;
+				frequency = 2047;			// prevent division by 0
 			}
 				
 			// Write frequency back to nr13 and nr14
