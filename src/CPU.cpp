@@ -1,8 +1,9 @@
-#include "CPU.h"
-
-#include "MMU.h"
 #include <iostream>
 #include <chrono>
+
+#include "MMU.h"
+
+#include "CPU.h"
 
 CPU::CPU(MMU* mmu) {
 	this->mmu = mmu;
