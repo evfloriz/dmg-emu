@@ -50,7 +50,8 @@ void APU::clock() {
 		float channel4 = buffer4[bufferIndex4];
 
 		//output[writePos] = volume * channel2;
-		output[writePos] = volume * (channel1 + channel2 + channel3 + channel4);
+		outputSO2[writePos] = volume * (channel1 + channel2 + channel3 + channel4);
+		outputSO1[writePos] = volume * (channel1 + channel2 + channel3 + channel4);
 
 		// Wrap around to 0 if writePos exceeds the size
 		writePos++;
@@ -69,8 +70,10 @@ int APU::getPosDifference() {
 void APU::fillBuffer(float* stream, int len) {
 	// Set the value of the stream to the output, starting at the current read position and wrapping around
 	// if the read position exceeds the size.
-	for (int i = 0; i < len; i++) {
-		stream[i] = output[readPos];
+	for (int i = 0; i < len; i += 2) {
+		stream[i] = outputSO2[readPos];
+		stream[i + 1] = outputSO1[readPos];
+		
 		readPos++;
 		readCounter++;
 
@@ -546,6 +549,21 @@ void APU::updateChannel4() {
 	bufferIndex4++;
 	if (bufferIndex4 > 1023) {
 		bufferIndex4 = 0;
-	}
-	
+	}	
+}
+
+void APU::toggleSound(uint8_t data) {
+	// TODO: Destroy all contents of sound registers when sound is turned off
+	soundOn = data;
+}
+
+void APU::updateControl() {
+	uint8_t nr50 = mmu->directRead(0xFF24);
+	uint8_t nr51 = mmu->directRead(0xFF24);
+
+	volumeSO2 = (nr50 & 0x70) >> 4;
+	volumeSO1 = (nr50 & 0x07);
+
+	selectionSO2 = (nr51 & 0xF0) >> 4;
+	selectionSO1 = (nr51 & 0x0F);
 }

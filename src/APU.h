@@ -10,6 +10,7 @@ public:
 
 	void clock();
 	void fillBuffer(float* stream, int len);
+	void toggleSound(uint8_t data);
 
 private:
 	void updateChannel1();
@@ -17,11 +18,14 @@ private:
 	void updateChannel3();
 	void updateChannel4();
 
+	void updateControl();
+
 private:
 	MMU* mmu = nullptr;
 
 	static const int size = 4096;
-	float output[size] = {};
+	float outputSO2[size] = {};
+	float outputSO1[size] = {};
 
 	float sampleCounter = 0;
 	float sampleTicks = 1048576.0f / 44100.0f;
@@ -29,6 +33,13 @@ private:
 	float slowerTicks = 1048576.0f / (44100.0f * 0.995f);
 
 	float volume = 0.01f;
+	uint8_t soundOn = 1;
+
+	// Left and right sound output data
+	uint8_t volumeSO2 = 0;
+	uint8_t volumeSO1 = 0;
+	uint8_t selectionSO2 = 0;
+	uint8_t selectionSO1 = 0;
 
 	uint16_t readPos = 0;
 	uint16_t writePos = 0;
