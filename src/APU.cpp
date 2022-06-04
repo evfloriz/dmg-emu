@@ -129,7 +129,6 @@ void APU::updateChannel1() {
 	if (restart == 1) {
 		soundOn1 = 1;
 		volume1 = initialVolume;
-		
 
 		// Reset counters
 		soundLengthCounter1 = 4096 * (64 - soundLength);
@@ -153,8 +152,8 @@ void APU::updateChannel1() {
 
 		// If selection is true, stop the sound. Otherwise keep playing
 		if (selection) {
+			// Don't return immediately so 0 is written to the channel 1 buffer
 			soundOn1 = 0;
-			return;
 		}
 	}
 	soundLengthCounter1--;
@@ -176,7 +175,6 @@ void APU::updateChannel1() {
 
 			if (frequency > 2047) {
 				soundOn1 = 0;
-				return;
 			}
 				
 			// Write frequency back to nr13 and nr14
@@ -188,17 +186,17 @@ void APU::updateChannel1() {
 			mmu->directWrite(0xFF13, nr13);
 			mmu->directWrite(0xFF14, nr14);
 
-			// Do the frequency and overflow check again
+			// Calculate the next frequency and do the overflow check again
+			uint16_t overflowCheck = 0;
 			if (sweepDirection == 0) {
-				frequency = frequency + (frequency / (1 << sweepShift));
+				overflowCheck = frequency + (frequency / (1 << sweepShift));
 			}
 			else {
-				frequency = frequency - (frequency / (1 << sweepShift));
+				overflowCheck = frequency - (frequency / (1 << sweepShift));
 			}
 
-			if (frequency > 2047) {
+			if (overflowCheck > 2047) {
 				soundOn1 = 0;
-				return;
 			}
 		}
 	}
@@ -309,7 +307,6 @@ void APU::updateChannel2() {
 		// If selection is true, stop the sound. Otherwise keep playing
 		if (selection) {
 			soundOn2 = 0;
-			return;
 		}
 	}
 	soundLengthCounter2--;
@@ -432,7 +429,6 @@ void APU::updateChannel3() {
 		// If selection is true, stop the sound. Otherwise keep playing
 		if (selection) {
 			soundOn3 = 0;
-			return;
 		}
 	}
 	soundLengthCounter3--;
@@ -521,6 +517,7 @@ void APU::updateChannel4() {
 	if (soundOn4 == 0) {
 		return;
 	}
+
 	// TODO: Could this be out of sync with what the CPU is expecting? ie the CPU sets a length and restarts within
 	// the unchecked ticks, and then changes the length, expecting it to already have been consumed?
 	// Sound length counter, tick once every 256 Hz or 4096 cycles
@@ -530,7 +527,6 @@ void APU::updateChannel4() {
 		// If selection is true, stop the sound. Otherwise keep playing
 		if (selection) {
 			soundOn4 = 0;
-			return;
 		}
 	}
 	soundLengthCounter4--;
