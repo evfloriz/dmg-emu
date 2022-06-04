@@ -319,7 +319,9 @@ public:
 			window = nullptr;
 		}
 
-		SDL_CloseAudioDevice(audioDevice);
+		if (audioDevice) {
+			SDL_CloseAudioDevice(audioDevice);
+		}
 		
 		SDL_Quit();
 	}

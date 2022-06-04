@@ -1,5 +1,4 @@
 
-#include <iostream>
 
 #include "MMU.h"
 
@@ -241,7 +240,7 @@ void APU::updateChannel1() {
 
 	if (frequencyCounter1 == 0) {
 		// Split into 8 equal parts
-		frequencyCounter1 = (1 << 20) / tone1 / 8.0f;
+		frequencyCounter1 = (1 << 20) / tone1 / 8;
 
 		// Update the sample produced in accordance with the wave frequency
 		sample1 = waveIndex1 % 8 < waveRatio1 ? -1.0f : 1.0f;
@@ -299,8 +298,6 @@ void APU::updateChannel2() {
 		return;
 	}
 
-	// TODO: Could this be out of sync with what the CPU is expecting? ie the CPU sets a length and restarts within
-	// the unchecked ticks, and then changes the length, expecting it to already have been consumed?
 	// Sound length counter, tick once every 256 Hz or 4096 cycles
 	if (soundLengthCounter2 == 0) {
 		soundLengthCounter2 = 4096 * (64 - soundLength);
@@ -350,7 +347,7 @@ void APU::updateChannel2() {
 
 	if (frequencyCounter2 == 0) {
 		// Split into 8 equal parts
-		frequencyCounter2 = (1 << 20) / tone2 / 8.0f;
+		frequencyCounter2 = (1 << 20) / tone2 / 8;
 
 		// Update the sample produced in accordance with the wave frequency
 		sample2 = waveIndex2 % 8 < waveRatio2 ? -1.0f : 1.0f;
@@ -390,6 +387,9 @@ void APU::updateChannel3() {
 	// Return right away if sound is off
 	if (soundOn == 0) {
 		soundOn3 = 0;
+
+		// TODO: Investigate if this results in not filling the buffer with 0s, and if that
+		// causes issues
 		return;
 	}
 
@@ -434,24 +434,15 @@ void APU::updateChannel3() {
 	}
 	soundLengthCounter3--;
 
-	// Turn frequency into Hz to use for sampling in main loop
 	uint32_t tone3 = 65536 / (2048 - frequency);
 
-	// Frequency is every 65536 / (2048 - x) Hz or 16 * (2048 - x) ticks
 	if (frequencyCounter3 == 0) {
-		// Convert frequency to cycle counter
-		//frequencyCounter3 = 16 * (2048 - frequency);
-		//frequencyCounter3 = (2048 - frequency) / 2;
 		// Split into 32 portions
-		frequencyCounter3 = (1 << 20) / tone3 / 32.0f;
+		frequencyCounter3 = (1 << 20) / tone3 / 32;
 		if (frequencyCounter3 == 0) {
 			frequencyCounter3 = 1;
 		}
 
-		// TODO: How often should I update the wave data? It probably doesn't need to happen very frequently
-		//frequencyCounter3 = 32;
-
-		// I think I only need to read in the wave whenever a sample needs to be produced
 		uint8_t sampleByte = mmu->directRead(0xFF30 + (waveIndex3 / 2));
 
 		// If it's even, use the upper 4 bits, otherwise read the lower 4 bits
@@ -465,7 +456,7 @@ void APU::updateChannel3() {
 		// Convert the byte into a float from -1.0 to 1.0
 		sample3 = 2.0f * float(sampleByte) / 0xF - 1.0f;
 
-		// Every tick of the frequency counter, consume the next sample
+		// Every tick of the frequency counter, read in the next sample
 		waveIndex3++;
 		if (waveIndex3 > 31) {
 			waveIndex3 = 0;
@@ -499,7 +490,7 @@ void APU::updateChannel4() {
 
 	uint8_t shiftClockFrequency = (nr43 & 0xF0) >> 4;
 	uint8_t widthMode = (nr43 & 0x08) >> 3;
-	float dividingRatio = (nr43 & 0x07);
+	uint8_t dividingRatio = (nr43 & 0x07);
 
 	// Restart sound
 	if (restart == 1) {
@@ -519,8 +510,6 @@ void APU::updateChannel4() {
 		return;
 	}
 
-	// TODO: Could this be out of sync with what the CPU is expecting? ie the CPU sets a length and restarts within
-	// the unchecked ticks, and then changes the length, expecting it to already have been consumed?
 	// Sound length counter, tick once every 256 Hz or 4096 cycles
 	if (soundLengthCounter4 == 0) {
 		soundLengthCounter4 = 4096 * (64 - soundLength);
@@ -549,22 +538,19 @@ void APU::updateChannel4() {
 	}
 	envelopeCounter4--;
 
-	if (dividingRatio == 0) {
-		dividingRatio = 0.5;
-	}
-
-	uint32_t tone4 = 524288 / dividingRatio / (1 << (shiftClockFrequency + 1));
+	// If dividing ratio is 0, treat it like 0.5
+	uint32_t dividend = (dividingRatio > 0) ? (524288 / dividingRatio) : (524288 * 2);
+	uint32_t tone4 = dividend >> (shiftClockFrequency + 1);
 	
 	if (frequencyCounter4 == 0) {
-		// Convert frequency to cycle counter
 		frequencyCounter4 = (1 << 20) / tone4;
 		
 		uint8_t noiseBit = shiftRegister & 0x01;
 
-		// Invert the noise bit and put it in the array
+		// Use the inverted noise bit as the sample
 		sample4 = noiseBit ? -1.0f : 1.0f;
 
-		// Shift register function
+		// Shift register operation
 		uint16_t result = (shiftRegister & 0x01) ^ ((shiftRegister & 0x02) >> 1);
 		shiftRegister >>= 1;
 
