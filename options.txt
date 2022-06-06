@@ -1,0 +1,6 @@
+romPath=roms/super-mario-land.gb
+pixelScale=3
+displayFPS=0
+debugMode=0
+logPath=logs/log.txt
+test

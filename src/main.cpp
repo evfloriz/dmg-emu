@@ -1,5 +1,7 @@
 
 #include <iostream>
+#include <fstream>
+#include <unordered_map>
 #include <SDL.h>
 
 #include "Util.h"
@@ -356,6 +358,43 @@ private:
 };
 
 int main(int argc, char **argv) {
+	// Initialize options with default values
+	// Overwrite values with input from options.txt
+	// If an unexpected option is present, ignore it and print an error
+
+	std::unordered_map<std::string, std::string> options = {
+		{"romPath", ""},
+		{"pixelScale", "1"},
+		{"displayFPS", "0"},
+		{"debugMode", "0"},
+		{"logPath", "logs/log.txt"},
+	};
+	
+	std::ifstream ifs;
+	ifs.open("options.txt");
+	if (!ifs) {
+		std::cout << "Error opening options.txt" << std::endl;
+		return 1;
+	}
+
+	std::string line;
+	while (std::getline(ifs, line)) {
+		size_t pos = line.find("=");
+		if (pos != std::string::npos) {
+			std::string key = line.substr(0, pos);
+			std::string value = line.substr(pos + 1, line.length());
+			if (options.count(key)) {
+				options[key] = value;
+			}
+			else {
+				std::cout << key << " is an invalid option in options.txt" << std::endl;
+			}
+		}
+		else {
+			std::cout << line << " is an invalid line in options.txt" << std::endl;
+		}
+	}
+	
 	Demo demo;
 
 	demo.init();
