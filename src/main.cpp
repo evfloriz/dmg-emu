@@ -16,30 +16,38 @@ class Demo {
 
 public:
 	Demo() {
+		using namespace util;
+
 		// Initialize rects for various rendering textures
 		srcScreenRect = { 0, 0, DMG_WIDTH, DMG_HEIGHT };
-		destScreenRect = { 0, 0, DMG_WIDTH * SCREEN_SCALE, DMG_HEIGHT * SCREEN_SCALE };
+		destScreenRect = { 0, 0, DMG_WIDTH * DEBUG_SCREEN_SCALE, DMG_HEIGHT * DEBUG_SCREEN_SCALE };
 
 		srcTileDataRect = { 0, 0, TILE_DATA_WIDTH, TILE_DATA_HEIGHT };
-		destTileDataRect = { SCREEN_WIDTH - (TILE_DATA_WIDTH * TILE_SCALE), 0, TILE_DATA_WIDTH * TILE_SCALE, TILE_DATA_HEIGHT * TILE_SCALE };
+		destTileDataRect = { DEBUG_SCREEN_WIDTH - (TILE_DATA_WIDTH * TILE_SCALE), 0, TILE_DATA_WIDTH * TILE_SCALE, TILE_DATA_HEIGHT * TILE_SCALE };
 
 		srcBackgroundRect = { 0, 0, MAP_WIDTH, MAP_HEIGHT };
-		destBackgroundRect = { 0, SCREEN_HEIGHT - MAP_HEIGHT, MAP_WIDTH, MAP_HEIGHT };
+		destBackgroundRect = { 0, DEBUG_SCREEN_HEIGHT - MAP_HEIGHT, MAP_WIDTH, MAP_HEIGHT };
 
 		srcWindowRect = { 0, 0, MAP_WIDTH, MAP_HEIGHT };
-		destWindowRect = { MAP_WIDTH, SCREEN_HEIGHT - MAP_HEIGHT, MAP_WIDTH, MAP_HEIGHT };
+		destWindowRect = { MAP_WIDTH, DEBUG_SCREEN_HEIGHT - MAP_HEIGHT, MAP_WIDTH, MAP_HEIGHT };
 
 		srcObjectsRect = { 0, 0, MAP_WIDTH, MAP_HEIGHT };
-		destObjectsRect = { MAP_WIDTH * 2, SCREEN_HEIGHT - MAP_HEIGHT, MAP_WIDTH, MAP_HEIGHT };
+		destObjectsRect = { MAP_WIDTH * 2, DEBUG_SCREEN_HEIGHT - MAP_HEIGHT, MAP_WIDTH, MAP_HEIGHT };
+	}
+
+	~Demo() {
+		close();
 	}
 
 	int init() {
+		using namespace util;
+
 		if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO) < 0) {
 			std::cout << "SDL could not initialize. SDL_Error: " << SDL_GetError() << std::endl;
 			return -1;
 		}
 		
-		window = SDL_CreateWindow("SDL Tutorial", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN);
+		window = SDL_CreateWindow("SDL Tutorial", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, DEBUG_SCREEN_WIDTH, DEBUG_SCREEN_HEIGHT, SDL_WINDOW_SHOWN);
 		if (window == NULL) {
 			std::cout << "Window could not be created. SDL_Error: " << SDL_GetError() << std::endl;
 			close();
@@ -209,6 +217,8 @@ public:
 	}
 
 	int render() {
+		using namespace util;
+
 		auto renderTexture = [&](uint32_t* buffer, SDL_Texture* texture, SDL_Rect srcRect, SDL_Rect destRect, uint32_t size) {
 			// TODO: Figure out what exactly pitch does. Should there be multiple pitches?
 			uint32_t* pixels = nullptr;

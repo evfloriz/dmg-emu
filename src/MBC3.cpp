@@ -8,8 +8,8 @@ uint32_t MBC3::mapRomAddr(uint16_t addr) {
 		return addr;
 	}
 	else if (addr <= 0x7FFF) {
-		uint32_t newAddr = bank1 * ROM_BANK_SIZE + (addr - 0x4000);
-		newAddr %= romBanks * ROM_BANK_SIZE;
+		uint32_t newAddr = bank1 * util::ROM_BANK_SIZE + (addr - 0x4000);
+		newAddr %= romBanks * util::ROM_BANK_SIZE;
 		return newAddr;
 	}
 	else {
@@ -26,8 +26,8 @@ uint32_t MBC3::mapRamAddr(uint16_t addr) {
 				return 0xFFFFFFFF;
 			}
 			else {
-				uint32_t newAddr = bank2 * RAM_BANK_SIZE + (addr - 0xA000);
-				newAddr %= ramBanks * RAM_BANK_SIZE;
+				uint32_t newAddr = bank2 * util::RAM_BANK_SIZE + (addr - 0xA000);
+				newAddr %= ramBanks * util::RAM_BANK_SIZE;
 				return newAddr;
 			}
 		}

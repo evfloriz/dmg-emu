@@ -1,5 +1,6 @@
 romPath=roms/super-mario-land.gb
-pixelScale=3
+#romPath=roms/tetris.gb
+pixelScale=1
 displayFPS=1
 debugMode=0
-logPath=logs/log.txt
+#logPath=logs/log.txt

@@ -63,10 +63,10 @@ private:
 	uint16_t cycle = 0;
 	uint8_t ly = 0;
 
-	uint32_t* screenBuffer = new uint32_t[DMG_WIDTH * DMG_HEIGHT];
-	uint32_t* tileDataBuffer = new uint32_t[TILE_DATA_WIDTH * TILE_DATA_HEIGHT];
-	uint32_t* backgroundBuffer = new uint32_t[MAP_WIDTH * MAP_HEIGHT];
-	uint32_t* windowBuffer = new uint32_t[MAP_WIDTH * MAP_HEIGHT];
-	uint32_t* objectsBuffer = new uint32_t[MAP_WIDTH * MAP_HEIGHT];
-	bool* objectsPriorityBuffer = new bool[MAP_WIDTH * MAP_HEIGHT];
+	uint32_t* screenBuffer = new uint32_t[util::DMG_WIDTH * util::DMG_HEIGHT];
+	uint32_t* tileDataBuffer = new uint32_t[util::TILE_DATA_WIDTH * util::TILE_DATA_HEIGHT];
+	uint32_t* backgroundBuffer = new uint32_t[util::MAP_WIDTH * util::MAP_HEIGHT];
+	uint32_t* windowBuffer = new uint32_t[util::MAP_WIDTH * util::MAP_HEIGHT];
+	uint32_t* objectsBuffer = new uint32_t[util::MAP_WIDTH * util::MAP_HEIGHT];
+	bool* objectsPriorityBuffer = new bool[util::MAP_WIDTH * util::MAP_HEIGHT];
 };

@@ -9,66 +9,26 @@ DMG::DMG()
 	, apu(&mmu) {}
 
 bool DMG::init() {
-	// Test roms
-	size_t testRomNum = 24;
-	std::string test_roms[] = {
-		"cpu_instrs.gb",		// 0
-		"instr_timing.gb",		// 1
-		"interrupt_time.gb",	// 2
-		"mem_timing.gb",		// 3
-		"dmg_sound.gb",			// 4
-		"mbc1/bits_bank1.gb",	// 5
-		"mbc1/bits_bank2.gb",	// 6
-		"mbc1/bits_mode.gb",	// 7
-		"mbc1/bits_ramg.gb",	// 8
-		"mbc1/ram_64kb.gb",		// 9
-		"mbc1/ram_256kb.gb",	// 10
-		"mbc1/rom_1Mb.gb",		// 11
-		"mbc1/rom_2Mb.gb",		// 12
-		"mbc1/rom_4Mb.gb",		// 13
-		"mbc1/rom_8Mb.gb",		// 14
-		"mbc1/rom_16Mb.gb",		// 15
-		"mbc1/rom_512kb.gb",	// 16
-		"mts/acceptance/interrupts/ie_push.gb",	// 17
-		"mts/acceptance/instr/daa.gb",	// 18
-		"mts/acceptance/timer/div_write.gb",	// 19
-		"mts/acceptance/timer/tim00.gb",	// 20
-		"mts/acceptance/timer/tim00_div_trigger.gb",	// 21
-		"mts/acceptance/halt_ime0_ei.gb",	// 22
-		"mts/acceptance/halt_ime0_nointr_timing.gb",	// 23
-		"mts/acceptance/halt_ime1_timing.gb",	// 24
-		"mts/acceptance/halt_ime1_timing2-GS.gb",	// 25
-	};
-
-	// Games
-	size_t romNum = 2;
-	std::string roms[] = {
-		"tetris.gb",
-		"tennis.gb",
-		"super-mario-land.gb",
-		"pokemon-red.gb",
-		"loz-la.gb",
-		"metroid.gb"
-	};
-	
-	// TODO: Add config file to set these parameters
-	//std::string romName = "test-roms/" + test_roms[testRomNum];
-	std::string romName = "roms/" + roms[romNum];
-
 	// Create cartridge
-	cart = std::make_shared<Cartridge>(romName);
+	cart = std::make_shared<Cartridge>(util::romPath);
 	mmu.insertCartridge(cart);
 
-	std::cout << "Beginning execution of " << romName << std::endl;
+	std::cout << "Beginning execution of " << util::romPath << std::endl;
 
 	// TODO: Clean up printing and logging
 	cpu.print_toggle = false;
 	cpu.log_toggle = false;
-	cpu.log_file = "log/l" + std::to_string(testRomNum) + ".txt";
+	cpu.log_file = util::logPath;
 
 	// Initialize output file
 	cpu.file = fopen(cpu.log_file.c_str(), "w");
 
+	reset();
+
+	return true;
+}
+
+bool DMG::reset() {
 	// Reset LY
 	mmu.directWrite(0xFF44, 0x00);
 
@@ -86,7 +46,7 @@ bool DMG::init() {
 	mmu.directWrite(0xFF12, 0x00);
 	mmu.directWrite(0xFF13, 0xFF);
 	mmu.directWrite(0xFF14, 0xBF);
-	
+
 	// Channel 2
 	mmu.directWrite(0xFF16, 0x3F);
 	mmu.directWrite(0xFF17, 0x00);

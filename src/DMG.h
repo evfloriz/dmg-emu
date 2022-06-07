@@ -13,6 +13,7 @@ public:
 	bool init();
 	bool tick();
 	bool tickFrame();
+	bool reset();
 
 public:
 	MMU mmu;
