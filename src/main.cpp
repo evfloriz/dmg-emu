@@ -18,21 +18,33 @@ public:
 	Demo() {
 		using namespace util;
 
-		// Initialize rects for various rendering textures
+		windowName = "dmg-emu";
+		screenWidth = DMG_WIDTH * pixelScale;
+		screenHeight = DMG_HEIGHT * pixelScale;
+
 		srcScreenRect = { 0, 0, DMG_WIDTH, DMG_HEIGHT };
-		destScreenRect = { 0, 0, DMG_WIDTH * DEBUG_SCREEN_SCALE, DMG_HEIGHT * DEBUG_SCREEN_SCALE };
+		destScreenRect = { 0, 0, DMG_WIDTH * pixelScale, DMG_HEIGHT * pixelScale };
+		
+		if (debugMode == 1) {
+			windowName = "dmg-emu debug";
+			screenWidth = DEBUG_SCREEN_WIDTH;
+			screenHeight = DEBUG_SCREEN_HEIGHT;
 
-		srcTileDataRect = { 0, 0, TILE_DATA_WIDTH, TILE_DATA_HEIGHT };
-		destTileDataRect = { DEBUG_SCREEN_WIDTH - (TILE_DATA_WIDTH * TILE_SCALE), 0, TILE_DATA_WIDTH * TILE_SCALE, TILE_DATA_HEIGHT * TILE_SCALE };
+			srcScreenRect = { 0, 0, DMG_WIDTH, DMG_HEIGHT };
+			destScreenRect = { 0, 0, DMG_WIDTH * DEBUG_SCREEN_SCALE, DMG_HEIGHT * DEBUG_SCREEN_SCALE };
 
-		srcBackgroundRect = { 0, 0, MAP_WIDTH, MAP_HEIGHT };
-		destBackgroundRect = { 0, DEBUG_SCREEN_HEIGHT - MAP_HEIGHT, MAP_WIDTH, MAP_HEIGHT };
+			srcTileDataRect = { 0, 0, TILE_DATA_WIDTH, TILE_DATA_HEIGHT };
+			destTileDataRect = { DEBUG_SCREEN_WIDTH - (TILE_DATA_WIDTH * TILE_SCALE), 0, TILE_DATA_WIDTH * TILE_SCALE, TILE_DATA_HEIGHT * TILE_SCALE };
 
-		srcWindowRect = { 0, 0, MAP_WIDTH, MAP_HEIGHT };
-		destWindowRect = { MAP_WIDTH, DEBUG_SCREEN_HEIGHT - MAP_HEIGHT, MAP_WIDTH, MAP_HEIGHT };
+			srcBackgroundRect = { 0, 0, MAP_WIDTH, MAP_HEIGHT };
+			destBackgroundRect = { 0, DEBUG_SCREEN_HEIGHT - MAP_HEIGHT, MAP_WIDTH, MAP_HEIGHT };
 
-		srcObjectsRect = { 0, 0, MAP_WIDTH, MAP_HEIGHT };
-		destObjectsRect = { MAP_WIDTH * 2, DEBUG_SCREEN_HEIGHT - MAP_HEIGHT, MAP_WIDTH, MAP_HEIGHT };
+			srcWindowRect = { 0, 0, MAP_WIDTH, MAP_HEIGHT };
+			destWindowRect = { MAP_WIDTH, DEBUG_SCREEN_HEIGHT - MAP_HEIGHT, MAP_WIDTH, MAP_HEIGHT };
+
+			srcObjectsRect = { 0, 0, MAP_WIDTH, MAP_HEIGHT };
+			destObjectsRect = { MAP_WIDTH * 2, DEBUG_SCREEN_HEIGHT - MAP_HEIGHT, MAP_WIDTH, MAP_HEIGHT };
+		}
 	}
 
 	~Demo() {
@@ -47,7 +59,7 @@ public:
 			return -1;
 		}
 		
-		window = SDL_CreateWindow("SDL Tutorial", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, DEBUG_SCREEN_WIDTH, DEBUG_SCREEN_HEIGHT, SDL_WINDOW_SHOWN);
+		window = SDL_CreateWindow(windowName.c_str(), SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, screenWidth, screenHeight, SDL_WINDOW_SHOWN);
 		if (window == NULL) {
 			std::cout << "Window could not be created. SDL_Error: " << SDL_GetError() << std::endl;
 			close();
@@ -69,6 +81,37 @@ public:
 			close();
 			return -1;
 		}
+
+		if (debugMode == 1) {
+			initDebugTextures();
+		}
+
+		audioSpec.freq = 44100;
+		audioSpec.format = AUDIO_F32SYS;
+		audioSpec.channels = 2;
+		audioSpec.samples = 2048;
+		audioSpec.callback = fillAudioBuffer;
+		audioSpec.userdata = &dmg;
+		
+		// TODO: Investigate audio device flags
+		audioDevice = SDL_OpenAudioDevice(nullptr, 0, &audioSpec, nullptr, 0);
+		
+		if (audioDevice == NULL) {
+			std::cout << "Audio device error. SDL_Error: " << SDL_GetError() << std::endl;
+			close();
+			return -1;
+		}
+
+		SDL_PauseAudioDevice(audioDevice, 0);
+
+		// Start dmg
+		dmg.init();
+
+		return 0;
+	}
+
+	int initDebugTextures() {
+		using namespace util;
 
 		tileDataTexture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, TILE_DATA_WIDTH, TILE_DATA_HEIGHT);
 		if (tileDataTexture == NULL) {
@@ -98,27 +141,6 @@ public:
 			return -1;
 		}
 
-		audioSpec.freq = 44100;
-		audioSpec.format = AUDIO_F32SYS;
-		audioSpec.channels = 2;
-		audioSpec.samples = 2048;
-		audioSpec.callback = fillAudioBuffer;
-		audioSpec.userdata = &dmg;
-		
-		// TODO: Investigate audio device flags
-		audioDevice = SDL_OpenAudioDevice(nullptr, 0, &audioSpec, nullptr, 0);
-		
-		if (audioDevice == NULL) {
-			std::cout << "Audio device error. SDL_Error: " << SDL_GetError() << std::endl;
-			close();
-			return -1;
-		}
-
-		SDL_PauseAudioDevice(audioDevice, 0);
-
-		// Start dmg
-		dmg.init();
-
 		return 0;
 	}
 
@@ -128,7 +150,7 @@ public:
 
 		int secondCounter = 0;
 		uint64_t secondStart = 0;
-		int averageDistance = 0;
+		int averagePosDistance = 0;
 		
 		bool quit = false;
 		while (!quit) {
@@ -151,7 +173,7 @@ public:
 			dmg.mmu.writeActionButton(2, !keyboardState[SDL_SCANCODE_S]);		// Select
 			dmg.mmu.writeActionButton(3, !keyboardState[SDL_SCANCODE_A]);		// Start
 
-			if (keyboardState[SDL_SCANCODE_Q]) {
+			if (keyboardState[SDL_SCANCODE_Q] && (util::debugMode == 1)) {
 				// log toggle
 				dmg.cpu.log_toggle = !dmg.cpu.log_toggle;
 			}
@@ -159,7 +181,6 @@ public:
 			// Keep track of performance for fps display
 			uint64_t start = SDL_GetPerformanceCounter();
 
-			
 			if (secondCounter == 0) {
 				secondStart = SDL_GetPerformanceCounter();
 			}
@@ -171,7 +192,9 @@ public:
 			render();
 
 			// Keep track of the write and read position difference for debugging
-			averageDistance += dmg.apu.getPosDifference();
+			averagePosDistance += dmg.apu.getPosDifference();
+
+			std::cout << dmg.apu.getPosDifference() << std::endl;
 
 			// Calculate elapsted time and delay until 16.666 ms have passed
 			uint64_t end = SDL_GetPerformanceCounter();
@@ -187,30 +210,38 @@ public:
 			float cappedElapsed = (cappedEnd - start) / (float)SDL_GetPerformanceFrequency();
 			
 			// Display both the capped and uncapped fps
-			std::string uncappedFPS = std::to_string((int)(1.0f / elapsed));
-			std::string cappedFPS = std::to_string((int)(1.0f / cappedElapsed));
-			std::cout << cappedFPS << " | " << uncappedFPS << "    \r" << std::flush;
-
-			// Display some debug information once a second
-			/*secondCounter++;
+			if (util::displayFPS == 1) {
+				std::string uncappedFPS = std::to_string((int)(1.0f / elapsed));
+				std::string cappedFPS = std::to_string((int)(1.0f / cappedElapsed));
+				std::cout << cappedFPS << " | " << uncappedFPS << "    \r" << std::flush;
+			}
+			
+			// Display audio debug information once a second
+			secondCounter++;
 			if (secondCounter > 59) {
 				secondCounter = 0;
+
+				//averagePosDistance /= 60;
 
 				uint64_t secondEnd = SDL_GetPerformanceCounter();
 				float secondElapsed = (secondEnd - secondStart) / (float)SDL_GetPerformanceFrequency();
 
-				std::cout << "writes per second: " << dmg.apu.writeCounter << std::endl;
-				std::cout << "reads per second: " << dmg.apu.readCounter << std::endl;
-				std::cout << "writes dropped per second: " << dmg.apu.writesDropped << std::endl;
-				std::cout << "reads dropped per second: " << dmg.apu.readsDropped << std::endl;
-				std::cout << "average write pos to read pos distance: " << averageDistance / 60 << std::endl;
-				std::cout << "seconds per 60 frames: " << secondElapsed << std::endl;
+				if (util::debugMode == 1) {
+					std::cout << "writes per second: " << dmg.apu.writeCounter << std::endl;
+					std::cout << "reads per second: " << dmg.apu.readCounter << std::endl;
+					std::cout << "writes dropped per second: " << dmg.apu.writesDropped << std::endl;
+					std::cout << "reads dropped per second: " << dmg.apu.readsDropped << std::endl;
+					std::cout << "average write pos to read pos distance: " << averagePosDistance / 60 << std::endl;
+					std::cout << "seconds per 60 frames: " << secondElapsed << std::endl;
+					std::cout << std::endl;
+				}
+
 				dmg.apu.writeCounter = 0;
 				dmg.apu.readCounter = 0;
 				dmg.apu.writesDropped = 0;
 				dmg.apu.readsDropped = 0;
-				averageDistance = 0;
-			}*/
+				averagePosDistance = 0;
+			}
 
 		}
 		return 0;
@@ -248,37 +279,39 @@ public:
 			destScreenRect,
 			DMG_WIDTH * DMG_HEIGHT);
 		
-		// Process tile data texture
-		renderTexture(
-			dmg.ppu.getTileDataBuffer(),
-			tileDataTexture,
-			srcTileDataRect,
-			destTileDataRect,
-			TILE_DATA_WIDTH * TILE_DATA_HEIGHT);
+		if (debugMode == 1) {
+			// Process tile data texture
+			renderTexture(
+				dmg.ppu.getTileDataBuffer(),
+				tileDataTexture,
+				srcTileDataRect,
+				destTileDataRect,
+				TILE_DATA_WIDTH * TILE_DATA_HEIGHT);
 
-		// Process background texture
-		renderTexture(
-			dmg.ppu.getBackgroundBuffer(),
-			backgroundTexture,
-			srcBackgroundRect,
-			destBackgroundRect,
-			MAP_WIDTH * MAP_HEIGHT);
+			// Process background texture
+			renderTexture(
+				dmg.ppu.getBackgroundBuffer(),
+				backgroundTexture,
+				srcBackgroundRect,
+				destBackgroundRect,
+				MAP_WIDTH * MAP_HEIGHT);
 
-		// Process window texture
-		renderTexture(
-			dmg.ppu.getWindowBuffer(),
-			windowTexture,
-			srcWindowRect,
-			destWindowRect,
-			MAP_WIDTH * MAP_HEIGHT);
+			// Process window texture
+			renderTexture(
+				dmg.ppu.getWindowBuffer(),
+				windowTexture,
+				srcWindowRect,
+				destWindowRect,
+				MAP_WIDTH * MAP_HEIGHT);
 
-		// Process objects texture
-		renderTexture(
-			dmg.ppu.getObjectsBuffer(),
-			objectsTexture,
-			srcObjectsRect,
-			destObjectsRect,
-			MAP_WIDTH * MAP_HEIGHT);
+			// Process objects texture
+			renderTexture(
+				dmg.ppu.getObjectsBuffer(),
+				objectsTexture,
+				srcObjectsRect,
+				destObjectsRect,
+				MAP_WIDTH * MAP_HEIGHT);
+		}
 		
 		SDL_RenderPresent(renderer);
 
@@ -299,24 +332,26 @@ public:
 			screenTexture = nullptr;
 		}
 		
-		if (tileDataTexture) {
-			SDL_DestroyTexture(tileDataTexture);
-			tileDataTexture = nullptr;
-		}
-		
-		if (backgroundTexture) {
-			SDL_DestroyTexture(backgroundTexture);
-			backgroundTexture = nullptr;
-		}
-		
-		if (windowTexture) {
-			SDL_DestroyTexture(windowTexture);
-			windowTexture = nullptr;
-		}
+		if (util::debugMode == 1) {
+			if (tileDataTexture) {
+				SDL_DestroyTexture(tileDataTexture);
+				tileDataTexture = nullptr;
+			}
 
-		if (objectsTexture) {
-			SDL_DestroyTexture(objectsTexture);
-			objectsTexture = nullptr;
+			if (backgroundTexture) {
+				SDL_DestroyTexture(backgroundTexture);
+				backgroundTexture = nullptr;
+			}
+
+			if (windowTexture) {
+				SDL_DestroyTexture(windowTexture);
+				windowTexture = nullptr;
+			}
+
+			if (objectsTexture) {
+				SDL_DestroyTexture(objectsTexture);
+				objectsTexture = nullptr;
+			}
 		}
 
 		if (renderer) {
@@ -360,6 +395,11 @@ private:
 
 	SDL_AudioDeviceID audioDevice;
 	SDL_AudioSpec audioSpec;
+
+	int screenWidth;
+	int screenHeight;
+
+	std::string windowName;
 
 	DMG dmg;
 
