@@ -7,6 +7,9 @@
 // TODO: Should these be put into a namespace?
 // TODO: Do a pass on where these should be used vs. where values should be hard coded.
 
+#include <string>
+#include <unordered_map>
+
 const int SCREEN_SCALE = 3;
 const int TILE_SCALE = 2;
 
@@ -29,4 +32,14 @@ const uint32_t RAM_BANK_SIZE = 8 * 1024;
 
 inline uint32_t ARGB(uint32_t red, uint32_t green, uint32_t blue, uint32_t alpha = 255) {
 	return (alpha << 24) | (red << 16) | (green << 8) | blue;
+}
+
+inline bool isNumber(const std::string& str) {
+	return (str.find_first_not_of("0123456789") == std::string::npos) && !str.empty();
+}
+
+namespace util {
+	extern std::unordered_map<std::string, std::string> options;
+
+	int readOptionsFile();
 }
