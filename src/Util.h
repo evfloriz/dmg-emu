@@ -1,12 +1,5 @@
 #pragma once
 
-/*
-* This file has constants that are used throughout the emulator, as well some useful inline functions.
-*/
-
-// TODO: Should these be put into a namespace?
-// TODO: Do a pass on where these should be used vs. where values should be hard coded.
-
 #include <string>
 #include <unordered_map>
 
@@ -24,6 +17,7 @@ namespace util {
 	
 	// Global config options
 	extern std::string romPath;
+	extern std::string palette;
 	extern int pixelScale;
 	extern int displayFPS;
 	extern int debugMode;
@@ -31,6 +25,8 @@ namespace util {
 
 	extern std::unordered_map<std::string, std::string> options;
 
+	// TODO: Do a pass on where constants should be used vs. where values should be hard coded
+	
 	// Global constants
 	const int DMG_WIDTH = 160;
 	const int DMG_HEIGHT = 144;

@@ -7,13 +7,6 @@
 #include "DMG.h"
 
 class Demo {
-	
-	/*
-	Helpful resources:
-		https://github.com/DOOMReboot/PixelPusher/blob/master/PixelPusher.cpp
-		LazyFoo tutorials
-	*/
-
 public:
 	Demo() {
 		using namespace util;
@@ -150,7 +143,7 @@ public:
 
 		int secondCounter = 0;
 		uint64_t secondStart = 0;
-		int averagePosDistance = 0;
+		int totalPosDistance = 0;
 		
 		bool quit = false;
 		while (!quit) {
@@ -161,7 +154,6 @@ public:
 				}
 			}
 
-			// TODO: Is this way of handling input overengineered?
 			// 0 is pressed, 1 is unpressed
 			dmg.mmu.writeDirectionButton(0, !keyboardState[SDL_SCANCODE_RIGHT]);
 			dmg.mmu.writeDirectionButton(1, !keyboardState[SDL_SCANCODE_LEFT]);
@@ -174,11 +166,13 @@ public:
 			dmg.mmu.writeActionButton(3, !keyboardState[SDL_SCANCODE_A]);		// Start
 
 			if (keyboardState[SDL_SCANCODE_Q] && (util::debugMode == 1)) {
-				// log toggle
-				dmg.cpu.log_toggle = !dmg.cpu.log_toggle;
+				// Toggle log capture
+				dmg.cpu.log_capture = !dmg.cpu.log_capture;
 			}
 
-			// Keep track of performance for fps display
+			// TODO: Clean up main loop
+
+			// Keep track of start time for each frame and every 60 frames
 			uint64_t start = SDL_GetPerformanceCounter();
 
 			if (secondCounter == 0) {
@@ -192,9 +186,7 @@ public:
 			render();
 
 			// Keep track of the write and read position difference for debugging
-			averagePosDistance += dmg.apu.getPosDifference();
-
-			std::cout << dmg.apu.getPosDifference() << std::endl;
+			totalPosDistance += dmg.apu.getPosDifference();
 
 			// Calculate elapsted time and delay until 16.666 ms have passed
 			uint64_t end = SDL_GetPerformanceCounter();
@@ -221,8 +213,6 @@ public:
 			if (secondCounter > 59) {
 				secondCounter = 0;
 
-				//averagePosDistance /= 60;
-
 				uint64_t secondEnd = SDL_GetPerformanceCounter();
 				float secondElapsed = (secondEnd - secondStart) / (float)SDL_GetPerformanceFrequency();
 
@@ -231,7 +221,7 @@ public:
 					std::cout << "reads per second: " << dmg.apu.readCounter << std::endl;
 					std::cout << "writes dropped per second: " << dmg.apu.writesDropped << std::endl;
 					std::cout << "reads dropped per second: " << dmg.apu.readsDropped << std::endl;
-					std::cout << "average write pos to read pos distance: " << averagePosDistance / 60 << std::endl;
+					std::cout << "average write pos to read pos distance: " << totalPosDistance / 60 << std::endl;
 					std::cout << "seconds per 60 frames: " << secondElapsed << std::endl;
 					std::cout << std::endl;
 				}
@@ -240,80 +230,84 @@ public:
 				dmg.apu.readCounter = 0;
 				dmg.apu.writesDropped = 0;
 				dmg.apu.readsDropped = 0;
-				averagePosDistance = 0;
+				totalPosDistance = 0;
 			}
 
 		}
 		return 0;
 	}
 
-	int render() {
-		using namespace util;
-
-		auto renderTexture = [&](uint32_t* buffer, SDL_Texture* texture, SDL_Rect srcRect, SDL_Rect destRect, uint32_t size) {
-			// TODO: Figure out what exactly pitch does. Should there be multiple pitches?
-			uint32_t* pixels = nullptr;
-			
-			int pitch = 0;
-
-			if (SDL_LockTexture(texture, nullptr, (void**)&pixels, &pitch)) {
-				std::cout << "Texture could not be locked. SDL_Error: " << SDL_GetError() << std::endl;
-				return -1;
-			}
-
-			pitch /= sizeof(uint32_t);
-			
-			std::copy(buffer, buffer + size, pixels);
-
-			SDL_UnlockTexture(texture);
-			SDL_RenderCopy(renderer, texture, &srcRect, &destRect);
-
-			return 0;
-		};
-		
+	int render() {	
 		// Process screen texture
 		renderTexture(
 			dmg.ppu.getScreenBuffer(),
 			screenTexture,
 			srcScreenRect,
 			destScreenRect,
-			DMG_WIDTH * DMG_HEIGHT);
+			util::DMG_WIDTH * util::DMG_HEIGHT);
 		
-		if (debugMode == 1) {
-			// Process tile data texture
-			renderTexture(
-				dmg.ppu.getTileDataBuffer(),
-				tileDataTexture,
-				srcTileDataRect,
-				destTileDataRect,
-				TILE_DATA_WIDTH * TILE_DATA_HEIGHT);
-
-			// Process background texture
-			renderTexture(
-				dmg.ppu.getBackgroundBuffer(),
-				backgroundTexture,
-				srcBackgroundRect,
-				destBackgroundRect,
-				MAP_WIDTH * MAP_HEIGHT);
-
-			// Process window texture
-			renderTexture(
-				dmg.ppu.getWindowBuffer(),
-				windowTexture,
-				srcWindowRect,
-				destWindowRect,
-				MAP_WIDTH * MAP_HEIGHT);
-
-			// Process objects texture
-			renderTexture(
-				dmg.ppu.getObjectsBuffer(),
-				objectsTexture,
-				srcObjectsRect,
-				destObjectsRect,
-				MAP_WIDTH * MAP_HEIGHT);
+		if (util::debugMode == 1) {
+			renderDebugTextures();
 		}
 		
 		SDL_RenderPresent(renderer);
+
+		return 0;
+	}
+
+	int renderDebugTextures() {
+		// Process tile data texture
+		renderTexture(
+			dmg.ppu.getTileDataBuffer(),
+			tileDataTexture,
+			srcTileDataRect,
+			destTileDataRect,
+			util::TILE_DATA_WIDTH * util::TILE_DATA_HEIGHT);
+
+		// Process background texture
+		renderTexture(
+			dmg.ppu.getBackgroundBuffer(),
+			backgroundTexture,
+			srcBackgroundRect,
+			destBackgroundRect,
+			util::MAP_WIDTH * util::MAP_HEIGHT);
+
+		// Process window texture
+		renderTexture(
+			dmg.ppu.getWindowBuffer(),
+			windowTexture,
+			srcWindowRect,
+			destWindowRect,
+			util::MAP_WIDTH * util::MAP_HEIGHT);
+
+		// Process objects texture
+		renderTexture(
+			dmg.ppu.getObjectsBuffer(),
+			objectsTexture,
+			srcObjectsRect,
+			destObjectsRect,
+			util::MAP_WIDTH * util::MAP_HEIGHT);
+
+		return 0;
+	}
+
+	int renderTexture(uint32_t* buffer, SDL_Texture* texture, SDL_Rect srcRect, SDL_Rect destRect, uint32_t size) {
+		// TODO: Figure out what exactly pitch does. Should there be multiple pitches?
+		uint32_t* pixels = nullptr;
+
+		int pitch = 0;
+
+		if (SDL_LockTexture(texture, nullptr, (void**)&pixels, &pitch)) {
+			std::cout << "Texture could not be locked. SDL_Error: " << SDL_GetError() << std::endl;
+			return -1;
+		}
+
+		pitch /= sizeof(uint32_t);
+
+		std::copy(buffer, buffer + size, pixels);
+
+		SDL_UnlockTexture(texture);
+		SDL_RenderCopy(renderer, texture, &srcRect, &destRect);
 
 		return 0;
 	}
@@ -333,25 +327,7 @@ public:
 		}
 		
 		if (util::debugMode == 1) {
-			if (tileDataTexture) {
-				SDL_DestroyTexture(tileDataTexture);
-				tileDataTexture = nullptr;
-			}
-
-			if (backgroundTexture) {
-				SDL_DestroyTexture(backgroundTexture);
-				backgroundTexture = nullptr;
-			}
-
-			if (windowTexture) {
-				SDL_DestroyTexture(windowTexture);
-				windowTexture = nullptr;
-			}
-
-			if (objectsTexture) {
-				SDL_DestroyTexture(objectsTexture);
-				objectsTexture = nullptr;
-			}
+			closeDebugTextures();
 		}
 
 		if (renderer) {
@@ -369,6 +345,28 @@ public:
 		}
 		
 		SDL_Quit();
+	}
+
+	void closeDebugTextures() {
+		if (tileDataTexture) {
+			SDL_DestroyTexture(tileDataTexture);
+			tileDataTexture = nullptr;
+		}
+
+		if (backgroundTexture) {
+			SDL_DestroyTexture(backgroundTexture);
+			backgroundTexture = nullptr;
+		}
+
+		if (windowTexture) {
+			SDL_DestroyTexture(windowTexture);
+			windowTexture = nullptr;
+		}
+
+		if (objectsTexture) {
+			SDL_DestroyTexture(objectsTexture);
+			objectsTexture = nullptr;
+		}
 	}
 
 

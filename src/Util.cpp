@@ -3,21 +3,23 @@
 
 #include "Util.h"
 
-// Initialize options with default values
 namespace util {
+	// Initialize options with default values
 	std::unordered_map<std::string, std::string> options = {
 		{"romPath", ""},
+		{"palette", "mgb"},
 		{"pixelScale", "1"},
 		{"displayFPS", "0"},
 		{"debugMode", "0"},
 		{"logPath", "logs/log.txt"},
 	};
 
-	std::string romPath = "";
-	int pixelScale = 1;
-	int displayFPS = 0;
-	int debugMode = 0;
-	std::string logPath = "";
+	std::string romPath = options["romPath"];
+	std::string palette = options["palette"];
+	int pixelScale = std::stoi(options["pixelScale"]);
+	int displayFPS = std::stoi(options["displayFPS"]);
+	int debugMode = std::stoi(options["debugMode"]);
+	std::string logPath = options["logPath"];
 }
 
 
@@ -66,6 +68,12 @@ int util::readOptionsFile() {
 				ifs.close();
 				return -1;
 			}
+
+			if (key == "palette" && !(value == "mgb" || value == "dmg")) {
+				std::cout << value << " is an unrecognized palette" << std::endl;
+				ifs.close();
+				return -1;
+			}
 		}
 		else {
 			std::cout << line << " is an invalid line in options.txt" << std::endl;
@@ -75,6 +83,7 @@ int util::readOptionsFile() {
 	}
 
 	romPath = options["romPath"];
+	palette = options["palette"];
 	pixelScale = std::stoi(options["pixelScale"]);
 	displayFPS = std::stoi(options["displayFPS"]);
 	debugMode = std::stoi(options["debugMode"]);

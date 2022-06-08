@@ -7,36 +7,31 @@
 PPU::PPU(MMU* mmu) {
 	this->mmu = mmu;
 
-	/*palette[0] = ARGB(155, 188, 155);
-	palette[1] = ARGB(139, 172, 139);
-	palette[2] = ARGB(48, 98, 48);
-	palette[3] = ARGB(15, 56, 15);*/
-
 	// Colours taken from gambatte libretro core
 
-	// DMG palette
-	/*palette[0] = ARGB(87, 130, 0);
-	palette[1] = ARGB(49, 116, 0);
-	palette[2] = ARGB(00, 81, 33);
-	palette[3] = ARGB(00, 66, 12);*/
-
-	// DMG 2018 version
-	/*palette[0] = ARGB(127, 134, 15);
-	palette[1] = ARGB(87, 124, 68);
-	palette[2] = ARGB(54, 93, 72);
-	palette[3] = ARGB(42, 69, 59);*/
-
-	// MGB palette
-	palette[0] = util::ARGB(167, 177, 154);
-	palette[1] = util::ARGB(134, 146, 124);
-	palette[2] = util::ARGB(83, 95, 73);
-	palette[3] = util::ARGB(42, 51, 37);
-
-	// MGB 2018 version
-	/*palette[0] = ARGB(198, 207, 165);
-	palette[1] = ARGB(140, 150, 107);
-	palette[2] = ARGB(74, 81, 57);
-	palette[3] = ARGB(24, 28, 24);*/
+	if (util::palette == "mgb") {
+		// MGB palette
+		palette[0] = util::ARGB(167, 177, 154);
+		palette[1] = util::ARGB(134, 146, 124);
+		palette[2] = util::ARGB(83, 95, 73);
+		palette[3] = util::ARGB(42, 51, 37);
+		
+	}
+	else if (util::palette == "dmg") {
+		// DMG palette
+		palette[0] = util::ARGB(87, 130, 0);
+		palette[1] = util::ARGB(49, 116, 0);
+		palette[2] = util::ARGB(00, 81, 33);
+		palette[3] = util::ARGB(00, 66, 12);
+		
+	}
+	else {
+		// Original working palette, shouldn't be used as mgb is default
+		palette[0] = util::ARGB(155, 188, 155);
+		palette[1] = util::ARGB(139, 172, 139);
+		palette[2] = util::ARGB(48, 98, 48);
+		palette[3] = util::ARGB(15, 56, 15);
+	}
 }
 
 PPU::~PPU() {

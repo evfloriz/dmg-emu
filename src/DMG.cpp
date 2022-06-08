@@ -15,9 +15,7 @@ bool DMG::init() {
 
 	std::cout << "Beginning execution of " << util::romPath << std::endl;
 
-	// TODO: Clean up printing and logging
-	cpu.print_toggle = false;
-	cpu.log_toggle = false;
+	cpu.log_capture = false;
 	cpu.log_file = util::logPath;
 
 	// Initialize output file
