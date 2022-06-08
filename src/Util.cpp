@@ -22,7 +22,6 @@ namespace util {
 	std::string logPath = options["logPath"];
 }
 
-
 int util::readOptionsFile() {
 	// Overwrite options with input from options.txt
 	// If an unexpected option is present, print an error message and return
