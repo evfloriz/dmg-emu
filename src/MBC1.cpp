@@ -9,15 +9,15 @@ uint32_t MBC1::mapRomAddr(uint16_t addr) {
 		if (mode == 0x01) {
 			newRomBankNumber = bank2 << 5;
 		}
-		uint32_t newAddr = newRomBankNumber * ROM_BANK_SIZE + addr;
-		newAddr %= romBanks * ROM_BANK_SIZE;
+		uint32_t newAddr = newRomBankNumber * util::ROM_BANK_SIZE + addr;
+		newAddr %= romBanks * util::ROM_BANK_SIZE;
 		return newAddr;
 	}
 	else if (addr <= 0x7FFF) {
 		// Use the upper rom bank number bits if in rom mode
 		uint8_t newRomBankNumber = (bank2 << 5) | bank1;
-		uint32_t newAddr = newRomBankNumber * ROM_BANK_SIZE + (addr - 0x4000);
-		newAddr %= romBanks * ROM_BANK_SIZE;
+		uint32_t newAddr = newRomBankNumber * util::ROM_BANK_SIZE + (addr - 0x4000);
+		newAddr %= romBanks * util::ROM_BANK_SIZE;
 		return newAddr;
 	}
 	else {
@@ -35,8 +35,8 @@ uint32_t MBC1::mapRamAddr(uint16_t addr) {
 			if (mode == 0x01) {
 				newRamBankNumber = bank2;
 			}
-			uint32_t newAddr = newRamBankNumber * RAM_BANK_SIZE + (addr - 0xA000);
-			newAddr %= ramBanks * RAM_BANK_SIZE;
+			uint32_t newAddr = newRamBankNumber * util::RAM_BANK_SIZE + (addr - 0xA000);
+			newAddr %= ramBanks * util::RAM_BANK_SIZE;
 			return newAddr;
 		}
 		else {

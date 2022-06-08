@@ -1,43 +1,37 @@
 #include <iostream>
 
 #include "MMU.h"
-#include "Util.h"
 
 #include "PPU.h"
 
 PPU::PPU(MMU* mmu) {
 	this->mmu = mmu;
 
-	/*palette[0] = ARGB(155, 188, 155);
-	palette[1] = ARGB(139, 172, 139);
-	palette[2] = ARGB(48, 98, 48);
-	palette[3] = ARGB(15, 56, 15);*/
-
 	// Colours taken from gambatte libretro core
 
-	// DMG palette
-	/*palette[0] = ARGB(87, 130, 0);
-	palette[1] = ARGB(49, 116, 0);
-	palette[2] = ARGB(00, 81, 33);
-	palette[3] = ARGB(00, 66, 12);*/
-
-	// DMG 2018 version
-	/*palette[0] = ARGB(127, 134, 15);
-	palette[1] = ARGB(87, 124, 68);
-	palette[2] = ARGB(54, 93, 72);
-	palette[3] = ARGB(42, 69, 59);*/
-
-	// MGB palette
-	palette[0] = ARGB(167, 177, 154);
-	palette[1] = ARGB(134, 146, 124);
-	palette[2] = ARGB(83, 95, 73);
-	palette[3] = ARGB(42, 51, 37);
-
-	// MGB 2018 version
-	/*palette[0] = ARGB(198, 207, 165);
-	palette[1] = ARGB(140, 150, 107);
-	palette[2] = ARGB(74, 81, 57);
-	palette[3] = ARGB(24, 28, 24);*/
+	if (util::palette == "mgb") {
+		// MGB palette
+		palette[0] = util::ARGB(167, 177, 154);
+		palette[1] = util::ARGB(134, 146, 124);
+		palette[2] = util::ARGB(83, 95, 73);
+		palette[3] = util::ARGB(42, 51, 37);
+		
+	}
+	else if (util::palette == "dmg") {
+		// DMG palette
+		palette[0] = util::ARGB(87, 130, 0);
+		palette[1] = util::ARGB(49, 116, 0);
+		palette[2] = util::ARGB(00, 81, 33);
+		palette[3] = util::ARGB(00, 66, 12);
+		
+	}
+	else {
+		// Original working palette, shouldn't be used as mgb is default
+		palette[0] = util::ARGB(155, 188, 155);
+		palette[1] = util::ARGB(139, 172, 139);
+		palette[2] = util::ARGB(48, 98, 48);
+		palette[3] = util::ARGB(15, 56, 15);
+	}
 }
 
 PPU::~PPU() {
@@ -245,9 +239,9 @@ void PPU::updateTileData() {
 		uint8_t x = i % 16;
 		uint8_t y = i / 16;
 
-		setTile(tileDataBuffer, TILE_DATA_WIDTH, block0Start, i, x * 8, y * 8, bgp);
-		setTile(tileDataBuffer, TILE_DATA_WIDTH, block1Start, i, x * 8, 64 + y * 8, bgp);
-		setTile(tileDataBuffer, TILE_DATA_WIDTH, block2Start, i, x * 8, 128 + y * 8, bgp);
+		setTile(tileDataBuffer, util::TILE_DATA_WIDTH, block0Start, i, x * 8, y * 8, bgp);
+		setTile(tileDataBuffer, util::TILE_DATA_WIDTH, block1Start, i, x * 8, 64 + y * 8, bgp);
+		setTile(tileDataBuffer, util::TILE_DATA_WIDTH, block2Start, i, x * 8, 128 + y * 8, bgp);
 	}
 }
 
@@ -294,8 +288,8 @@ void PPU::updateTileMaps() {
 		uint16_t ws = (wi > 127) ? secondHalfStart : firstHalfStart;
 		wi %= 128;
 
-		setTile(backgroundBuffer, MAP_WIDTH, bs, bi, x * 8, y * 8, bgp);
-		setTile(windowBuffer, MAP_WIDTH, ws, wi, x * 8, y * 8, bgp);
+		setTile(backgroundBuffer, util::MAP_WIDTH, bs, bi, x * 8, y * 8, bgp);
+		setTile(windowBuffer, util::MAP_WIDTH, ws, wi, x * 8, y * 8, bgp);
 	}
 }
 
@@ -327,7 +321,7 @@ void PPU::updateObjects() {
 	uint16_t tileStart = 0x8000;
 
 	// Clear objects array of old sprites
-	std::fill(objectsBuffer, objectsBuffer + MAP_WIDTH * MAP_HEIGHT, 0);
+	std::fill(objectsBuffer, objectsBuffer + util::MAP_WIDTH * util::MAP_HEIGHT, 0);
 
 	// Iterate 4 bytes at a time from 0xFE00 to 0xFE9F
 	// Go in reverse order so earlier oam entries overwrite later ones
@@ -342,13 +336,13 @@ void PPU::updateObjects() {
 		bool xFlip = (flags & (1 << 5));
 		
 		bool priority = (flags & (1 << 7));
-		setObject(objectsBuffer, MAP_WIDTH, tileStart, tileIndex, x, y, obp, xFlip, yFlip, priority);
+		setObject(objectsBuffer, util::MAP_WIDTH, tileStart, tileIndex, x, y, obp, xFlip, yFlip, priority);
 
 		if (lcdc2) {
 			// Set the tile below x and y to the next tile index
 			// TODO: Watch out for a bug related to the last bit being ignored.
 			// eg if the index is 0x01, the two tiles should be 0x00 and 0x01, not 0x01 and 0x02.
-			setObject(objectsBuffer, MAP_WIDTH, tileStart, tileIndex + 1, x, y + 8, obp, xFlip, yFlip, priority);
+			setObject(objectsBuffer, util::MAP_WIDTH, tileStart, tileIndex + 1, x, y + 8, obp, xFlip, yFlip, priority);
 		}
 	}
 }

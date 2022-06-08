@@ -229,9 +229,8 @@ private:
 
 public:
 	// Debug and log related things
-	bool print_toggle = false;
-	bool log_toggle = false;
-	std::string log_file = "log.txt";
+	bool log_capture = false;
+	std::string log_file = "logs/log.txt";
 
 	FILE* file;
 	

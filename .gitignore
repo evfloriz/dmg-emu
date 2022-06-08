@@ -3,12 +3,10 @@
 *.user
 
 # Build output things
-Debug/
 x64/
 
 # Location of log files
 log/
 
-# Location of roms I'm working with
+# Location of roms
 roms/
-test-roms/
