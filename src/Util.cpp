@@ -44,42 +44,42 @@ int util::readOptionsFile() {
 		}
 		
 		size_t pos = line.find("=");
-		if (pos != std::string::npos) {
-			std::string key = line.substr(0, pos);
-			std::string value = line.substr(pos + 1, line.length());
-
-			if (util::options.count(key)) {
-				util::options[key] = value;
-			}
-			else {
-				std::cout << key << " is an invalid option in options.txt" << std::endl;
-				ifs.close();
-				return -1;
-			}
-
-			if ((key == "pixelScale" || key == "displayFPS" || key == "debugMode") && !isNumber(value)) {
-				std::cout << value << " is an invalid value for " << key << " in options.txt" << std::endl;
-				ifs.close();
-				return -1;
-			}
-
-			if (key == "pixelScale" && std::stoi(value) < 1) {
-				std::cout << value << " is an invalid pixel scale" << std::endl;
-				ifs.close();
-				return -1;
-			}
-
-			if (key == "palette" && !(value == "mgb" || value == "dmg")) {
-				std::cout << value << " is an unrecognized palette" << std::endl;
-				ifs.close();
-				return -1;
-			}
-		}
-		else {
+		
+		if (pos == std::string::npos) {
 			std::cout << line << " is an invalid line in options.txt" << std::endl;
 			ifs.close();
 			return -1;
 		}
+
+		std::string key = line.substr(0, pos);
+		std::string value = line.substr(pos + 1, line.length());
+
+		if (util::options.count(key) == 0) {
+			std::cout << key << " is an invalid option in options.txt" << std::endl;
+			ifs.close();
+			return -1;
+			
+		}
+
+		if ((key == "pixelScale" || key == "displayFPS" || key == "debugMode") && !isNumber(value)) {
+			std::cout << value << " is an invalid value for " << key << " in options.txt" << std::endl;
+			ifs.close();
+			return -1;
+		}
+
+		if (key == "pixelScale" && std::stoi(value) < 1) {
+			std::cout << value << " is an invalid pixel scale" << std::endl;
+			ifs.close();
+			return -1;
+		}
+
+		if (key == "palette" && !(value == "mgb" || value == "dmg")) {
+			std::cout << value << " is an unrecognized palette" << std::endl;
+			ifs.close();
+			return -1;
+		}
+
+		util::options[key] = value;
 	}
 
 	romPath = options["romPath"];

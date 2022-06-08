@@ -1,6 +1,6 @@
 romPath=roms/super-mario-land.gb
 palette=mgb
-pixelScale=5
+pixelScale=4
 displayFPS=1
 debugMode=0
 logPath=logs/log.txt

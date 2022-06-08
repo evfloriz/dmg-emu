@@ -18,6 +18,7 @@ public:
 		srcScreenRect = { 0, 0, DMG_WIDTH, DMG_HEIGHT };
 		destScreenRect = { 0, 0, DMG_WIDTH * pixelScale, DMG_HEIGHT * pixelScale };
 		
+		// TODO: Do another pass on the implementation of debug mode
 		if (debugMode == 1) {
 			windowName = "dmg-emu debug";
 			screenWidth = DEBUG_SCREEN_WIDTH;
@@ -165,8 +166,8 @@ public:
 			dmg.mmu.writeActionButton(2, !keyboardState[SDL_SCANCODE_S]);		// Select
 			dmg.mmu.writeActionButton(3, !keyboardState[SDL_SCANCODE_A]);		// Start
 
+			// Only enable log capture in debug mode
 			if (keyboardState[SDL_SCANCODE_Q] && (util::debugMode == 1)) {
-				// Toggle log capture
 				dmg.cpu.log_capture = !dmg.cpu.log_capture;
 			}
 
@@ -232,7 +233,6 @@ public:
 				dmg.apu.readsDropped = 0;
 				totalPosDistance = 0;
 			}
-
 		}
 		return 0;
 	}

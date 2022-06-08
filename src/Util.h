@@ -25,7 +25,7 @@ namespace util {
 
 	extern std::unordered_map<std::string, std::string> options;
 
-	// TODO: Do a pass on where constants should be used vs. where values should be hard coded
+	// TODO: Do a pass on where constants should be used vs where values should be hard coded
 	
 	// Global constants
 	const int DMG_WIDTH = 160;
