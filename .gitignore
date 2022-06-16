@@ -1,6 +1,7 @@
 # VS things
 .vs/
 *.user
+.vscode/
 
 # Build output things
 x64/
