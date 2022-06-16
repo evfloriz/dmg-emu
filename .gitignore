@@ -5,6 +5,7 @@
 
 # Build output things
 x64/
+build/
 
 # Location of log files
 log/
