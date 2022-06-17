@@ -13,11 +13,11 @@ public:
 		using namespace util;
 
 		windowName = "dmg-emu";
-		screenWidth = DMG_WIDTH * pixelScale;
-		screenHeight = DMG_HEIGHT * pixelScale;
+		int x = (SCREEN_WIDTH - DMG_WIDTH * pixelScale) / 2;
+		int y = (SCREEN_HEIGHT - DMG_HEIGHT * pixelScale) / 2;
 
 		srcScreenRect = { 0, 0, DMG_WIDTH, DMG_HEIGHT };
-		destScreenRect = { 0, 0, DMG_WIDTH * pixelScale, DMG_HEIGHT * pixelScale };
+		destScreenRect = { x, y, DMG_WIDTH * pixelScale, DMG_HEIGHT * pixelScale };
 		
 		// TODO: Do another pass on the implementation of debug mode
 		if (debugMode == 1) {
@@ -54,7 +54,7 @@ public:
 			return -1;
 		}
 		
-		window = SDL_CreateWindow(windowName.c_str(), SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, screenWidth, screenHeight, SDL_WINDOW_SHOWN);
+		window = SDL_CreateWindow(windowName.c_str(), SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN);
 		if (window == NULL) {
 			std::cout << "Window could not be created. SDL_Error: " << SDL_GetError() << std::endl;
 			close();
