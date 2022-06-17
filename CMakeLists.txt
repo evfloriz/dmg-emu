@@ -1,5 +1,6 @@
 ## This file is a quick tutorial on writing CMakeLists for targeting the Vita
-cmake_minimum_required(VERSION 2.8)
+#cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 3.2)
 
 ## This includes the Vita toolchain, must go before project definition
 # It is a convenience so you do not have to type
@@ -20,6 +21,8 @@ project(hello_world)
 # to build Vita specific artifacts (self/vpk).
 include("${VITASDK}/share/vita.cmake" REQUIRED)
 
+find_package(SDL2 REQUIRED)
+
 ## Configuration options for this app
 # Display name (under bubble in LiveArea)
 set(VITA_APP_NAME "Hello World")
@@ -34,31 +37,47 @@ set(VITA_VERSION  "01.00")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 # Optional. You can specify more param.sfo flags this way.
-set(VITA_MKSFOEX_FLAGS "${VITA_MKSFOEX_FLAGS} -d PARENTAL_LEVEL=1")
+#set(VITA_MKSFOEX_FLAGS "${VITA_MKSFOEX_FLAGS} -d PARENTAL_LEVEL=1")
 
 # Add any additional include paths here
 include_directories(
   common # This is for debugScreenPrintf(), you shouldn't need it in your projects
+  #src
 )
 
 # Add any additional library paths here
 # ${CMAKE_CURRENT_BINARY_DIR} lets you use any library currently being built
-link_directories(
-  ${CMAKE_CURRENT_BINARY_DIR}
-)
+#link_directories(
+  #${CMAKE_CURRENT_BINARY_DIR}
+#)
 
 ## Build and link
 # Add all the files needed to compile here
 add_executable(${PROJECT_NAME}
-  src/vitaMain.c
-  common/debugScreen.c
+  src/main.cpp
+  src/DMG.cpp
+  src/Util.cpp
+  src/CPU.cpp
+  src/PPU.cpp
+  src/MMU.cpp
+  src/APU.cpp
+  src/Cartridge.cpp
+  src/MBC.cpp
+  src/MBC0.cpp
+  src/MBC1.cpp
+  src/MBC3.cpp
+
+
+  
+  #common/debugScreen.c
 )
 
 # Library to link to (drop the -l prefix). This will mostly be stubs.
 target_link_libraries(${PROJECT_NAME}
-  SceLibKernel_stub # this line is only for demonstration. It's not needed as
+  #SceLibKernel_stub # this line is only for demonstration. It's not needed as
                     # the most common stubs are automatically included.
-  SceDisplay_stub   # This used by debugScreenPrintf()
+  #SceDisplay_stub   # This used by debugScreenPrintf()
+  SDL2::SDL2
 )
 
 ## Create Vita files

@@ -1,5 +1,7 @@
+#include <psp2/kernel/processmgr.h>
+
 #include <iostream>
-#include <SDL.h>
+#include <SDL2/SDL.h>
 
 #include "Util.h"
 
@@ -89,7 +91,7 @@ public:
 		// TODO: Investigate audio device flags
 		audioDevice = SDL_OpenAudioDevice(nullptr, 0, &audioSpec, nullptr, 0);
 		
-		if (audioDevice == NULL) {
+		if (audioDevice == 0) {
 			std::cout << "Audio device error. SDL_Error: " << SDL_GetError() << std::endl;
 			close();
 			return -1;
@@ -414,5 +416,6 @@ int main(int argc, char **argv) {
 	demo.execute();
 	demo.close();
 
+	sceKernelExitProcess(0);
     return 0;
 }
