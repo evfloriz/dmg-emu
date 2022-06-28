@@ -58,7 +58,7 @@ Cartridge::Cartridge(const std::string& fileName) {
 		}
 	}
 	else {
-		printf("Error loading rom");
+		printf("Error loading rom\n");
 	}
 }
 
