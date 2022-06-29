@@ -15,7 +15,7 @@ set(SOURCE
 	../MBC3.cpp
 )	
 
-if (${vita})
+if (${VITA})
 	message(STATUS "Vita")
 	add_subdirectory("vita")
 else()

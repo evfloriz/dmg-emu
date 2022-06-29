@@ -16,7 +16,7 @@ endif()
 
 ## Define project parameters here
 # Name of the project
-project(hello_world)
+#project(hello_world)
 # This line adds Vita helper macros, must go after project definition in order
 # to build Vita specific artifacts (self/vpk).
 include("${VITASDK}/share/vita.cmake" REQUIRED)
@@ -28,7 +28,7 @@ find_package(SDL2 REQUIRED)
 set(VITA_APP_NAME "Hello World")
 # Unique ID must be exactly 9 characters. Recommended: XXXXYYYYY where X =
 # unique string of developer and Y = a unique number for this app
-set(VITA_TITLEID  "VSDK00007")
+set(VITA_TITLEID  "EVFL00013")
 # Optional version string to show in LiveArea's more info screen
 set(VITA_VERSION  "01.00")
 
@@ -38,6 +38,8 @@ set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 # Optional. You can specify more param.sfo flags this way.
 #set(VITA_MKSFOEX_FLAGS "${VITA_MKSFOEX_FLAGS} -d PARENTAL_LEVEL=1")
+
+add_compile_definitions(VITA=${VITA})
 
 # Add any additional include paths here
 include_directories(
@@ -56,16 +58,14 @@ add_executable(${PROJECT_NAME}
   ${SOURCE}
   main.cpp
 
-
-  
-  #common/debugScreen.c
+  common/debugScreen.c
 )
 
 # Library to link to (drop the -l prefix). This will mostly be stubs.
 target_link_libraries(${PROJECT_NAME}
   #SceLibKernel_stub # this line is only for demonstration. It's not needed as
                     # the most common stubs are automatically included.
-  #SceDisplay_stub   # This used by debugScreenPrintf()
+  SceDisplay_stub   # This used by debugScreenPrintf()
   SDL2::SDL2
 )
 

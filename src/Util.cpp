@@ -3,6 +3,13 @@
 
 #include "Util.h"
 
+// TODO: Make a macro for prints that does the correct one automatically
+#ifdef VITA
+#include <psp2/kernel/processmgr.h>
+#include "debugScreen.h"
+#define printf psvDebugScreenPrintf
+#endif
+
 namespace util {
 	// Initialize options with default values
 	std::unordered_map<std::string, std::string> options = {
@@ -31,7 +38,11 @@ int util::readOptionsFile() {
 	std::ifstream ifs;
 	ifs.open("options.txt");
 	if (!ifs) {
+#ifdef VITA
+		printf("Error opening options.txt\n");
+#else
 		std::cout << "Error opening options.txt" << std::endl;
+#endif
 		return -1;
 	}
 
@@ -45,7 +56,11 @@ int util::readOptionsFile() {
 		size_t pos = line.find("=");
 		
 		if (pos == std::string::npos) {
+#ifdef VITA
+			printf((line + " is an invalid line in options.txt\n").c_str());
+#else
 			std::cout << line << " is an invalid line in options.txt" << std::endl;
+#endif
 			ifs.close();
 			return -1;
 		}
@@ -53,27 +68,48 @@ int util::readOptionsFile() {
 		std::string key = line.substr(0, pos);
 		std::string value = line.substr(pos + 1, line.length());
 
-		if (util::options.count(key) == 0) {
-			std::cout << key << " is an invalid option in options.txt" << std::endl;
-			ifs.close();
-			return -1;
-			
+		// Strip \r off of value if it's present
+		if (value[value.length() - 1] == '\r') {
+			value = value.substr(0, value.length() - 1);
 		}
 
-		if ((key == "pixelScale" || key == "displayFPS" || key == "debugMode") && !isNumber(value)) {
+		if (util::options.count(key) == 0) {
+#ifdef VITA
+			printf((key + " is an invalid option in options.txt\n").c_str());
+#else
+			std::cout << key << " is an invalid option in options.txt" << std::endl;
+#endif
+			ifs.close();
+			return -1;
+		}
+
+		if ((key == "pixelScale" || key == "displayFPS" || key == "debugMode") && !isNumber(value)) {	
+
+#ifdef VITA
+			printf((value + " is an invalid value for " + key + " in options.txt\n").c_str());
+#else
 			std::cout << value << " is an invalid value for " << key << " in options.txt" << std::endl;
+#endif
 			ifs.close();
 			return -1;
 		}
 
 		if (key == "pixelScale" && std::stoi(value) < 1) {
+#ifdef VITA
+			printf((value + " is an invalid pixel scale\n").c_str());
+#else
 			std::cout << value << " is an invalid pixel scale" << std::endl;
+#endif
 			ifs.close();
 			return -1;
 		}
 
 		if (key == "palette" && !(value == "mgb" || value == "dmg")) {
+#ifdef VITA
+			printf((value + " is an unrecognized palette\n").c_str());
+#else
 			std::cout << value << " is an unrecognized palette" << std::endl;
+#endif
 			ifs.close();
 			return -1;
 		}

@@ -93,7 +93,7 @@
       },
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
-        "vita": "TRUE",
+        "VITA": "TRUE",
         "CMAKE_TOOLCHAIN_FILE": "$env{VITASDK}/share/vita.toolchain.cmake"
         //"CMAKE_C_COMPILER": "/usr/local/vitasdk/bin/arm-vita-eabi-gcc",
         //"CMAKE_CXX_COMPILER": "/usr/local/vitasdk/bin/arm-vita-eabi-g++"

@@ -4,8 +4,10 @@
 #include <SDL2/SDL.h>
 
 #include "Util.h"
-
 #include "DMG.h"
+#include "debugScreen.h"
+
+#define printf psvDebugScreenPrintf
 
 class Demo {
 public:
@@ -428,8 +430,12 @@ private:
 };
 
 int main(int argc, char **argv) {
+	psvDebugScreenInit();
+
 	if (util::readOptionsFile() == -1) {
-		std::cout << "Exiting..." << std::endl;
+		printf("Exiting...\n");
+		sceKernelDelayThread(3 * 1000000);
+		sceKernelExitProcess(0);
 		return 1;
 	}
 
