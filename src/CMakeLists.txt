@@ -1,7 +1,9 @@
-cmake_minimum_required (VERSION 3.2)
+# Add source files and add platform-dependent subdirectory
 
+cmake_minimum_required(VERSION 3.2)
+
+# Specify all platform-independent source files
 set(SOURCE
-	#src/main.cpp
 	../DMG.cpp
 	../Util.cpp
 	../CPU.cpp
@@ -15,10 +17,9 @@ set(SOURCE
 	../MBC3.cpp
 )	
 
+# Add platform-dependent subdirectories
 if (${VITA})
-	message(STATUS "Vita")
 	add_subdirectory("vita")
 else()
-	message(STATUS "Not Vita")
 	add_subdirectory("windows")
 endif()
