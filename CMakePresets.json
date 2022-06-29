@@ -11,10 +11,6 @@
         "CMAKE_C_COMPILER": "cl.exe",
         "CMAKE_CXX_COMPILER": "cl.exe"
       },
-      "environment": {
-        "SDL_PATH": "C:/vclib/SDL2-2.0.20",
-        "PATH": "$env{SDL_PATH}/lib/x64;$penv{PATH}"
-      },
       "condition": {
         "type": "equals",
         "lhs": "${hostSystemName}",
@@ -31,6 +27,10 @@
       },
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug"
+      },
+      "environment": {
+        "SDL_PATH": "C:/vclib/SDL2-2.0.20",
+        "PATH": "$env{SDL_PATH}/lib/x64;$penv{PATH}"
       }
     },
     {
@@ -86,18 +86,14 @@
       "displayName": "Vita Debug",
       "generator": "Ninja",
       "binaryDir": "${sourceDir}/out/build/${presetName}",
-      //"installDir": "${sourceDir}/out/install/${presetName}",
       "architecture": {
         "value": "unspecified",
         "strategy": "external"
       },
       "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Debug",
         "VITA": "TRUE",
-        "CMAKE_TOOLCHAIN_FILE": "$env{VITASDK}/share/vita.toolchain.cmake"
-        //"CMAKE_C_COMPILER": "/usr/local/vitasdk/bin/arm-vita-eabi-gcc",
-        //"CMAKE_CXX_COMPILER": "/usr/local/vitasdk/bin/arm-vita-eabi-g++"
-        //"CMAKE_SYSTEM_NAME": "Generic"
+        "CMAKE_TOOLCHAIN_FILE": "$env{VITASDK}/share/vita.toolchain.cmake",
+        "CMAKE_BUILD_TYPE": "Debug"
       },
       "environment": {
         "VITASDK": "/usr/local/vitasdk",
@@ -112,6 +108,14 @@
         "microsoft.com/VisualStudioRemoteSettings/CMake/1.0": {
           "sourceDir": "$env{HOME}/.vs/$ms{projectDirName}"
         }
+      }
+    },
+    {
+      "name": "vita-release",
+      "displayName": "Vita Release",
+      "inherits": "vita-debug",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
       }
     },
     {
