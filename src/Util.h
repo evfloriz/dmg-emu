@@ -27,6 +27,9 @@ namespace util {
 	// TODO: Do a pass on where constants should be used vs where values should be hard coded
 	
 	// Global constants
+	const int SCREEN_WIDTH = 960;
+	const int SCREEN_HEIGHT = 544;
+	
 	const int DMG_WIDTH = 160;
 	const int DMG_HEIGHT = 144;
 

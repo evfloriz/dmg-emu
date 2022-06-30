@@ -11,11 +11,11 @@ public:
 		using namespace util;
 
 		windowName = "dmg-emu";
-		screenWidth = DMG_WIDTH * pixelScale;
-		screenHeight = DMG_HEIGHT * pixelScale;
+		int x = (SCREEN_WIDTH - DMG_WIDTH * pixelScale) / 2;
+		int y = (SCREEN_HEIGHT - DMG_HEIGHT * pixelScale) / 2;
 
 		srcScreenRect = { 0, 0, DMG_WIDTH, DMG_HEIGHT };
-		destScreenRect = { 0, 0, DMG_WIDTH * pixelScale, DMG_HEIGHT * pixelScale };
+		destScreenRect = { x, y, DMG_WIDTH * pixelScale, DMG_HEIGHT * pixelScale };
 		
 		// TODO: Do another pass on the implementation of debug mode
 		if (debugMode == 1) {
@@ -52,7 +52,7 @@ public:
 			return -1;
 		}
 		
-		window = SDL_CreateWindow(windowName.c_str(), SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, screenWidth, screenHeight, SDL_WINDOW_SHOWN);
+		window = SDL_CreateWindow(windowName.c_str(), SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN);
 		if (window == NULL) {
 			std::cout << "Window could not be created. SDL_Error: " << SDL_GetError() << std::endl;
 			close();
@@ -89,7 +89,7 @@ public:
 		// TODO: Investigate audio device flags
 		audioDevice = SDL_OpenAudioDevice(nullptr, 0, &audioSpec, nullptr, 0);
 		
-		if (audioDevice == NULL) {
+		if (audioDevice == 0) {
 			std::cout << "Audio device error. SDL_Error: " << SDL_GetError() << std::endl;
 			close();
 			return -1;
@@ -166,9 +166,9 @@ public:
 			dmg.mmu.writeActionButton(3, !keyboardState[SDL_SCANCODE_A]);		// Start
 
 			// Only enable log capture in debug mode
-			if (keyboardState[SDL_SCANCODE_Q] && (util::debugMode == 1)) {
+			/*if (keyboardState[SDL_SCANCODE_Q] && (util::debugMode == 1)) {
 				dmg.cpu.log_capture = !dmg.cpu.log_capture;
-			}
+			}*/
 
 			// TODO: Clean up main loop
 
@@ -410,7 +410,10 @@ int main(int argc, char **argv) {
 
 	Demo demo;
 
-	demo.init();
+	if (demo.init() == -1) {
+		std::cout << "DMG init failed, exiting..." << std::endl;
+		return 1;
+	};
 	demo.execute();
 	demo.close();
 

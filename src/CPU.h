@@ -110,6 +110,17 @@ private:
 	uint8_t read(uint16_t addr);
 
 	struct INSTRUCTION {
+		INSTRUCTION(uint8_t(CPU::* o)(void) = nullptr,
+			uint8_t c = 0,
+			uint8_t* op1 = nullptr,
+			uint8_t* op2 = nullptr,
+			uint8_t* op3 = nullptr)
+			: operate(o)
+			, cycles(c)
+			, op1(op1)
+			, op2(op2)
+			, op3(op3) {};
+
 		uint8_t(CPU::* operate)(void) = nullptr;
 		uint8_t cycles = 0;
 		uint8_t* op1 = nullptr;

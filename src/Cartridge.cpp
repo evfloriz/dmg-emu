@@ -58,7 +58,8 @@ Cartridge::Cartridge(const std::string& fileName) {
 		}
 	}
 	else {
-		printf("Error loading rom");
+		// TODO: Convert couts to printfs and add vita debug printf macro
+		printf("Error loading rom\n");
 	}
 }
 

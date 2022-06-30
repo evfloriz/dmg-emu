@@ -1,9 +1,11 @@
 # VS things
 .vs/
 *.user
+.vscode/
 
 # Build output things
 x64/
+build/
 
 # Location of log files
 log/
