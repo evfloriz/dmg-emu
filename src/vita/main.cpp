@@ -9,6 +9,7 @@
 
 #define printf psvDebugScreenPrintf
 
+// TODO: Reduce duplicate code between vita main and windows main
 class Demo {
 public:
 	Demo() {
@@ -150,7 +151,6 @@ public:
 
 	int execute() {
 		SDL_Event e;
-		//const uint8_t* keyboardState = SDL_GetKeyboardState(NULL);
 
 		int secondCounter = 0;
 		uint64_t secondStart = 0;
@@ -165,17 +165,6 @@ public:
 				}
 			}
 
-			// 0 is pressed, 1 is unpressed
-			/*dmg.mmu.writeDirectionButton(0, !keyboardState[SDL_SCANCODE_RIGHT]);
-			dmg.mmu.writeDirectionButton(1, !keyboardState[SDL_SCANCODE_LEFT]);
-			dmg.mmu.writeDirectionButton(2, !keyboardState[SDL_SCANCODE_UP]);
-			dmg.mmu.writeDirectionButton(3, !keyboardState[SDL_SCANCODE_DOWN]);
-
-			dmg.mmu.writeActionButton(0, !keyboardState[SDL_SCANCODE_Z]);		// A
-			dmg.mmu.writeActionButton(1, !keyboardState[SDL_SCANCODE_X]);		// B
-			dmg.mmu.writeActionButton(2, !keyboardState[SDL_SCANCODE_S]);		// Select
-			dmg.mmu.writeActionButton(3, !keyboardState[SDL_SCANCODE_A]);		// Start*/
-
 			dmg.mmu.writeDirectionButton(0, !SDL_GameControllerGetButton(gameController, SDL_CONTROLLER_BUTTON_DPAD_RIGHT));
 			dmg.mmu.writeDirectionButton(1, !SDL_GameControllerGetButton(gameController, SDL_CONTROLLER_BUTTON_DPAD_LEFT));
 			dmg.mmu.writeDirectionButton(2, !SDL_GameControllerGetButton(gameController, SDL_CONTROLLER_BUTTON_DPAD_UP));
@@ -185,11 +174,6 @@ public:
 			dmg.mmu.writeActionButton(1, !SDL_GameControllerGetButton(gameController, SDL_CONTROLLER_BUTTON_A));		// B
 			dmg.mmu.writeActionButton(2, !SDL_GameControllerGetButton(gameController, SDL_CONTROLLER_BUTTON_BACK));		// Select
 			dmg.mmu.writeActionButton(3, !SDL_GameControllerGetButton(gameController, SDL_CONTROLLER_BUTTON_START));	// Start
-
-			// Only enable log capture in debug mode
-			/*if (keyboardState[SDL_SCANCODE_Q] && (util::debugMode == 1)) {
-				dmg.cpu.log_capture = !dmg.cpu.log_capture;
-			}*/
 
 			// TODO: Clean up main loop
 
