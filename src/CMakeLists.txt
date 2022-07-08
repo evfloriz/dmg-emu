@@ -15,6 +15,7 @@ set(SOURCE
 	../MBC0.cpp
 	../MBC1.cpp
 	../MBC3.cpp
+	../main.cpp
 )	
 
 # Add platform-dependent subdirectories

@@ -48,7 +48,6 @@ include_directories(
 # Add all the files needed to compile here
 add_executable(${PROJECT_NAME}
   ${SOURCE}
-  main.cpp
   common/debugScreen.c
 )
 

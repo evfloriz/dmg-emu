@@ -23,7 +23,6 @@ link_directories(${SDL_LIBRARIES})
 
 add_executable (${PROJECT_NAME}
 	${SOURCE}
-	main.cpp
 )
 
 target_link_libraries(${PROJECT_NAME} SDL2 SDL2main)
