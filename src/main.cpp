@@ -6,6 +6,7 @@
 #ifdef VITA
 #include <psp2/kernel/processmgr.h>
 #include <SDL2/SDL.h>
+#include <SDL2/SDL_ttf.h>
 #include "debugScreen.h"
 
 #define printf psvDebugScreenPrintf
@@ -325,7 +326,7 @@ private:
 	std::string uncappedFPS = "0";
 	std::string cappedFPS = "0";
 	bool renderFPS = false;
-	int fpsRenderTicks = 30;
+	int fpsRenderTicks = 60;
 };
 
 int main(int argc, char **argv) {
