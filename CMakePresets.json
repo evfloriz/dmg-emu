@@ -30,7 +30,8 @@
       },
       "environment": {
         "SDL_PATH": "C:/vclib/SDL2-2.0.20",
-        "PATH": "$env{SDL_PATH}/lib/x64;$penv{PATH}"
+        "SDL_TTF_PATH": "C:/vclib/SDL2_ttf-2.20.0",
+        "PATH": "$env{SDL_PATH}/lib/x64;$env{SDL_TTF_PATH}/lib/x64;$penv{PATH}"
       }
     },
     {

@@ -11,9 +11,9 @@
 #define printf psvDebugScreenPrintf
 #else
 #include <SDL.h>
+#include <SDL_ttf.h>
 #endif
 
-// TODO: Reduce duplicate code between vita main and windows main
 class Demo {
 public:
 	Demo() {
@@ -25,6 +25,10 @@ public:
 
 		srcScreenRect = { 0, 0, DMG_WIDTH, DMG_HEIGHT };
 		destScreenRect = { x, y, DMG_WIDTH * pixelScale, DMG_HEIGHT * pixelScale };
+
+		messageRect = { 0, 0, 64, 32 };
+		fontColor = { 255, 255, 255 };
+		fontSize = 24;
 	}
 
 	~Demo() {
@@ -88,6 +92,19 @@ public:
 			return -1;
 		}
 #endif
+
+		// Init TTF
+		if (TTF_Init() == -1) {
+			std::cout << "SDL_ttf could not initialize. TTF Error: " << TTF_GetError() << std::endl;
+			return -1;
+		}
+
+		// Open font
+		font = TTF_OpenFont("fonts/consola.ttf", fontSize);
+		if (font == NULL) {
+			printf("Failed to open font. TTF Error: %s\n", TTF_GetError());
+			return -1;
+		}
 
 		// Start dmg
 		dmg.init();
@@ -183,11 +200,26 @@ public:
 
 				uint64_t secondEnd = SDL_GetPerformanceCounter();
 				float secondElapsed = (secondEnd - secondStart) / (float)SDL_GetPerformanceFrequency();
+
+				renderMessage("test");
 			}
 		}
 		return 0;
 	}
 
+	int renderMessage(std::string text) {
+		// Solid is fastest but looks the worst
+		SDL_Surface* surfaceMessage = TTF_RenderText_Solid(font, text.c_str(), fontColor);
+		SDL_Texture* message = SDL_CreateTextureFromSurface(renderer, surfaceMessage);
+
+		SDL_RenderCopy(renderer, message, NULL, &messageRect);
+
+		SDL_FreeSurface(surfaceMessage);
+		SDL_DestroyTexture(message);
+
+		return 0;
+	}
+	
 	int render() {	
 		// Process screen texture
 		renderTexture(
@@ -256,6 +288,9 @@ public:
 			SDL_GameControllerClose(gameController);
 		}
 #endif
+		TTF_CloseFont(font);
+
+		TTF_Quit();
 		
 		SDL_Quit();
 	}
@@ -268,12 +303,18 @@ private:
 	SDL_Rect srcScreenRect;
 	SDL_Rect destScreenRect;
 
+	SDL_Rect messageRect;
+
 	SDL_AudioDeviceID audioDevice;
 	SDL_AudioSpec audioSpec;
 
 #ifdef VITA
 	SDL_GameController* gameController;
 #endif
+
+	TTF_Font* font;
+	SDL_Color fontColor;
+	int fontSize;
 
 	int screenWidth;
 	int screenHeight;

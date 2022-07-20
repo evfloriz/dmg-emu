@@ -12,3 +12,6 @@ log/
 
 # Location of roms
 roms/
+
+# Location of fonts
+fonts/
