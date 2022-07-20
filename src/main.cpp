@@ -196,6 +196,8 @@ public:
 
 				uint64_t secondEnd = SDL_GetPerformanceCounter();
 				float secondElapsed = (secondEnd - secondStart) / (float)SDL_GetPerformanceFrequency();
+
+				onSecond = true;
 			}
 		}
 		return 0;
@@ -218,7 +220,13 @@ public:
 	}
 	
 	int render() {	
-		SDL_RenderClear(renderer);
+		// TODO: When makes the most sense to render the fps counter?
+		// TODO: Figure out a better way to rerender the FPS counter once a second
+		if (onSecond) {
+			SDL_RenderClear(renderer);
+			renderText(uncappedFPS);
+			onSecond = false;
+		}
 		
 		// Process screen texture
 		renderTexture(
@@ -227,10 +235,6 @@ public:
 			srcScreenRect,
 			destScreenRect,
 			util::DMG_WIDTH * util::DMG_HEIGHT);
-
-		
-		// TODO: When makes the most sense to render the fps counter?
-		renderText(uncappedFPS);
 
 		SDL_RenderPresent(renderer);
 
@@ -328,6 +332,7 @@ private:
 
 	std::string uncappedFPS = "0";
 	std::string cappedFPS = "0";
+	bool onSecond = false;
 };
 
 int main(int argc, char **argv) {
