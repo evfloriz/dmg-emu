@@ -119,8 +119,7 @@ public:
 		const uint8_t* keyboardState = SDL_GetKeyboardState(NULL);
 #endif
 
-		int secondCounter = 0;
-		uint64_t secondStart = 0;
+		int fpsRenderCounter = 0;
 		
 		bool quit = false;
 		while (!quit) {
@@ -159,10 +158,6 @@ public:
 			// Keep track of start time for each frame and every 60 frames
 			uint64_t start = SDL_GetPerformanceCounter();
 
-			if (secondCounter == 0) {
-				secondStart = SDL_GetPerformanceCounter();
-			}
-
 			// Execute one full frame of the Game Boy
 			dmg.tickFrame();
 			
@@ -189,16 +184,12 @@ public:
 				std::cout << cappedFPS << " | " << uncappedFPS << "    \r" << std::flush;
 			}
 			
-			// Keep track of every second
-			secondCounter++;
-			if (secondCounter > 59) {
-				secondCounter = 0;
-
-				uint64_t secondEnd = SDL_GetPerformanceCounter();
-				float secondElapsed = (secondEnd - secondStart) / (float)SDL_GetPerformanceFrequency();
-
-				onSecond = true;
+			// Keep track of counter to render fps at specified rate
+			if (fpsRenderCounter == 0) {
+				fpsRenderCounter = fpsRenderTicks;
+				renderFPS = true;
 			}
+			fpsRenderCounter--;
 		}
 		return 0;
 	}
@@ -222,10 +213,10 @@ public:
 	int render() {	
 		// TODO: When makes the most sense to render the fps counter?
 		// TODO: Figure out a better way to rerender the FPS counter once a second
-		if (onSecond) {
+		if (renderFPS && util::displayFPS) {
 			SDL_RenderClear(renderer);
 			renderText(uncappedFPS);
-			onSecond = false;
+			renderFPS = false;
 		}
 		
 		// Process screen texture
@@ -295,6 +286,7 @@ public:
 			SDL_GameControllerClose(gameController);
 		}
 #endif
+
 		TTF_CloseFont(font);
 
 		TTF_Quit();
@@ -332,7 +324,8 @@ private:
 
 	std::string uncappedFPS = "0";
 	std::string cappedFPS = "0";
-	bool onSecond = false;
+	bool renderFPS = false;
+	int fpsRenderTicks = 30;
 };
 
 int main(int argc, char **argv) {
