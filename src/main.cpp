@@ -188,25 +188,29 @@ public:
 			// Keep track of counter to render fps at specified rate
 			if (fpsRenderCounter == 0) {
 				fpsRenderCounter = fpsRenderTicks;
-				renderFPS = true;
+				updateText(uncappedFPS);
 			}
 			fpsRenderCounter--;
 		}
 		return 0;
 	}
 
-	int renderText(std::string text) {
+	int updateText(std::string text) {
+		// Free surface and destroy texture if they exist
+		if (textSurface) {
+			SDL_FreeSurface(textSurface);
+		}
+
+		if (textTexture) {
+			SDL_DestroyTexture(textTexture);
+		}
+
 		// Solid is fastest but looks the worst
-		SDL_Surface* textSurface = TTF_RenderText_Solid(font, text.c_str(), fontColor);
-		SDL_Texture* textTexture = SDL_CreateTextureFromSurface(renderer, textSurface);
+		textSurface = TTF_RenderText_Solid(font, text.c_str(), fontColor);
+		textTexture = SDL_CreateTextureFromSurface(renderer, textSurface);
 
 		messageRect.w = textSurface->w;
 		messageRect.h = textSurface->h;
-
-		SDL_RenderCopy(renderer, textTexture, NULL, &messageRect);
-
-		SDL_FreeSurface(textSurface);
-		SDL_DestroyTexture(textTexture);
 
 		return 0;
 	}
@@ -214,11 +218,14 @@ public:
 	int render() {	
 		// TODO: When makes the most sense to render the fps counter?
 		// TODO: Figure out a better way to rerender the FPS counter once a second
-		if (renderFPS && util::displayFPS) {
+		/*if (renderFPS && util::displayFPS) {
 			SDL_RenderClear(renderer);
 			renderText(uncappedFPS);
 			renderFPS = false;
-		}
+		}*/
+
+		SDL_RenderClear(renderer);
+		SDL_RenderCopy(renderer, textTexture, NULL, &messageRect);
 		
 		// Process screen texture
 		renderTexture(
@@ -288,6 +295,16 @@ public:
 		}
 #endif
 
+		if (textSurface) {
+			SDL_FreeSurface(textSurface);
+			textSurface = nullptr;
+		}
+
+		if (textTexture) {
+			SDL_DestroyTexture(textTexture);
+			textTexture = nullptr;
+		}
+
 		TTF_CloseFont(font);
 
 		TTF_Quit();
@@ -326,7 +343,10 @@ private:
 	std::string uncappedFPS = "0";
 	std::string cappedFPS = "0";
 	bool renderFPS = false;
-	int fpsRenderTicks = 60;
+	int fpsRenderTicks = 30;
+
+	SDL_Surface* textSurface = NULL;
+	SDL_Texture* textTexture = NULL;
 };
 
 int main(int argc, char **argv) {
