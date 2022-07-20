@@ -121,7 +121,6 @@ public:
 
 		int secondCounter = 0;
 		uint64_t secondStart = 0;
-		int totalPosDistance = 0;
 		
 		bool quit = false;
 		while (!quit) {
@@ -170,9 +169,6 @@ public:
 			// Render the result in the pixel buffer (and debug pixel buffer)
 			render();
 
-			// Keep track of the write and read position difference for debugging
-			totalPosDistance += dmg.apu.getPosDifference();
-
 			// Calculate elapsted time and delay until 16.666 ms have passed
 			uint64_t end = SDL_GetPerformanceCounter();
 			double elapsed = (end - start) / (double)SDL_GetPerformanceFrequency();
@@ -188,8 +184,8 @@ public:
 			
 			// Display both the capped and uncapped fps
 			if (util::displayFPS == 1) {
-				std::string uncappedFPS = std::to_string((int)(1.0f / elapsed));
-				std::string cappedFPS = std::to_string((int)(1.0f / cappedElapsed));
+				uncappedFPS = std::to_string((int)(1.0f / elapsed));
+				cappedFPS = std::to_string((int)(1.0f / cappedElapsed));
 				std::cout << cappedFPS << " | " << uncappedFPS << "    \r" << std::flush;
 			}
 			
@@ -200,27 +196,30 @@ public:
 
 				uint64_t secondEnd = SDL_GetPerformanceCounter();
 				float secondElapsed = (secondEnd - secondStart) / (float)SDL_GetPerformanceFrequency();
-
-				renderMessage("test");
 			}
 		}
 		return 0;
 	}
 
-	int renderMessage(std::string text) {
+	int renderText(std::string text) {
 		// Solid is fastest but looks the worst
-		SDL_Surface* surfaceMessage = TTF_RenderText_Solid(font, text.c_str(), fontColor);
-		SDL_Texture* message = SDL_CreateTextureFromSurface(renderer, surfaceMessage);
+		SDL_Surface* textSurface = TTF_RenderText_Solid(font, text.c_str(), fontColor);
+		SDL_Texture* textTexture = SDL_CreateTextureFromSurface(renderer, textSurface);
 
-		SDL_RenderCopy(renderer, message, NULL, &messageRect);
+		messageRect.w = textSurface->w;
+		messageRect.h = textSurface->h;
 
-		SDL_FreeSurface(surfaceMessage);
-		SDL_DestroyTexture(message);
+		SDL_RenderCopy(renderer, textTexture, NULL, &messageRect);
+
+		SDL_FreeSurface(textSurface);
+		SDL_DestroyTexture(textTexture);
 
 		return 0;
 	}
 	
 	int render() {	
+		SDL_RenderClear(renderer);
+		
 		// Process screen texture
 		renderTexture(
 			dmg.ppu.getScreenBuffer(),
@@ -228,7 +227,11 @@ public:
 			srcScreenRect,
 			destScreenRect,
 			util::DMG_WIDTH * util::DMG_HEIGHT);
+
 		
+		// TODO: When makes the most sense to render the fps counter?
+		renderText(uncappedFPS);
+
 		SDL_RenderPresent(renderer);
 
 		return 0;
@@ -323,6 +326,8 @@ private:
 
 	DMG dmg;
 
+	std::string uncappedFPS = "0";
+	std::string cappedFPS = "0";
 };
 
 int main(int argc, char **argv) {
