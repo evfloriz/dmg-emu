@@ -121,6 +121,7 @@ public:
 #endif
 
 		int fpsRenderCounter = 0;
+		double totalElapsed = 0.0;
 		
 		bool quit = false;
 		while (!quit) {
@@ -162,33 +163,28 @@ public:
 			// Execute one full frame of the Game Boy
 			dmg.tickFrame();
 			
-			// Render the result in the pixel buffer (and debug pixel buffer)
+			// Render the result in the pixel buffer
 			render();
 
-			// Calculate elapsted time and delay until 16.666 ms have passed
+			// Calculate elapsed time
 			uint64_t end = SDL_GetPerformanceCounter();
 			double elapsed = (end - start) / (double)SDL_GetPerformanceFrequency();
-			double delay = elapsed;
+			totalElapsed += elapsed;
 
-			while (delay < 0.016666) {
+			// Delay until 16.666 ms have passed
+			while (elapsed < 0.016666) {
 				end = SDL_GetPerformanceCounter();
-				delay = (end - start) / (double)SDL_GetPerformanceFrequency();
+				elapsed = (end - start) / (double)SDL_GetPerformanceFrequency();
 			}			
-
-			uint64_t cappedEnd = SDL_GetPerformanceCounter();
-			float cappedElapsed = (cappedEnd - start) / (float)SDL_GetPerformanceFrequency();
 			
-			// Display both the capped and uncapped fps
-			if (util::displayFPS == 1) {
-				uncappedFPS = std::to_string((int)(1.0f / elapsed));
-				cappedFPS = std::to_string((int)(1.0f / cappedElapsed));
-				std::cout << cappedFPS << " | " << uncappedFPS << "    \r" << std::flush;
-			}
-			
-			// Keep track of counter to render fps at specified rate
+			// Render fps at specified rate using the average elapsed time over the last quantity of frames
 			if (fpsRenderCounter == 0) {
 				fpsRenderCounter = fpsRenderTicks;
-				updateText(uncappedFPS);
+				if (util::displayFPS) {
+					std::string uncappedFPS = std::to_string((int)(1.0 / (totalElapsed / fpsRenderTicks)));
+					updateText(uncappedFPS);
+				}
+				totalElapsed = 0.0;
 			}
 			fpsRenderCounter--;
 		}
@@ -216,16 +212,12 @@ public:
 	}
 	
 	int render() {	
-		// TODO: When makes the most sense to render the fps counter?
-		// TODO: Figure out a better way to rerender the FPS counter once a second
-		/*if (renderFPS && util::displayFPS) {
-			SDL_RenderClear(renderer);
-			renderText(uncappedFPS);
-			renderFPS = false;
-		}*/
-
 		SDL_RenderClear(renderer);
-		SDL_RenderCopy(renderer, textTexture, NULL, &messageRect);
+
+		// Render fps counter
+		if (util::displayFPS) {
+			SDL_RenderCopy(renderer, textTexture, NULL, &messageRect);
+		}
 		
 		// Process screen texture
 		renderTexture(
@@ -340,8 +332,6 @@ private:
 
 	DMG dmg;
 
-	std::string uncappedFPS = "0";
-	std::string cappedFPS = "0";
 	bool renderFPS = false;
 	int fpsRenderTicks = 30;
 
