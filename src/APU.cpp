@@ -100,13 +100,20 @@ void APU::fillBuffer(float* stream, int len) {
 }
 
 void APU::updateChannel1() {
+	uint8_t nr14 = mmu->directRead(0xFF14);
+	uint8_t restart = (nr14 & 0x80) >> 7;
+
+	// If sound is off, simply return
+	if (soundOn1 == 0 && restart == 0) {
+		return;
+	}
+	
 	// Read relevant memory locations
 	uint8_t nr10 = mmu->directRead(0xFF10);
 	uint8_t nr11 = mmu->directRead(0xFF11);
 	uint8_t nr12 = mmu->directRead(0xFF12);
 	uint8_t nr13 = mmu->directRead(0xFF13);
-	uint8_t nr14 = mmu->directRead(0xFF14);
-
+	
 	// Split registers into their encoded information
 	uint8_t sweepPeriod = (nr10 & 0x70) >> 4;
 	uint8_t sweepDirection = (nr10 & 0x08) >> 3;
@@ -116,7 +123,6 @@ void APU::updateChannel1() {
 	uint8_t initialVolume = (nr12 & 0xF0) >> 4;
 	uint8_t envelopeDirection = (nr12 & 0x08) >> 3;
 	uint8_t envelopePeriod = (nr12 & 0x07);
-	uint8_t restart = (nr14 & 0x80) >> 7;
 	uint8_t selection = (nr14 & 0x40) >> 6;
 
 	uint16_t frequency = nr13;						// lower 8 bits
@@ -134,11 +140,6 @@ void APU::updateChannel1() {
 
 		// For now, consume the bit
 		mmu->setBit(0xFF14, 7, 0);
-	}
-
-	// If sound is off, simply return
-	if (soundOn1 == 0) {
-		return;
 	}
 
 	// TODO: Could this be out of sync with what the CPU is expecting? ie the CPU sets a length and restarts within
@@ -258,11 +259,18 @@ void APU::updateChannel1() {
 }
 
 void APU::updateChannel2() {
+	uint8_t nr24 = mmu->directRead(0xFF19);
+	uint8_t restart = (nr24 & 0x80) >> 7;
+
+	// If sound is off, simply return
+	if (soundOn2 == 0 && restart == 0) {
+		return;
+	}
+	
 	// Read relevant memory locations
 	uint8_t nr21 = mmu->directRead(0xFF16);
 	uint8_t nr22 = mmu->directRead(0xFF17);
 	uint8_t nr23 = mmu->directRead(0xFF18);
-	uint8_t nr24 = mmu->directRead(0xFF19);
 
 	// Split registers into their encoded information
 	uint8_t wavePatternDutyIndex	= (nr21 & 0xC0) >> 6;
@@ -270,7 +278,6 @@ void APU::updateChannel2() {
 	uint8_t initialVolume			= (nr22 & 0xF0) >> 4;
 	uint8_t envelopeDirection		= (nr22 & 0x08) >> 3;
 	uint8_t envelopePeriod			= (nr22 & 0x07);
-	uint8_t restart					= (nr24 & 0x80) >> 7;
 	uint8_t selection				= (nr24 & 0x40) >> 6;
 	
 	uint16_t frequency = nr23;						// lower 8 bits
@@ -289,11 +296,6 @@ void APU::updateChannel2() {
 
 		// For now, consume the bit
 		mmu->setBit(0xFF19, 7, 0);
-	}
-	
-	// If sound is off, simply return
-	if (soundOn2 == 0) {
-		return;
 	}
 
 	// Sound length counter, tick once every 256 Hz or 4096 cycles
@@ -365,22 +367,8 @@ void APU::updateChannel2() {
 }
 
 void APU::updateChannel3() {
-	// Read relevant memory locations
 	uint8_t nr30 = mmu->directRead(0xFF1A);
-	uint8_t nr31 = mmu->directRead(0xFF1B);
-	uint8_t nr32 = mmu->directRead(0xFF1C);
-	uint8_t nr33 = mmu->directRead(0xFF1D);
-	uint8_t nr34 = mmu->directRead(0xFF1E);
-
-	// Split registers into their encoded information
 	uint8_t soundOn = (nr30 & 0x80) >> 6;
-	uint8_t soundLength = nr31;
-	uint8_t volume = (nr32 & 0x60) >> 5;
-	uint8_t restart = (nr34 & 0x80) >> 7;
-	uint8_t selection = (nr34 & 0x40) >> 6;
-
-	uint16_t frequency = nr33;						// lower 8 bits
-	frequency |= (uint16_t)(nr34 & 0x07) << 8;		// upper 8 bits
 
 	// Return right away if sound is off
 	if (soundOn == 0) {
@@ -390,6 +378,27 @@ void APU::updateChannel3() {
 		// causes issues
 		return;
 	}
+
+	uint8_t nr34 = mmu->directRead(0xFF1E);
+	uint8_t restart = (nr34 & 0x80) >> 7;
+
+	// If sound is off, simply return
+	if (soundOn3 == 0 && restart == 0) {
+		return;
+	}
+	
+	// Read relevant memory locations
+	uint8_t nr31 = mmu->directRead(0xFF1B);
+	uint8_t nr32 = mmu->directRead(0xFF1C);
+	uint8_t nr33 = mmu->directRead(0xFF1D);
+
+	// Split registers into their encoded information
+	uint8_t soundLength = nr31;
+	uint8_t volume = (nr32 & 0x60) >> 5;
+	uint8_t selection = (nr34 & 0x40) >> 6;
+
+	uint16_t frequency = nr33;						// lower 8 bits
+	frequency |= (uint16_t)(nr34 & 0x07) << 8;		// upper 8 bits
 
 	// Restart sound
 	if (restart == 1) {	
@@ -414,11 +423,6 @@ void APU::updateChannel3() {
 
 		// For now, consume the bit
 		mmu->setBit(0xFF1E, 7, 0);
-	}
-
-	// If sound is off, simply return
-	if (soundOn3 == 0) {
-		return;
 	}
 
 	// Sound length counter, tick once every 256 Hz or 4096 cycles
@@ -472,18 +476,25 @@ void APU::updateChannel3() {
 }
 
 void APU::updateChannel4() {
+	uint8_t nr44 = mmu->directRead(0xFF23);
+	uint8_t restart = (nr44 & 0x80) >> 7;
+
+	// If sound is off, simply return
+	if (soundOn4 == 0 && restart == 0) {
+		return;
+	}
+	
 	// Read relevant memory locations
 	uint8_t nr41 = mmu->directRead(0xFF20);
 	uint8_t nr42 = mmu->directRead(0xFF21);
 	uint8_t nr43 = mmu->directRead(0xFF22);
-	uint8_t nr44 = mmu->directRead(0xFF23);
 
 	// Split registers into their encoded information
 	uint8_t soundLength = (nr41 & 0x3F);
 	uint8_t initialVolume = (nr42 & 0xF0) >> 4;
 	uint8_t envelopeDirection = (nr42 & 0x08) >> 3;
 	uint8_t envelopePeriod = (nr42 & 0x07);
-	uint8_t restart = (nr44 & 0x80) >> 7;
+	
 	uint8_t selection = (nr44 & 0x40) >> 6;
 
 	uint8_t shiftClockFrequency = (nr43 & 0xF0) >> 4;
@@ -501,11 +512,6 @@ void APU::updateChannel4() {
 
 		// For now, consume the bit
 		mmu->setBit(0xFF23, 7, 0);
-	}
-
-	// If sound is off, simply return
-	if (soundOn4 == 0) {
-		return;
 	}
 
 	// Sound length counter, tick once every 256 Hz or 4096 cycles

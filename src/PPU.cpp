@@ -129,8 +129,8 @@ void PPU::updateLY() {
 			ly = 0x00;
 			frameComplete = true;
 
-			// Update the tilemaps at the end of every frame
-			updateTileData();
+			// Update the tilemaps and objects at the end of every frame
+			//updateTileData();
 			updateTileMaps();
 			updateObjects();
 		}
@@ -223,6 +223,7 @@ void PPU::setObject(
 	}
 }
 
+// Useful for debugging but not needed for emulation
 void PPU::updateTileData() {
 	uint16_t block0Start = 0x8000;
 	uint16_t block1Start = 0x8800;
