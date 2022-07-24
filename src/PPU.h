@@ -53,6 +53,7 @@ public:
 
 	uint32_t readPixel(uint16_t index);
 	void updateLCDC();
+	void updateBackgroundScanline(uint32_t* buffer, uint8_t* startingIndex);
 
 	bool frameComplete = false;
 
@@ -77,4 +78,6 @@ private:
 	uint16_t secondHalfStart = 0x0000;
 	uint16_t backgroundStart = 0x0000;
 	uint16_t windowStart = 0x0000;
+
+	//uint32_t* backgroundBuffer = new uint32_t[168];
 };

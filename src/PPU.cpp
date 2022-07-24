@@ -131,8 +131,8 @@ void PPU::updateLY() {
 
 			// Update the tilemaps and objects at the end of every frame
 			//updateTileData();
-			updateTileMaps();
-			//updateLCDC();
+			//updateTileMaps();
+			updateLCDC();
 			updateObjects();
 		}
 
@@ -402,6 +402,47 @@ void PPU::updateObjects() {
 	}
 }
 
+void PPU::updateBackgroundScanline(uint32_t* buffer, uint8_t* startingIndex) {
+	// iterate through 0 to 160
+	// find tile positions
+	// read bytes, transform, append to buffer
+
+	uint8_t scx = mmu->directRead(0xFF43);
+	uint8_t scy = mmu->directRead(0xFF42);
+	
+	uint8_t y = (ly + scy) % 256;
+	uint16_t tileY = y / 8;
+	uint16_t tileYPos = tileY * 32;
+
+	*startingIndex = scx % 8;
+
+	// Construct scanline, max 21 tiles need to be loaded
+	for (int i = 0; i < 21; i++) {
+		// Find x and y of the pixel on the background tilemap to work with
+		uint8_t x = (i * 8 + scx) % 256;
+		uint16_t tileX = x / 8;
+
+		// Find tile to load
+		uint16_t tileIndex = tileYPos + tileX;
+
+		uint8_t bgIndex = mmu->directRead(backgroundStart + tileIndex);
+		uint16_t bgStart = (bgIndex > 127) ? secondHalfStart : firstHalfStart;
+		bgIndex %= 128;
+
+		// Find the y of the correct line
+		uint8_t lineY = y - (tileY * 8);
+
+		uint8_t lo = mmu->directRead(bgStart + bgIndex * 16 + lineY * 2);
+		uint8_t hi = mmu->directRead(bgStart + bgIndex * 16 + lineY * 2 + 1);
+
+		// Add 8 pixels to the line
+		for (int j = 0; j < 8; j++) {
+			uint32_t paletteIndex = bgp[((hi >> (7 - j)) << 1 & 0x02) | ((lo >> (7 - j)) & 0x01)];
+			buffer[i * 8 + j] = palette[paletteIndex];
+		}
+	}
+}
+
 void PPU::updateScanline() {
 	// Early out if scanline is greater than 143, shouldn't ever hit this point
 	if (ly > 143) {
@@ -423,6 +464,12 @@ void PPU::updateScanline() {
 	uint8_t wx = mmu->directRead(0xFF4B);
 	uint8_t wy = mmu->directRead(0xFF4A);
 
+	uint32_t buffer[168];
+	uint8_t startingIndex = 0;
+
+	// Update the background scanline
+	updateBackgroundScanline(buffer, &startingIndex);
+
 	// Iterate through every pixel on the current scanline and set to the correct value from the
 	// background, window, and objects buffers.
 	for (int i = 0; i < 160; i++) {
@@ -434,9 +481,10 @@ void PPU::updateScanline() {
 		// Get the current position of the background tilemap to set in the screen,
 		// including wrapping around if it would exceed the bounds of the tilemap.
 		// TODO: figure out at what point constants are less clear than the actual number
-		uint16_t bi = (((y + scy) % 256) * 256 + (x + scx) % 256);
-		screenBuffer[si] = backgroundBuffer[bi];
+		//uint16_t bi = (((y + scy) % 256) * 256 + (x + scx) % 256);
+		//screenBuffer[si] = backgroundBuffer[bi];
 		//screenBuffer[si] = readPixel(bi);
+		screenBuffer[si] = buffer[startingIndex + x];
 
 		// Screen to window tilemap mapping - screen pixel minus wx (or wy), so long as its greater than 0
 		if (lcdc5) {
