@@ -172,10 +172,10 @@ public:
 			totalElapsed += elapsed;
 
 			// Delay until 16.666 ms have passed
-			/*while (elapsed < 0.016666) {
+			while (elapsed < 0.016666) {
 				end = SDL_GetPerformanceCounter();
 				elapsed = (end - start) / (double)SDL_GetPerformanceFrequency();
-			}*/			
+			}
 			
 			// Render fps at specified rate using the average elapsed time over the last quantity of frames
 			if (fpsRenderCounter == 0) {
@@ -333,7 +333,7 @@ private:
 	DMG dmg;
 
 	bool renderFPS = false;
-	int fpsRenderTicks = 120;
+	int fpsRenderTicks = 30;
 
 	SDL_Surface* textSurface = NULL;
 	SDL_Texture* textTexture = NULL;

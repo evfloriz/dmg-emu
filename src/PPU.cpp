@@ -132,6 +132,7 @@ void PPU::updateLY() {
 			// Update the tilemaps and objects at the end of every frame
 			//updateTileData();
 			updateTileMaps();
+			//updateLCDC();
 			updateObjects();
 		}
 
@@ -294,6 +295,59 @@ void PPU::updateTileMaps() {
 	}
 }
 
+void PPU::updateLCDC() {
+	// If lcdc4 = 1, 0-127 starts at 0x8000 and 128-255 starts at 0x8800
+	// If lcdc4 = 0, 0-127 starts at 0x9000 and 128-255 starts at 0x8800
+	bool lcdc4 = mmu->directRead(0xFF40) & (1 << 4);
+	firstHalfStart = lcdc4 ? 0x8000 : 0x9000;
+	secondHalfStart = 0x8800;
+
+	// If lcdc3 = 1, the background map starts at 0x9C00, otherwise 0x9800
+	bool lcdc3 = mmu->directRead(0xFF40) & (1 << 3);
+	backgroundStart = lcdc3 ? 0x9C00 : 0x9800;
+
+	// If lcdc6 = 1, win map starts at 0x9C00, otherwise 0x9800
+	bool lcdc6 = mmu->directRead(0xFF40) & (1 << 6);
+	windowStart = lcdc6 ? 0x9C00 : 0x9800;
+
+	// Update palette information
+	uint32_t bgpData = mmu->directRead(0xFF47);
+	bgp[0] = (bgpData & 0x03) >> 0;
+	bgp[1] = (bgpData & 0x0C) >> 2;
+	bgp[2] = (bgpData & 0x30) >> 4;
+	bgp[3] = (bgpData & 0xC0) >> 6;
+}
+
+uint32_t PPU::readPixel(uint16_t index) {
+	// Note: currently not more performant than updating tile maps each frame
+	
+	// Idea: fetch entire line of tiles at a time
+	// Cache for all 8 lines that use the same tiles
+
+	uint16_t pixelX = index % 256;
+	uint16_t pixelY = index / 256;
+
+	uint16_t tileX = pixelX / 8;
+	uint16_t tileY = pixelY / 8;
+
+	uint16_t tileIndex = tileY * 32 + tileX;
+
+	uint8_t bgIndex = mmu->directRead(backgroundStart + tileIndex);
+	uint16_t bgStart = (bgIndex > 127) ? secondHalfStart : firstHalfStart;
+	bgIndex %= 128;
+
+	// Which line of the tile is the right one
+	uint8_t lineX = pixelX - (tileX * 8);
+	uint8_t lineY = pixelY - (tileY * 8);
+
+	uint8_t lo = mmu->directRead(bgStart + bgIndex * 16 + lineY * 2);
+	uint8_t hi = mmu->directRead(bgStart + bgIndex * 16 + lineY * 2 + 1);
+
+	// Update palette based on selected object palette
+	uint32_t paletteIndex = bgp[((hi >> (7 - lineX)) << 1 & 0x02) | ((lo >> (7 - lineX)) & 0x01)];
+	return palette[paletteIndex];
+}
+
 void PPU::updateObjects() {
 	// Early out if LCD is off
 	bool lcdc7 = mmu->directRead(0xFF40) & (1 << 7);
@@ -382,6 +436,7 @@ void PPU::updateScanline() {
 		// TODO: figure out at what point constants are less clear than the actual number
 		uint16_t bi = (((y + scy) % 256) * 256 + (x + scx) % 256);
 		screenBuffer[si] = backgroundBuffer[bi];
+		//screenBuffer[si] = readPixel(bi);
 
 		// Screen to window tilemap mapping - screen pixel minus wx (or wy), so long as its greater than 0
 		if (lcdc5) {

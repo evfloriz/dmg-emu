@@ -51,6 +51,9 @@ public:
 	uint32_t* getWindowBuffer();
 	uint32_t* getObjectsBuffer();
 
+	uint32_t readPixel(uint16_t index);
+	void updateLCDC();
+
 	bool frameComplete = false;
 
 private:
@@ -69,4 +72,9 @@ private:
 	uint32_t* windowBuffer = new uint32_t[util::MAP_WIDTH * util::MAP_HEIGHT];
 	uint32_t* objectsBuffer = new uint32_t[util::MAP_WIDTH * util::MAP_HEIGHT];
 	bool* objectsPriorityBuffer = new bool[util::MAP_WIDTH * util::MAP_HEIGHT];
+
+	uint16_t firstHalfStart = 0x0000;
+	uint16_t secondHalfStart = 0x0000;
+	uint16_t backgroundStart = 0x0000;
+	uint16_t windowStart = 0x0000;
 };
