@@ -132,7 +132,6 @@ void PPU::updateLY() {
 			// Update the tilemaps and objects at the end of every frame
 			//updateTileData();
 			//updateTileMaps();
-			updateLCDC();
 			updateObjects();
 		}
 
@@ -295,29 +294,6 @@ void PPU::updateTileMaps() {
 	}
 }
 
-void PPU::updateLCDC() {
-	// If lcdc4 = 1, 0-127 starts at 0x8000 and 128-255 starts at 0x8800
-	// If lcdc4 = 0, 0-127 starts at 0x9000 and 128-255 starts at 0x8800
-	bool lcdc4 = mmu->directRead(0xFF40) & (1 << 4);
-	firstHalfStart = lcdc4 ? 0x8000 : 0x9000;
-	secondHalfStart = 0x8800;
-
-	// If lcdc3 = 1, the background map starts at 0x9C00, otherwise 0x9800
-	bool lcdc3 = mmu->directRead(0xFF40) & (1 << 3);
-	backgroundStart = lcdc3 ? 0x9C00 : 0x9800;
-
-	// If lcdc6 = 1, win map starts at 0x9C00, otherwise 0x9800
-	bool lcdc6 = mmu->directRead(0xFF40) & (1 << 6);
-	windowStart = lcdc6 ? 0x9C00 : 0x9800;
-
-	// Update palette information
-	uint32_t bgpData = mmu->directRead(0xFF47);
-	bgp[0] = (bgpData & 0x03) >> 0;
-	bgp[1] = (bgpData & 0x0C) >> 2;
-	bgp[2] = (bgpData & 0x30) >> 4;
-	bgp[3] = (bgpData & 0xC0) >> 6;
-}
-
 uint32_t PPU::readPixel(uint16_t index) {
 	// Note: currently not more performant than updating tile maps each frame
 	
@@ -402,11 +378,7 @@ void PPU::updateObjects() {
 	}
 }
 
-void PPU::updateBackgroundScanline(uint32_t* buffer, uint8_t* startingIndex) {
-	// iterate through 0 to 160
-	// find tile positions
-	// read bytes, transform, append to buffer
-
+void PPU::updateBackgroundScanline(uint32_t* buffer, int* startingIndex) {
 	uint8_t scx = mmu->directRead(0xFF43);
 	uint8_t scy = mmu->directRead(0xFF42);
 	
@@ -443,32 +415,96 @@ void PPU::updateBackgroundScanline(uint32_t* buffer, uint8_t* startingIndex) {
 	}
 }
 
+void PPU::updateWindowScanline(uint32_t* buffer, int* startingIndex) {
+	uint8_t wx = mmu->directRead(0xFF4B);
+	uint8_t wy = mmu->directRead(0xFF4A);
+
+	int y = ly - wy;
+	if (y < 0) {
+		*startingIndex = 160;
+		return;
+	}
+
+	uint16_t tileY = y / 8;
+	uint16_t tileYPos = tileY * 32;
+
+	// Read the first 168 pixels of the window map (since its up to 168)
+	// then adjust the starting position, considering -8 to be null (since up to -7 is allowed)
+	
+	// Starting index indicates where the first position of the window is in the scanline
+	// Starting index is from -7 to 159
+	*startingIndex = wx - 7;
+
+	// Construct scanline, max 21 tiles need to be loaded
+	for (int i = 0; i < 21; i++) {
+		// Find x and y of the pixel on the background tilemap to work with
+		uint8_t x = i * 8;
+		uint16_t tileX = i;
+
+		// Find tile to load
+		uint16_t tileIndex = tileYPos + tileX;
+
+		uint8_t index = mmu->directRead(windowStart + tileIndex);
+		uint16_t start = (index > 127) ? secondHalfStart : firstHalfStart;
+		index %= 128;
+
+		// Find the y of the correct line
+		uint8_t lineY = y - (tileY * 8);
+
+		uint8_t lo = mmu->directRead(start + index * 16 + lineY * 2);
+		uint8_t hi = mmu->directRead(start + index * 16 + lineY * 2 + 1);
+
+		// Add 8 pixels to the line
+		for (int j = 0; j < 8; j++) {
+			uint32_t paletteIndex = bgp[((hi >> (7 - j)) << 1 & 0x02) | ((lo >> (7 - j)) & 0x01)];
+			buffer[i * 8 + j] = palette[paletteIndex];
+		}
+	}
+}
+
 void PPU::updateScanline() {
 	// Early out if scanline is greater than 143, shouldn't ever hit this point
 	if (ly > 143) {
 		return;
 	}
 
-	// If lcdc5 = 1, window is enabled
-	bool lcdc5 = mmu->directRead(0xFF40) & (1 << 5);
+	uint8_t lcdc = mmu->directRead(0xFF40);
 
-	// If lcdc1 = 1, objects are enabled
-	bool lcdc1 = mmu->directRead(0xFF40) & (1 << 1);
+	bool lcdc5 = lcdc & (1 << 5);				// If lcdc5 = 1, window is enabled
+	bool lcdc1 = lcdc & (1 << 1);				// If lcdc1 = 1, objects are enabled
+	bool lcdc0 = lcdc & (1 << 0);				// If lcdc0 = 1, background and window are enabled
+												// Otherwise they are white (palette[0])
+	bool lcdc4 = lcdc & (1 << 4);				// If lcdc4 = 1, 0-127 starts at 0x8000 and 128-255 starts at 0x8800
+												// If lcdc4 = 0, 0-127 starts at 0x9000 and 128-255 starts at 0x8800
+	bool lcdc3 = lcdc & (1 << 3);				// If lcdc3 = 1, the background map starts at 0x9C00, otherwise 0x9800
+	bool lcdc6 = lcdc & (1 << 6);				// If lcdc6 = 1, win map starts at 0x9C00, otherwise 0x9800
 
-	// If lcdc0 = 1, background and window are enabled
-	// Otherwise they are white (palette[0])
-	bool lcdc0 = mmu->directRead(0xFF40) & (1 << 0);
+	firstHalfStart = lcdc4 ? 0x8000 : 0x9000;	
+	secondHalfStart = 0x8800;	
+	backgroundStart = lcdc3 ? 0x9C00 : 0x9800;
+	windowStart = lcdc6 ? 0x9C00 : 0x9800;
 
-	uint8_t scx = mmu->directRead(0xFF43);
-	uint8_t scy = mmu->directRead(0xFF42);
+	// Update palette information
+	uint32_t bgpData = mmu->directRead(0xFF47);
+	bgp[0] = (bgpData & 0x03) >> 0;
+	bgp[1] = (bgpData & 0x0C) >> 2;
+	bgp[2] = (bgpData & 0x30) >> 4;
+	bgp[3] = (bgpData & 0xC0) >> 6;
+
 	uint8_t wx = mmu->directRead(0xFF4B);
 	uint8_t wy = mmu->directRead(0xFF4A);
 
-	uint32_t buffer[168];
-	uint8_t startingIndex = 0;
+	uint32_t bgBuffer[168];
+	int bgStartingIndex = -1;
 
 	// Update the background scanline
-	updateBackgroundScanline(buffer, &startingIndex);
+	updateBackgroundScanline(bgBuffer, &bgStartingIndex);
+
+	uint32_t winBuffer[168];
+	int winStartingIndex = -1;
+
+	// Update the background scanline
+	updateWindowScanline(winBuffer, &winStartingIndex);
 
 	// Iterate through every pixel on the current scanline and set to the correct value from the
 	// background, window, and objects buffers.
@@ -484,15 +520,21 @@ void PPU::updateScanline() {
 		//uint16_t bi = (((y + scy) % 256) * 256 + (x + scx) % 256);
 		//screenBuffer[si] = backgroundBuffer[bi];
 		//screenBuffer[si] = readPixel(bi);
-		screenBuffer[si] = buffer[startingIndex + x];
+		screenBuffer[si] = bgBuffer[bgStartingIndex + x];
 
 		// Screen to window tilemap mapping - screen pixel minus wx (or wy), so long as its greater than 0
-		if (lcdc5) {
+		/*if (lcdc5) {
 			int wiy = y - wy;
 			int wix = x - wx + 7;		// wx is window position + 7, see pandocs
 			if (wix >= 0 && wiy >= 0) {
 				int wi = wiy * 256 + wix;
 				screenBuffer[si] = windowBuffer[wi];
+			}
+		}*/
+
+		if (lcdc5) {
+			if (x - winStartingIndex >= 0) {
+				screenBuffer[si] = winBuffer[x - winStartingIndex];
 			}
 		}
 
