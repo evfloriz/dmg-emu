@@ -55,6 +55,9 @@ public:
 	void updateBackgroundScanline(uint32_t* buffer, int* startingIndex);
 	void updateWindowScanline(uint32_t* buffer, int* startingIndex);
 
+	void updateBackgroundTileMap();
+	void updateWindowTileMap();
+
 	bool frameComplete = false;
 
 private:
