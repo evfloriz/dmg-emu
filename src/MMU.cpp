@@ -1,9 +1,11 @@
 #include "CPU.h"
+#include "APU.h"
 
 #include "MMU.h"
 
-MMU::MMU(CPU* cpu) {
+MMU::MMU(CPU* cpu, APU* apu) {
 	this->cpu = cpu;
+	this->apu = apu;
 
 	// Set joypad register to high for now
 	memory[0xFF00] = 0xFF;
@@ -47,6 +49,23 @@ void MMU::write(uint16_t addr, uint8_t data) {
 	else if (addr == 0xFF04) {
 		// If the divider is written to, set it to 0
 		cpu->resetDivider();
+	}
+	else if (addr == 0xFF11) {
+		memory[addr] = data;
+
+		// Update the channel 1 length timer
+		data &= 0x3F;
+		apu->updateChannel1Timer(data);
+	}
+	else if (addr == 0xFF14) {
+		memory[addr] = data;
+		
+		// Bit 7 restarts channel 1
+		data >>= 7;
+
+		if (data) {
+			apu->triggerChannel1();
+		}
 	}
 	else if (addr == 0xFF26) {
 		// Bit 7 turns the sound on or off

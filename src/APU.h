@@ -14,6 +14,13 @@ public:
 	
 	int getPosDifference();
 
+	void triggerChannel1();
+	void triggerChannel2();
+	void triggerChannel3();
+	void triggerChannel4();
+
+	void updateChannel1Timer(uint8_t data);
+
 private:
 	void updateChannel1();
 	void updateChannel2();
@@ -23,6 +30,9 @@ private:
 	void updateControl();
 
 	void updateFrameSequencer();
+	void updateChannel1State();
+
+	
 
 private:
 	MMU* mmu = nullptr;
@@ -53,8 +63,8 @@ private:
 	uint8_t soundOn1 = 0;
 	uint8_t volume1 = 0;
 	float sample1 = 0.0f;
-
-	uint16_t soundLengthCounter1 = 0;
+	
+	uint32_t soundLengthCounter1 = 0;
 	uint32_t sweepCounter1 = 0;
 	uint32_t envelopeCounter1 = 0;
 	uint32_t frequencyCounter1 = 0;
