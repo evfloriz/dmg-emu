@@ -12,6 +12,7 @@ void APU::clock() {
 	
 	// TODO: Consider switching to using the frame sequencer
 
+	updateFrameSequencer();
 	updateControl();
 	
 	updateChannel1();
@@ -73,6 +74,39 @@ void APU::clock() {
 
 	}
 	sampleCounter--;
+}
+
+void APU::updateFrameSequencer() {
+	// Reset all clocks (assume they were consumed, only true for 1 tick)
+	// TODO: Consider moving this out of the hottest loop and only have them reset when
+	// the channels consume them
+	lengthCtrClock = false;
+	sweepClock = false;
+	volEnvClock = false;
+
+	
+	// Step the frame sequencer forward at 512 Hz
+	if (fsCounter == 0) {
+		fsCounter = 2048;
+		
+		// Length counter, step 0, 2, 4, 6
+		if ((fsStep & 0x01) == 0x00) {
+			lengthCtrClock = true;
+		}
+		
+		// Sweep, step 2, 6
+		if ((fsStep & 0x03) == 0x02) {
+			sweepClock = true;
+		}
+
+		// Vol Env, step 7
+		if ((fsStep & 0x07) == 0x07) {
+			volEnvClock = true;
+		}
+		
+		fsStep++;
+	}
+	fsCounter--;
 }
 
 int APU::getPosDifference() {

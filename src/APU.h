@@ -22,6 +22,8 @@ private:
 
 	void updateControl();
 
+	void updateFrameSequencer();
+
 private:
 	MMU* mmu = nullptr;
 
@@ -93,6 +95,13 @@ private:
 	uint32_t envelopeCounter4 = 0;
 	uint32_t frequencyCounter4 = 0;
 	uint16_t bufferIndex4 = 0;
+
+	// Frame sequencer state information
+	uint32_t fsCounter = 0;
+	uint8_t fsStep = 0;
+	bool lengthCtrClock = false;
+	bool volEnvClock = false;
+	bool sweepClock = false;
 
 public:
 	// Debug related information
