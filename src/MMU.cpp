@@ -68,9 +68,61 @@ void MMU::write(uint16_t addr, uint8_t data) {
 
 		// Bit 7 restarts channel 1
 		data >>= 7;
-
 		if (data) {
 			apu->triggerChannel1();
+		}
+		break;
+	}
+
+	case 0xFF16: {
+		memory[addr] = data;
+		data &= 0x3F;
+		apu->updateChannel2Timer(data);
+		break;
+	}
+
+	case 0xFF19: {
+		memory[addr] = data;
+
+		// Bit 7 restarts channel 2
+		data >>= 7;
+		if (data) {
+			apu->triggerChannel2();
+		}
+		break;
+	}
+
+	case 0xFF1B: {
+		memory[addr] = data;
+		apu->updateChannel3Timer(data);
+		break;
+	}
+
+	case 0xFF1E: {
+		memory[addr] = data;
+
+		// Bit 7 restarts channel 3
+		data >>= 7;
+		if (data) {
+			apu->triggerChannel3();
+		}
+		break;
+	}
+
+	case 0xFF20: {
+		memory[addr] = data;
+		data &= 0x3F;
+		apu->updateChannel4Timer(data);
+		break;
+	}
+
+	case 0xFF23: {
+		memory[addr] = data;
+
+		// Bit 7 restarts channel 4
+		data >>= 7;
+		if (data) {
+			apu->triggerChannel4();
 		}
 		break;
 	}

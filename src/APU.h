@@ -20,6 +20,9 @@ public:
 	void triggerChannel4();
 
 	void updateChannel1Timer(uint8_t data);
+	void updateChannel2Timer(uint8_t data);
+	void updateChannel3Timer(uint8_t data);
+	void updateChannel4Timer(uint8_t data);
 
 private:
 	void updateChannel1();
@@ -30,9 +33,6 @@ private:
 	void updateControl();
 
 	void updateFrameSequencer();
-	void updateChannel1State();
-
-	
 
 private:
 	MMU* mmu = nullptr;
@@ -112,6 +112,12 @@ private:
 	bool lengthCtrClock = false;
 	bool volEnvClock = false;
 	bool sweepClock = false;
+
+	// Various arrays to be indexed
+	uint8_t squareWaveRatio[4] = { 1, 2, 4, 6 };
+	uint8_t waveVolume[4] = { 0, 0x0F, 0x07, 0x03 };		// 0%, 100%, 50%, 25%
+	uint8_t noiseDivisor[8] = { 8, 16, 32, 48, 64, 80, 96, 112 };
+
 
 public:
 	// Debug related information

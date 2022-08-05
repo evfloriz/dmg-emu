@@ -16,9 +16,9 @@ void APU::clock() {
 	updateControl();
 	
 	updateChannel1();
-	//updateChannel2();
-	//updateChannel3();
-	//updateChannel4();
+	updateChannel2();
+	updateChannel3();
+	updateChannel4();
 	
 	// Resample from every tick (2^20 Hz) to sample rate (44100 Hz)
 	if (sampleCounter <= 0) {
@@ -77,7 +77,7 @@ void APU::clock() {
 }
 
 void APU::updateFrameSequencer() {
-	// Reset all clocks (assume they were consumed, only true for 1 tick)
+	// Reset all clocks (assume they are to be consumed, only true for 1 tick)
 	// TODO: Consider moving this out of the hottest loop and only have them reset when
 	// the channels consume them
 	lengthCtrClock = false;
@@ -150,36 +150,109 @@ void APU::triggerChannel1() {
 
 	// Read relevant memory locations
 	uint8_t nr10 = mmu->directRead(0xFF10);
-	uint8_t nr11 = mmu->directRead(0xFF11);
 	uint8_t nr12 = mmu->directRead(0xFF12);
 	uint8_t nr13 = mmu->directRead(0xFF13);
 	uint8_t nr14 = mmu->directRead(0xFF14);
 
-	// Split registers into their encoded information
-	uint8_t sweepPeriod = (nr10 & 0x70) >> 4;
-	//uint8_t soundLength = (nr11 & 0x3F);		// always reset to 64? according to gbdevwiki sound hardware page
-	uint8_t initialVolume = (nr12 & 0xF0) >> 4;
-	uint8_t envelopePeriod = (nr12 & 0x07);
-
-	uint16_t frequency = nr13;						// lower 8 bits
-	frequency |= (uint16_t)(nr14 & 0x07) << 8;		// upper 8 bits
-	
 	soundOn1 = 1;
-	volume1 = initialVolume;
+	sweepCounter1 = (nr10 & 0x70) >> 4;				// sweep period
+	volume1 = (nr12 & 0xF0) >> 4;					// initial volume
+	envelopeCounter1 = (nr12 & 0x07);				// envelope period
 
-	// Reset counters
 	if (soundLengthCounter1 == 0) {
-		soundLengthCounter1 = 64;
+		soundLengthCounter1 = 64;			// always reset to 64 according to gbdevwiki sound hardware page
 	}
+
+	uint16_t frequency = nr13;
+	frequency |= (uint16_t)(nr14 & 0x07) << 8;
+	frequencyCounter1 = 2048 - frequency;		// (2048 - freq) * 4 for T-cycles
+
+	waveIndex1 = 0;
+}
+
+void APU::triggerChannel2() {
+	uint8_t nr22 = mmu->directRead(0xFF17);
+	uint8_t nr23 = mmu->directRead(0xFF18);
+	uint8_t nr24 = mmu->directRead(0xFF19);
+
+	soundOn2 = 1;
+	volume2 = (nr22 & 0xF0) >> 4;				// initial volume
+	envelopeCounter2 = (nr22 & 0x07);			// envelope period
+
+	if (soundLengthCounter2 == 0) {
+		soundLengthCounter2 = 64;
+	}
+
+	uint16_t frequency = nr23;
+	frequency |= (uint16_t)(nr24 & 0x07) << 8;
+	frequencyCounter2 = 2048 - frequency;
+
+	waveIndex2 = 0;
+}
+
+void APU::triggerChannel3() {
+	uint8_t nr30 = mmu->directRead(0xFF1A);
+	uint8_t nr31 = mmu->directRead(0xFF1B);
+	uint8_t nr32 = mmu->directRead(0xFF1C);
+	uint8_t nr33 = mmu->directRead(0xFF1D);
+	uint8_t nr34 = mmu->directRead(0xFF1E);
+
+	soundOn3 = 1;
+	soundLengthCounter3 = 256 - nr31;
+
+	uint8_t volumeIndex = (nr32 & 0x60) >> 5;
+	volume3 = waveVolume[volumeIndex];
+
+	uint16_t frequency = nr33;
+	frequency |= (uint16_t)(nr34 & 0x07) << 8;
+	frequencyCounter3 = (2048 - frequency) >> 1;		// (2048 - freq) * 2 for T-cycles
 	
-	sweepCounter1 = sweepPeriod;
-	envelopeCounter1 = envelopePeriod;
-	//frequencyCounter1 = (2048 - frequency) * 4;
-	frequencyCounter1 = 2048 - frequency;		// not * 4 because I'm ticking at M cycles not T cycles
+	waveIndex3 = 0;
+
+	// If DAC is off, the above actions occur but the channel is disabled again (gbdevwiki sound hardware page)
+	uint8_t soundOn = (nr30 & 0x80) >> 6;
+	if (soundOn == 0) {
+		soundOn3 = 0;
+	}
+}
+
+void APU::triggerChannel4() {
+	uint8_t nr41 = mmu->directRead(0xFF20);
+	uint8_t nr42 = mmu->directRead(0xFF21);
+	uint8_t nr43 = mmu->directRead(0xFF22);
+	uint8_t nr44 = mmu->directRead(0xFF23);
+
+	soundOn4 = 1;
+	volume4 = (nr42 & 0xF0) >> 4;				// initial volume
+	envelopeCounter4 = (nr42 & 0x07);			// envelope period
+
+	if (soundLengthCounter4 == 0) {
+		soundLengthCounter4 = 64;
+	}
+
+	uint8_t shiftAmount = (nr43 & 0xF0) >> 4;
+	uint8_t divisorCode = (nr43 & 0x07);
+	uint8_t divisor = noiseDivisor[divisorCode];
+
+	frequencyCounter4 = divisor << shiftAmount;
+
+	shiftRegister = 0xFFFF;
 }
 
 void APU::updateChannel1Timer(uint8_t data) {
 	soundLengthCounter1 = 64 - data;
+}
+
+void APU::updateChannel2Timer(uint8_t data) {
+	soundLengthCounter2 = 64 - data;
+}
+
+void APU::updateChannel3Timer(uint8_t data) {
+	soundLengthCounter3 = 256 - data;
+}
+
+void APU::updateChannel4Timer(uint8_t data) {
+	soundLengthCounter4 = 64 - data;
 }
 
 void APU::updateChannel1() {
@@ -194,17 +267,15 @@ void APU::updateChannel1() {
 			soundLengthCounter1--;
 		}
 	}
-
 	if (soundLengthCounter1 == 0) {
 		// Don't return immediately so 0 is written to the channel 1 buffer
 		soundOn1 = 0;
 	}
 	
+	// Sweep counter, tick once every 128 Hz or 8192 cycles
 	if (sweepClock) {
 		sweepCounter1--;
 	}
-
-	// Sweep counter, tick once every 128 Hz or 8192 cycles
 	if (sweepCounter1 == 0) {
 		// Read the sweep register
 		uint8_t nr10 = mmu->directRead(0xFF10);
@@ -260,11 +331,10 @@ void APU::updateChannel1() {
 		}
 	}
 
+	// Envelop counter, tick once every 64 Hz or 16384 cycles
 	if (volEnvClock) {
 		envelopeCounter1--;
 	}
-	
-	// Envelop counter, tick once every 64 Hz or 16384 cycles
 	if (envelopeCounter1 == 0) {
 		// Read the envelope register
 		uint8_t nr12 = mmu->directRead(0xFF12);
@@ -285,8 +355,8 @@ void APU::updateChannel1() {
 		}
 	}
 
+	// Frequency counter
 	frequencyCounter1--;
-
 	if (frequencyCounter1 == 0) {
 		uint8_t nr13 = mmu->directRead(0xFF13);
 		uint8_t nr14 = mmu->directRead(0xFF14);
@@ -295,27 +365,13 @@ void APU::updateChannel1() {
 
 		frequencyCounter1 = 2048 - frequency;
 
-		// TODO: Find a better way to do this
+		// Get the correct wave pattern
 		uint8_t nr11 = mmu->directRead(0xFF11);
 		uint8_t wavePatternDutyIndex = (nr11 & 0xC0) >> 6;
-		uint8_t waveRatio1 = 4;
-		switch (wavePatternDutyIndex) {
-		case 0:
-			waveRatio1 = 1;
-			break;
-		case 1:
-			waveRatio1 = 2;
-			break;
-		case 2:
-			waveRatio1 = 4;
-			break;
-		case 3:
-			waveRatio1 = 6;
-			break;
-		}
+		uint8_t waveRatio = squareWaveRatio[wavePatternDutyIndex];
 
 		// Update the sample produced in accordance with the wave frequency
-		sample1 = waveIndex1 % 8 < waveRatio1 ? -1.0f : 1.0f;
+		sample1 = (waveIndex1 & 0x07) < waveRatio ? -1.0f : 1.0f;
 
 		// Letting it just wrap around for now
 		waveIndex1++;
@@ -331,59 +387,29 @@ void APU::updateChannel1() {
 }
 
 void APU::updateChannel2() {
-	uint8_t nr24 = mmu->directRead(0xFF19);
-	uint8_t restart = (nr24 & 0x80) >> 7;
+	// Length counter
+	if (lengthCtrClock) {
+		uint8_t nr24 = mmu->directRead(0xFF19);
+		uint8_t lengthEnabled = (nr24 & 0x40) >> 6;
 
-	// If sound is off, simply return
-	if (soundOn2 == 0 && restart == 0) {
-		return;
-	}
-	
-	// Read relevant memory locations
-	uint8_t nr21 = mmu->directRead(0xFF16);
-	uint8_t nr22 = mmu->directRead(0xFF17);
-	uint8_t nr23 = mmu->directRead(0xFF18);
-
-	// Split registers into their encoded information
-	uint8_t wavePatternDutyIndex	= (nr21 & 0xC0) >> 6;
-	uint8_t soundLength				= (nr21 & 0x3F);
-	uint8_t initialVolume			= (nr22 & 0xF0) >> 4;
-	uint8_t envelopeDirection		= (nr22 & 0x08) >> 3;
-	uint8_t envelopePeriod			= (nr22 & 0x07);
-	uint8_t selection				= (nr24 & 0x40) >> 6;
-	
-	uint16_t frequency = nr23;						// lower 8 bits
-	frequency |= (uint16_t)(nr24 & 0x07) << 8;		// upper 8 bits
-
-	// Restart sound
-	if (restart == 1) {
-		soundOn2 = 1;
-		volume2 = initialVolume;
-
-		// Reset counters
-		soundLengthCounter2 = 4096 * (64 - soundLength);
-		envelopeCounter2 = 16384 * envelopePeriod;
-
-		frequencyCounter2 = 0;
-
-		// For now, consume the bit
-		mmu->setBit(0xFF19, 7, 0);
-	}
-
-	// Sound length counter, tick once every 256 Hz or 4096 cycles
-	if (soundLengthCounter2 == 0) {
-		soundLengthCounter2 = 4096 * (64 - soundLength);
-		
-		// If selection is true, stop the sound. Otherwise keep playing
-		if (selection) {
-			soundOn2 = 0;
+		if (lengthEnabled) {
+			soundLengthCounter2--;
 		}
 	}
-	soundLengthCounter2--;
+	if (soundLengthCounter2 == 0) {
+		soundOn2 = 0;
+	}
 
-	// Envelop counter, tick once every 64 Hz or 16384 cycles
+	// Volume envelope counter
+	if (volEnvClock) {
+		envelopeCounter2--;
+	}
 	if (envelopeCounter2 == 0) {
-		envelopeCounter2 = 16384 * envelopePeriod;
+		uint8_t nr22 = mmu->directRead(0xFF17);
+		uint8_t envelopePeriod = (nr22 & 0x07);
+		uint8_t envelopeDirection = (nr22 & 0x08) >> 3;
+
+		envelopeCounter2 = envelopePeriod;
 
 		// Only use envelope if envelope period is greater than 0
 		if (envelopePeriod > 0) {
@@ -396,38 +422,27 @@ void APU::updateChannel2() {
 			}
 		}
 	}
-	envelopeCounter2--;
 
-	// Set the wave duty ratio (will be divided by 8)
-	uint8_t waveRatio2 = 4;
-	switch (wavePatternDutyIndex) {
-	case 0:
-		waveRatio2 = 1;
-		break;
-	case 1:
-		waveRatio2 = 2;
-		break;
-	case 2:
-		waveRatio2 = 4;
-		break;
-	case 3:
-		waveRatio2 = 6;
-		break;
-	}
-
-	uint32_t tone2 = 131072 / (2048 - frequency);				// from pandocs
-
+	// Frequency counter
+	frequencyCounter2--;
 	if (frequencyCounter2 == 0) {
-		// Split into 8 equal parts
-		frequencyCounter2 = (1 << 20) / tone2 / 8;
+		uint8_t nr23 = mmu->directRead(0xFF18);
+		uint8_t nr24 = mmu->directRead(0xFF19);
+		uint16_t frequency = nr23;						// lower 8 bits
+		frequency |= (uint16_t)(nr24 & 0x07) << 8;		// upper 8 bits
+
+		frequencyCounter2 = 2048 - frequency;
+
+		// Get the correct wave pattern
+		uint8_t nr21 = mmu->directRead(0xFF16);
+		uint8_t wavePatternDutyIndex = (nr21 & 0xC0) >> 6;
+		uint8_t waveRatio = squareWaveRatio[wavePatternDutyIndex];
 
 		// Update the sample produced in accordance with the wave frequency
-		sample2 = waveIndex2 % 8 < waveRatio2 ? -1.0f : 1.0f;
+		sample2 = (waveIndex2 & 0x07) < waveRatio ? -1.0f : 1.0f;
 
-		// Letting it just wrap around for now
 		waveIndex2++;
 	}
-	frequencyCounter2--;
 
 	// Fill the buffer every tick
 	buffer2[bufferIndex2] = soundOn2 * volume2 * sample2;
@@ -439,83 +454,28 @@ void APU::updateChannel2() {
 }
 
 void APU::updateChannel3() {
-	uint8_t nr30 = mmu->directRead(0xFF1A);
-	uint8_t soundOn = (nr30 & 0x80) >> 6;
+	// Length counter
+	if (lengthCtrClock) {
+		uint8_t nr34 = mmu->directRead(0xFF1E);
+		uint8_t lengthEnabled = (nr34 & 0x40) >> 6;
 
-	// Return right away if sound is off
-	if (soundOn == 0) {
-		soundOn3 = 0;
-
-		// TODO: Investigate if this results in not filling the buffer with 0s, and if that
-		// causes issues
-		return;
-	}
-
-	uint8_t nr34 = mmu->directRead(0xFF1E);
-	uint8_t restart = (nr34 & 0x80) >> 7;
-
-	// If sound is off, simply return
-	if (soundOn3 == 0 && restart == 0) {
-		return;
-	}
-	
-	// Read relevant memory locations
-	uint8_t nr31 = mmu->directRead(0xFF1B);
-	uint8_t nr32 = mmu->directRead(0xFF1C);
-	uint8_t nr33 = mmu->directRead(0xFF1D);
-
-	// Split registers into their encoded information
-	uint8_t soundLength = nr31;
-	uint8_t volume = (nr32 & 0x60) >> 5;
-	uint8_t selection = (nr34 & 0x40) >> 6;
-
-	uint16_t frequency = nr33;						// lower 8 bits
-	frequency |= (uint16_t)(nr34 & 0x07) << 8;		// upper 8 bits
-
-	// Restart sound
-	if (restart == 1) {	
-		soundOn3 = 1;
-		switch (volume) {
-		case 0:
-			volume3 = 0;
-			break;
-		case 1:
-			volume3 = 0x0F;		// 100%
-			break;
-		case 2:
-			volume3 = 0x07;		// 50%
-			break;
-		case 3:
-			volume3 = 0x03;		// 25%
-			break;
+		if (lengthEnabled) {
+			soundLengthCounter3--;
 		}
-
-		// Reset counters
-		soundLengthCounter3 = 4096 * (256 - soundLength);
-
-		// For now, consume the bit
-		mmu->setBit(0xFF1E, 7, 0);
 	}
-
-	// Sound length counter, tick once every 256 Hz or 4096 cycles
 	if (soundLengthCounter3 == 0) {
-		soundLengthCounter3 = 4096 * (256 - soundLength);
-
-		// If selection is true, stop the sound. Otherwise keep playing
-		if (selection) {
-			soundOn3 = 0;
-		}
+		soundOn3 = 0;
 	}
-	soundLengthCounter3--;
 
-	uint32_t tone3 = 65536 / (2048 - frequency);
-
+	// Frequency counter
+	frequencyCounter3--;
 	if (frequencyCounter3 == 0) {
-		// Split into 32 portions
-		frequencyCounter3 = (1 << 20) / tone3 / 32;
-		if (frequencyCounter3 == 0) {
-			frequencyCounter3 = 1;
-		}
+		uint8_t nr33 = mmu->directRead(0xFF1D);
+		uint8_t nr34 = mmu->directRead(0xFF1E);
+		uint16_t frequency = nr33;
+		frequency |= (uint16_t)(nr34 & 0x07) << 8;
+
+		frequencyCounter3 = (2048 - frequency) >> 1;
 
 		uint8_t sampleByte = mmu->directRead(0xFF30 + (waveIndex3 / 2));
 
@@ -536,7 +496,6 @@ void APU::updateChannel3() {
 			waveIndex3 = 0;
 		}
 	}
-	frequencyCounter3--;
 
 	// Fill the buffer every tick
 	buffer3[bufferIndex3] = soundOn3 * volume3 * sample3;
@@ -548,58 +507,29 @@ void APU::updateChannel3() {
 }
 
 void APU::updateChannel4() {
-	uint8_t nr44 = mmu->directRead(0xFF23);
-	uint8_t restart = (nr44 & 0x80) >> 7;
+	// Length counter
+	if (lengthCtrClock) {
+		uint8_t nr44 = mmu->directRead(0xFF23);
+		uint8_t lengthEnabled = (nr44 & 0x40) >> 6;
 
-	// If sound is off, simply return
-	if (soundOn4 == 0 && restart == 0) {
-		return;
-	}
-	
-	// Read relevant memory locations
-	uint8_t nr41 = mmu->directRead(0xFF20);
-	uint8_t nr42 = mmu->directRead(0xFF21);
-	uint8_t nr43 = mmu->directRead(0xFF22);
-
-	// Split registers into their encoded information
-	uint8_t soundLength = (nr41 & 0x3F);
-	uint8_t initialVolume = (nr42 & 0xF0) >> 4;
-	uint8_t envelopeDirection = (nr42 & 0x08) >> 3;
-	uint8_t envelopePeriod = (nr42 & 0x07);
-	
-	uint8_t selection = (nr44 & 0x40) >> 6;
-
-	uint8_t shiftClockFrequency = (nr43 & 0xF0) >> 4;
-	uint8_t widthMode = (nr43 & 0x08) >> 3;
-	uint8_t dividingRatio = (nr43 & 0x07);
-
-	// Restart sound
-	if (restart == 1) {
-		soundOn4 = 1;
-		volume4 = initialVolume;
-
-		// Reset counters
-		soundLengthCounter4 = 4096 * (64 - soundLength);
-		envelopeCounter4 = 16384 * envelopePeriod;
-
-		// For now, consume the bit
-		mmu->setBit(0xFF23, 7, 0);
-	}
-
-	// Sound length counter, tick once every 256 Hz or 4096 cycles
-	if (soundLengthCounter4 == 0) {
-		soundLengthCounter4 = 4096 * (64 - soundLength);
-
-		// If selection is true, stop the sound. Otherwise keep playing
-		if (selection) {
-			soundOn4 = 0;
+		if (lengthEnabled) {
+			soundLengthCounter4--;
 		}
 	}
-	soundLengthCounter4--;
+	if (soundLengthCounter4 == 0) {
+		soundOn4 = 0;
+	}
 
-	// Envelop counter, tick once every 64 Hz or 16384 cycles
+	// Volume envelope counter
+	if (volEnvClock) {
+		envelopeCounter4--;
+	}
 	if (envelopeCounter4 == 0) {
-		envelopeCounter4 = 16384 * envelopePeriod;
+		uint8_t nr42 = mmu->directRead(0xFF21);
+		uint8_t envelopePeriod = (nr42 & 0x07);
+		uint8_t envelopeDirection = (nr42 & 0x08) >> 3;
+
+		envelopeCounter4 = envelopePeriod;
 
 		// Only use envelope if envelope period is greater than 0
 		if (envelopePeriod > 0) {
@@ -612,19 +542,19 @@ void APU::updateChannel4() {
 			}
 		}
 	}
-	envelopeCounter4--;
 
-	// If dividing ratio is 0, treat it like 0.5
-	uint32_t dividend = (dividingRatio > 0) ? (524288 / dividingRatio) : (524288 * 2);
-	uint32_t tone4 = dividend >> (shiftClockFrequency + 1);
-	
+	// Frequency counter
+	frequencyCounter4--;
 	if (frequencyCounter4 == 0) {
-		frequencyCounter4 = (1 << 20) / tone4;
-		
-		uint8_t noiseBit = shiftRegister & 0x01;
+		uint8_t nr43 = mmu->directRead(0xFF22);
+		uint8_t shiftAmount = (nr43 & 0xF0) >> 4;
+		uint8_t divisorCode = (nr43 & 0x07);
+		uint8_t divisor = noiseDivisor[divisorCode];
 
-		// Use the inverted noise bit as the sample
-		sample4 = noiseBit ? -1.0f : 1.0f;
+		frequencyCounter4 = divisor << shiftAmount;
+
+		// Use the inverted first bit as the sample (-1.0f to 1.0f)
+		sample4 = -2.0f * (float)(shiftRegister & 0x01) + 1.0f;
 
 		// Shift register operation
 		uint16_t result = (shiftRegister & 0x01) ^ ((shiftRegister & 0x02) >> 1);
@@ -633,13 +563,13 @@ void APU::updateChannel4() {
 		shiftRegister &= ~(result << 14); 
 		shiftRegister |= (result << 14);
 
+		uint8_t widthMode = (nr43 & 0x08) >> 3;
 		if (widthMode) {
 			shiftRegister &= ~(1 << 6);
 			shiftRegister |= (result << 6);
 		}
 	}
-	frequencyCounter4--;
-
+	
 	// Fill the buffer every tick
 	buffer4[bufferIndex4] = soundOn4 * volume4 * sample4;
 
