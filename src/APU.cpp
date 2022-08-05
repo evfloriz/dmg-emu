@@ -134,21 +134,6 @@ void APU::fillBuffer(float* stream, int len) {
 }
 
 void APU::triggerChannel1() {
-	// Trigger event:
-	// Channel is enabled (volume set to 0, internal enabled flag cleared)
-	// If length counter is 0, set to 64
-	// Freq timer reloaded with period
-	// Vol env timer reloaded with period
-	// Channel volume reloaded from register (NRx2)
-	// Noise channel lfsr bits all set to 1
-	// Wave channels position set to 0 (sample buffer not refilled)
-	// Sweep
-	// - copied to shadow reg
-	// - sweep timer reloaded
-	// - internal enabled flag set if either sweep period or shift are non zero, cleared otherwise
-	// - if sweep shift is non zero, freq calculation and overflow check performed immediately
-
-	// Read relevant memory locations
 	uint8_t nr10 = mmu->directRead(0xFF10);
 	uint8_t nr12 = mmu->directRead(0xFF12);
 	uint8_t nr13 = mmu->directRead(0xFF13);
@@ -167,6 +152,7 @@ void APU::triggerChannel1() {
 	frequency |= (uint16_t)(nr14 & 0x07) << 8;
 	frequencyCounter1 = 2048 - frequency;		// (2048 - freq) * 4 for T-cycles
 
+	// TODO: Evaluate if resetting this should occur
 	waveIndex1 = 0;
 }
 
@@ -192,13 +178,14 @@ void APU::triggerChannel2() {
 
 void APU::triggerChannel3() {
 	uint8_t nr30 = mmu->directRead(0xFF1A);
-	uint8_t nr31 = mmu->directRead(0xFF1B);
 	uint8_t nr32 = mmu->directRead(0xFF1C);
 	uint8_t nr33 = mmu->directRead(0xFF1D);
 	uint8_t nr34 = mmu->directRead(0xFF1E);
 
 	soundOn3 = 1;
-	soundLengthCounter3 = 256 - nr31;
+	if (soundLengthCounter3 == 0) {
+		soundLengthCounter3 = 256;
+	}
 
 	uint8_t volumeIndex = (nr32 & 0x60) >> 5;
 	volume3 = waveVolume[volumeIndex];
@@ -217,7 +204,6 @@ void APU::triggerChannel3() {
 }
 
 void APU::triggerChannel4() {
-	uint8_t nr41 = mmu->directRead(0xFF20);
 	uint8_t nr42 = mmu->directRead(0xFF21);
 	uint8_t nr43 = mmu->directRead(0xFF22);
 	uint8_t nr44 = mmu->directRead(0xFF23);
@@ -232,6 +218,8 @@ void APU::triggerChannel4() {
 
 	uint8_t shiftAmount = (nr43 & 0xF0) >> 4;
 	uint8_t divisorCode = (nr43 & 0x07);
+
+	// TODO: Profile to see if one way is faster
 	uint8_t divisor = noiseDivisor[divisorCode];
 	//uint8_t divisor = (divisorCode > 0) ? (divisorCode << 4) : 8;
 
@@ -257,105 +245,104 @@ void APU::updateChannel4Timer(uint8_t data) {
 }
 
 void APU::updateChannel1() {
-	// TODO: Could this be out of sync with what the CPU is expecting? ie the CPU sets a length and restarts within
-	// the unchecked ticks, and then changes the length, expecting it to already have been consumed?
 	// Sound length counter, tick once every 256 Hz or 4096 cycles
 	if (lengthCtrClock) {
 		uint8_t nr14 = mmu->directRead(0xFF14);
 		uint8_t lengthEnabled = (nr14 & 0x40) >> 6;
 		
-		if (lengthEnabled) {
+		if (lengthEnabled && soundLengthCounter1 > 0) {
 			soundLengthCounter1--;
 		}
-	}
-	if (soundLengthCounter1 == 0) {
-		// Don't return immediately so 0 is written to the channel 1 buffer
-		soundOn1 = 0;
+
+		if (soundLengthCounter1 == 0) {
+			soundOn1 = 0;
+		}
 	}
 	
 	// Sweep counter, tick once every 128 Hz or 8192 cycles
 	if (sweepClock) {
 		sweepCounter1--;
-	}
-	if (sweepCounter1 == 0) {
-		// Read the sweep register
-		uint8_t nr10 = mmu->directRead(0xFF10);
-		uint8_t sweepPeriod = (nr10 & 0x70) >> 4;
-		uint8_t sweepDirection = (nr10 & 0x08) >> 3;
-		uint8_t sweepShift = (nr10 & 0x07);
 
-		sweepCounter1 = sweepPeriod;
+		if (sweepCounter1 == 0) {
+			uint8_t nr10 = mmu->directRead(0xFF10);
+			uint8_t sweepPeriod = (nr10 & 0x70) >> 4;
+			uint8_t sweepDirection = (nr10 & 0x08) >> 3;
+			uint8_t sweepShift = (nr10 & 0x07);
 
-		// Only use sweep if sweep period is greater than 0
-		if (sweepPeriod > 0 && sweepShift > 0) {
-			// Read the frequency
-			uint8_t nr13 = mmu->directRead(0xFF13);
-			uint8_t nr14 = mmu->directRead(0xFF14);
-			uint16_t frequency = nr13;						// lower 8 bits
-			frequency |= (uint16_t)(nr14 & 0x07) << 8;		// upper 8 bits
+			sweepCounter1 = sweepPeriod;
 
-			// Increase or decrease frequency within 0 and 2047, turning off the channel if it goes out of bounds
-			// 0 is an increase, 1 is a decrease
-			if (sweepDirection == 0) {
-				frequency = frequency + (frequency / (1 << sweepShift));
-			}
-			else {
-				frequency = frequency - (frequency / (1 << sweepShift));
-			}
+			// Only use sweep if sweep period is greater than 0
+			if (sweepPeriod > 0 && sweepShift > 0) {
+				// Read the frequency
+				uint8_t nr13 = mmu->directRead(0xFF13);
+				uint8_t nr14 = mmu->directRead(0xFF14);
+				uint16_t frequency = nr13;						// lower 8 bits
+				frequency |= (uint16_t)(nr14 & 0x07) << 8;		// upper 8 bits
 
-			if (frequency > 2047) {
-				soundOn1 = 0;
-				frequency = 2047;			// prevent division by 0
-			}
-				
-			// Write frequency back to nr13 and nr14
-			nr13 = frequency & 0x00FF;
-				
-			nr14 &= 0xF8;
-			nr14 |= (frequency & 0x0700) >> 8;
+				// Increase or decrease frequency within 0 and 2047, turning off the channel if it goes out of bounds
+				// 0 is an increase, 1 is a decrease
+				if (sweepDirection == 0) {
+					frequency = frequency + (frequency / (1 << sweepShift));
+				}
+				else {
+					frequency = frequency - (frequency / (1 << sweepShift));
+				}
 
-			mmu->directWrite(0xFF13, nr13);
-			mmu->directWrite(0xFF14, nr14);
+				if (frequency > 2047) {
+					soundOn1 = 0;
+					frequency = 2047;			// prevent division by 0
+				}
 
-			// Calculate the next frequency and do the overflow check again
-			uint16_t overflowCheck = 0;
-			if (sweepDirection == 0) {
-				overflowCheck = frequency + (frequency / (1 << sweepShift));
-			}
-			else {
-				overflowCheck = frequency - (frequency / (1 << sweepShift));
-			}
+				// Write frequency back to nr13 and nr14
+				nr13 = frequency & 0x00FF;
 
-			if (overflowCheck > 2047) {
-				soundOn1 = 0;
+				nr14 &= 0xF8;
+				nr14 |= (frequency & 0x0700) >> 8;
+
+				mmu->directWrite(0xFF13, nr13);
+				mmu->directWrite(0xFF14, nr14);
+
+				// Calculate the next frequency and do the overflow check again
+				uint16_t overflowCheck = 0;
+				if (sweepDirection == 0) {
+					overflowCheck = frequency + (frequency / (1 << sweepShift));
+				}
+				else {
+					overflowCheck = frequency - (frequency / (1 << sweepShift));
+				}
+
+				if (overflowCheck > 2047) {
+					soundOn1 = 0;
+				}
 			}
 		}
 	}
-
+	
 	// Envelop counter, tick once every 64 Hz or 16384 cycles
 	if (volEnvClock) {
 		envelopeCounter1--;
-	}
-	if (envelopeCounter1 == 0) {
-		// Read the envelope register
-		uint8_t nr12 = mmu->directRead(0xFF12);
-		uint8_t envelopeDirection = (nr12 & 0x08) >> 3;
-		uint8_t envelopePeriod = (nr12 & 0x07);
 
-		envelopeCounter1 = envelopePeriod;
+		if (envelopeCounter1 == 0) {
+			// Read the envelope register
+			uint8_t nr12 = mmu->directRead(0xFF12);
+			uint8_t envelopeDirection = (nr12 & 0x08) >> 3;
+			uint8_t envelopePeriod = (nr12 & 0x07);
 
-		// Only use envelope if envelope period is greater than 0
-		if (envelopePeriod > 0) {
-			// Increase or decrease volume within 0x00 and 0x0F
-			if (envelopeDirection == 1 && volume1 < 0x0F) {
-				volume1++;
-			}
-			else if (envelopeDirection == 0 && volume1 > 0x00) {
-				volume1--;
+			envelopeCounter1 = envelopePeriod;
+
+			// Only use envelope if envelope period is greater than 0
+			if (envelopePeriod > 0) {
+				// Increase or decrease volume within 0x00 and 0x0F
+				if (envelopeDirection == 1 && volume1 < 0x0F) {
+					volume1++;
+				}
+				else if (envelopeDirection == 0 && volume1 > 0x00) {
+					volume1--;
+				}
 			}
 		}
 	}
-
+	
 	// Frequency counter
 	frequencyCounter1--;
 	if (frequencyCounter1 == 0) {
@@ -393,33 +380,35 @@ void APU::updateChannel2() {
 		uint8_t nr24 = mmu->directRead(0xFF19);
 		uint8_t lengthEnabled = (nr24 & 0x40) >> 6;
 
-		if (lengthEnabled) {
+		if (lengthEnabled && soundLengthCounter2 > 0) {
 			soundLengthCounter2--;
 		}
-	}
-	if (soundLengthCounter2 == 0) {
-		soundOn2 = 0;
+
+		if (soundLengthCounter2 == 0) {
+			soundOn2 = 0;
+		}
 	}
 
 	// Volume envelope counter
 	if (volEnvClock) {
 		envelopeCounter2--;
-	}
-	if (envelopeCounter2 == 0) {
-		uint8_t nr22 = mmu->directRead(0xFF17);
-		uint8_t envelopePeriod = (nr22 & 0x07);
-		uint8_t envelopeDirection = (nr22 & 0x08) >> 3;
 
-		envelopeCounter2 = envelopePeriod;
+		if (envelopeCounter2 == 0) {
+			uint8_t nr22 = mmu->directRead(0xFF17);
+			uint8_t envelopePeriod = (nr22 & 0x07);
+			uint8_t envelopeDirection = (nr22 & 0x08) >> 3;
 
-		// Only use envelope if envelope period is greater than 0
-		if (envelopePeriod > 0) {
-			// Increase or decrease volume within 0x00 and 0x0F
-			if (envelopeDirection == 1 && volume2 < 0x0F) {
-				volume2++;
-			}
-			else if (envelopeDirection == 0 && volume2 > 0x00) {
-				volume2--;
+			envelopeCounter2 = envelopePeriod;
+
+			// Only use envelope if envelope period is greater than 0
+			if (envelopePeriod > 0) {
+				// Increase or decrease volume within 0x00 and 0x0F
+				if (envelopeDirection == 1 && volume2 < 0x0F) {
+					volume2++;
+				}
+				else if (envelopeDirection == 0 && volume2 > 0x00) {
+					volume2--;
+				}
 			}
 		}
 	}
@@ -454,18 +443,19 @@ void APU::updateChannel2() {
 	}
 }
 
-void APU::updateChannel3() {
+void APU::updateChannel3() {	
 	// Length counter
 	if (lengthCtrClock) {
 		uint8_t nr34 = mmu->directRead(0xFF1E);
 		uint8_t lengthEnabled = (nr34 & 0x40) >> 6;
 
-		if (lengthEnabled) {
+		if (lengthEnabled && soundLengthCounter3 > 0) {
 			soundLengthCounter3--;
 		}
-	}
-	if (soundLengthCounter3 == 0) {
-		soundOn3 = 0;
+
+		if (soundLengthCounter3 == 0) {
+			soundOn3 = 0;
+		}
 	}
 
 	// Frequency counter
@@ -513,33 +503,35 @@ void APU::updateChannel4() {
 		uint8_t nr44 = mmu->directRead(0xFF23);
 		uint8_t lengthEnabled = (nr44 & 0x40) >> 6;
 
-		if (lengthEnabled) {
+		if (lengthEnabled && soundLengthCounter4 > 0) {
 			soundLengthCounter4--;
 		}
-	}
-	if (soundLengthCounter4 == 0) {
-		soundOn4 = 0;
+
+		if (soundLengthCounter4 == 0) {
+			soundOn4 = 0;
+		}
 	}
 
 	// Volume envelope counter
 	if (volEnvClock) {
 		envelopeCounter4--;
-	}
-	if (envelopeCounter4 == 0) {
-		uint8_t nr42 = mmu->directRead(0xFF21);
-		uint8_t envelopePeriod = (nr42 & 0x07);
-		uint8_t envelopeDirection = (nr42 & 0x08) >> 3;
 
-		envelopeCounter4 = envelopePeriod;
+		if (envelopeCounter4 == 0) {
+			uint8_t nr42 = mmu->directRead(0xFF21);
+			uint8_t envelopePeriod = (nr42 & 0x07);
+			uint8_t envelopeDirection = (nr42 & 0x08) >> 3;
 
-		// Only use envelope if envelope period is greater than 0
-		if (envelopePeriod > 0) {
-			// Increase or decrease volume within 0x00 and 0x0F
-			if (envelopeDirection == 1 && volume4 < 0x0F) {
-				volume4++;
-			}
-			else if (envelopeDirection == 0 && volume4 > 0x00) {
-				volume4--;
+			envelopeCounter4 = envelopePeriod;
+
+			// Only use envelope if envelope period is greater than 0
+			if (envelopePeriod > 0) {
+				// Increase or decrease volume within 0x00 and 0x0F
+				if (envelopeDirection == 1 && volume4 < 0x0F) {
+					volume4++;
+				}
+				else if (envelopeDirection == 0 && volume4 > 0x00) {
+					volume4--;
+				}
 			}
 		}
 	}
@@ -550,6 +542,8 @@ void APU::updateChannel4() {
 		uint8_t nr43 = mmu->directRead(0xFF22);
 		uint8_t shiftAmount = (nr43 & 0xF0) >> 4;
 		uint8_t divisorCode = (nr43 & 0x07);
+
+		// TODO: Profile to see if one way is faster
 		uint8_t divisor = noiseDivisor[divisorCode];
 		//uint8_t divisor = (divisorCode > 0) ? (divisorCode << 4) : 8;
 
