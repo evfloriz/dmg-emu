@@ -233,8 +233,9 @@ void APU::triggerChannel4() {
 	uint8_t shiftAmount = (nr43 & 0xF0) >> 4;
 	uint8_t divisorCode = (nr43 & 0x07);
 	uint8_t divisor = noiseDivisor[divisorCode];
+	//uint8_t divisor = (divisorCode > 0) ? (divisorCode << 4) : 8;
 
-	frequencyCounter4 = divisor << shiftAmount;
+	frequencyCounter4 = (divisor << shiftAmount) >> 2;			// divide by 4 for M-cycles
 
 	shiftRegister = 0xFFFF;
 }
@@ -550,8 +551,9 @@ void APU::updateChannel4() {
 		uint8_t shiftAmount = (nr43 & 0xF0) >> 4;
 		uint8_t divisorCode = (nr43 & 0x07);
 		uint8_t divisor = noiseDivisor[divisorCode];
+		//uint8_t divisor = (divisorCode > 0) ? (divisorCode << 4) : 8;
 
-		frequencyCounter4 = divisor << shiftAmount;
+		frequencyCounter4 = (divisor << shiftAmount) >> 2;
 
 		// Use the inverted first bit as the sample (-1.0f to 1.0f)
 		sample4 = -2.0f * (float)(shiftRegister & 0x01) + 1.0f;
