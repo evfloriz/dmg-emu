@@ -58,6 +58,8 @@ private:
 	uint16_t readPos = 0;
 	uint16_t writePos = 0;
 	
+	// TODO: Simplify apu data
+	
 	// Channel 1 data
 	float buffer1[1024] = {};
 	uint8_t soundOn1 = 0;
@@ -117,6 +119,12 @@ private:
 	uint8_t squareWaveRatio[4] = { 1, 2, 4, 6 };
 	uint8_t waveVolume[4] = { 0, 0x0F, 0x07, 0x03 };		// 0%, 100%, 50%, 25%
 	uint8_t noiseDivisor[8] = { 8, 16, 32, 48, 64, 80, 96, 112 };
+
+public:
+	uint8_t dacPower1 = 0;
+	uint8_t dacPower2 = 0;
+	uint8_t dacPower3 = 0;
+	uint8_t dacPower4 = 0;
 
 
 public:

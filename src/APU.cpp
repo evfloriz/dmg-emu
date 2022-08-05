@@ -9,8 +9,6 @@ APU::APU(MMU* mmu) {
 void APU::clock() {
 	// Store output in a circular buffer with separate read and write positions.
 	// Write a new value on every clock tick until the write position is the same as the read position.
-	
-	// TODO: Consider switching to using the frame sequencer
 
 	updateFrameSequencer();
 	updateControl();
@@ -154,6 +152,12 @@ void APU::triggerChannel1() {
 
 	// TODO: Evaluate if resetting this should occur
 	waveIndex1 = 0;
+
+	// If DAC is off, the above actions occur but the channel is disabled again (gbdevwiki sound hardware page)
+	// This is already done in the updateChannel functions this should be redundant
+	if (dacPower1 == 0) {
+		soundOn1 = 0;
+	}
 }
 
 void APU::triggerChannel2() {
@@ -174,6 +178,10 @@ void APU::triggerChannel2() {
 	frequencyCounter2 = 2048 - frequency;
 
 	waveIndex2 = 0;
+
+	if (dacPower2 == 0) {
+		soundOn2 = 0;
+	}
 }
 
 void APU::triggerChannel3() {
@@ -196,9 +204,7 @@ void APU::triggerChannel3() {
 	
 	waveIndex3 = 0;
 
-	// If DAC is off, the above actions occur but the channel is disabled again (gbdevwiki sound hardware page)
-	uint8_t soundOn = (nr30 & 0x80) >> 6;
-	if (soundOn == 0) {
+	if (dacPower3 == 0) {
 		soundOn3 = 0;
 	}
 }
@@ -226,6 +232,10 @@ void APU::triggerChannel4() {
 	frequencyCounter4 = (divisor << shiftAmount) >> 2;			// divide by 4 for M-cycles
 
 	shiftRegister = 0xFFFF;
+
+	if (dacPower4 == 0) {
+		soundOn4 = 0;
+	}
 }
 
 void APU::updateChannel1Timer(uint8_t data) {
@@ -245,6 +255,10 @@ void APU::updateChannel4Timer(uint8_t data) {
 }
 
 void APU::updateChannel1() {
+	if (dacPower1 == 0) {
+		soundOn1 = 0;
+	}
+
 	// Sound length counter, tick once every 256 Hz or 4096 cycles
 	if (lengthCtrClock) {
 		uint8_t nr14 = mmu->directRead(0xFF14);
@@ -375,6 +389,10 @@ void APU::updateChannel1() {
 }
 
 void APU::updateChannel2() {
+	if (dacPower2 == 0) {
+		soundOn2 = 0;
+	}
+	
 	// Length counter
 	if (lengthCtrClock) {
 		uint8_t nr24 = mmu->directRead(0xFF19);
@@ -443,7 +461,11 @@ void APU::updateChannel2() {
 	}
 }
 
-void APU::updateChannel3() {	
+void APU::updateChannel3() {
+	if (dacPower3 == 0) {
+		soundOn3 = 0;
+	}
+
 	// Length counter
 	if (lengthCtrClock) {
 		uint8_t nr34 = mmu->directRead(0xFF1E);
@@ -498,6 +520,10 @@ void APU::updateChannel3() {
 }
 
 void APU::updateChannel4() {
+	if (dacPower4 == 0) {
+		soundOn4 = 0;
+	}
+
 	// Length counter
 	if (lengthCtrClock) {
 		uint8_t nr44 = mmu->directRead(0xFF23);
