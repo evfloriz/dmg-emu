@@ -357,32 +357,33 @@ void PPU::updateBackgroundScanline(uint32_t* buffer, int* startingIndex) {
 	uint8_t scx = mmu->directRead(0xFF43);
 	uint8_t scy = mmu->directRead(0xFF42);
 	
+	// Find y coordinate of the tile in the background map
 	uint8_t y = (ly + scy) % 256;
 	uint16_t tileY = y / 8;
 	uint16_t tileYPos = tileY * 32;
 
-	*startingIndex = scx % 8;
+	// Starting index is the offset within the first tile to start reading
+	*startingIndex = scx & 0x07;
 
 	// Construct scanline, max 21 tiles need to be loaded
 	for (int i = 0; i < 21; i++) {
-		// Find x and y of the pixel on the background tilemap to work with
+		// Find x of the tile in the background map
 		uint8_t x = (i * 8 + scx) % 256;
 		uint16_t tileX = x / 8;
 
-		// Find tile to load
 		uint16_t tileIndex = tileYPos + tileX;
 
-		uint8_t bgIndex = mmu->directRead(backgroundStart + tileIndex);
-		uint16_t bgStart = (bgIndex > 127) ? secondHalfStart : firstHalfStart;
-		bgIndex %= 128;
+		uint8_t index = mmu->directRead(backgroundStart + tileIndex);
+		uint16_t start = (index > 127) ? secondHalfStart : firstHalfStart;
+		index &= 0x7F;
 
-		// Find the y of the correct line
+		// Find the y of the correct line within the tile
 		uint8_t lineY = y - (tileY * 8);
 
-		uint8_t lo = mmu->directRead(bgStart + bgIndex * 16 + lineY * 2);
-		uint8_t hi = mmu->directRead(bgStart + bgIndex * 16 + lineY * 2 + 1);
+		uint8_t lo = mmu->directRead(start + index * 16 + lineY * 2);
+		uint8_t hi = mmu->directRead(start + index * 16 + lineY * 2 + 1);
 
-		// Add 8 pixels to the line
+		// Add 8 consecutive horizontal pixels to the line
 		for (int j = 0; j < 8; j++) {
 			uint32_t paletteIndex = bgp[((hi >> (7 - j)) << 1 & 0x02) | ((lo >> (7 - j)) & 0x01)];
 			buffer[i * 8 + j] = palette[paletteIndex];
@@ -394,25 +395,23 @@ void PPU::updateWindowScanline(uint32_t* buffer, int* startingIndex) {
 	uint8_t wx = mmu->directRead(0xFF4B);
 	uint8_t wy = mmu->directRead(0xFF4A);
 
+	// Early out if current ly doesn't intersect with the window
 	int y = ly - wy;
 	if (y < 0) {
 		*startingIndex = 160;
 		return;
 	}
 
+	// Find y of the tile to work with
 	uint16_t tileY = y / 8;
 	uint16_t tileYPos = tileY * 32;
 
-	// Read the first 168 pixels of the window map (since its up to 168)
-	// then adjust the starting position, considering -8 to be null (since up to -7 is allowed)
-	
-	// Starting index indicates where the first position of the window is in the scanline
-	// Starting index is from -7 to 159
+	// Starting index indicates where the first position of the window is in the scanline (-7 to 159)
 	*startingIndex = wx - 7;
 
 	// Construct scanline, max 21 tiles need to be loaded
 	for (int i = 0; i < 21; i++) {
-		// Find x and y of the pixel on the background tilemap to work with
+		// Find x of the tile to work with
 		uint8_t x = i * 8;
 		uint16_t tileX = i;
 
@@ -421,15 +420,15 @@ void PPU::updateWindowScanline(uint32_t* buffer, int* startingIndex) {
 
 		uint8_t index = mmu->directRead(windowStart + tileIndex);
 		uint16_t start = (index > 127) ? secondHalfStart : firstHalfStart;
-		index %= 128;
+		index &= 0x7F;
 
-		// Find the y of the correct line
+		// Find the y of the correct line within the tile
 		uint8_t lineY = y - (tileY * 8);
 
 		uint8_t lo = mmu->directRead(start + index * 16 + lineY * 2);
 		uint8_t hi = mmu->directRead(start + index * 16 + lineY * 2 + 1);
 
-		// Add 8 pixels to the line
+		// Add 8 consecutive horizontal pixels to the line
 		for (int j = 0; j < 8; j++) {
 			uint32_t paletteIndex = bgp[((hi >> (7 - j)) << 1 & 0x02) | ((lo >> (7 - j)) & 0x01)];
 			buffer[i * 8 + j] = palette[paletteIndex];
@@ -466,11 +465,12 @@ void PPU::updateScanline() {
 	bgp[2] = (bgpData & 0x30) >> 4;
 	bgp[3] = (bgpData & 0xC0) >> 6;
 
-	uint8_t scx = mmu->directRead(0xFF43);
+	// TODO: Investigate why leaving these unneeded reads seems to improve performance by a couple fps on vita
+	/*uint8_t scx = mmu->directRead(0xFF43);
 	uint8_t scy = mmu->directRead(0xFF42);
-
+	
 	uint8_t wx = mmu->directRead(0xFF4B);
-	uint8_t wy = mmu->directRead(0xFF4A);
+	uint8_t wy = mmu->directRead(0xFF4A);*/
 
 	// Update the background scanline
 	uint32_t bgBuffer[168];
@@ -479,7 +479,7 @@ void PPU::updateScanline() {
 
 	// Update the window scanline
 	uint32_t winBuffer[168];
-	int winStartingIndex = -1;
+	int winStartingIndex = -8;
 	updateWindowScanline(winBuffer, &winStartingIndex);
 
 	// Iterate through every pixel on the current scanline and set to the correct value from the
