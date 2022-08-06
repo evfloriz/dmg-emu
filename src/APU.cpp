@@ -43,10 +43,10 @@ void APU::clock() {
 
 		// Mix samples
 		float channels[4] = {
-			buffer1[bufferIndex1],
-			buffer2[bufferIndex2],
-			buffer3[bufferIndex3],
-			buffer4[bufferIndex4]
+			channel1.buffer[channel1.bufferIndex],
+			channel2.buffer[channel2.bufferIndex],
+			channel3.buffer[channel3.bufferIndex],
+			channel4.buffer[channel4.bufferIndex]
 		};
 		
 		float mixSO2 = 0.0f;
@@ -137,26 +137,26 @@ void APU::triggerChannel1() {
 	uint8_t nr13 = mmu->directRead(0xFF13);
 	uint8_t nr14 = mmu->directRead(0xFF14);
 
-	soundOn1 = 1;
-	sweepCounter1 = (nr10 & 0x70) >> 4;				// sweep period
-	volume1 = (nr12 & 0xF0) >> 4;					// initial volume
-	envelopeCounter1 = (nr12 & 0x07);				// envelope period
+	channel1.soundOn = 1;
+	channel1.sweepCounter = (nr10 & 0x70) >> 4;				// sweep period
+	channel1.volume = (nr12 & 0xF0) >> 4;					// initial volume
+	channel1.envelopeCounter = (nr12 & 0x07);				// envelope period
 
-	if (soundLengthCounter1 == 0) {
-		soundLengthCounter1 = 64;			// always reset to 64 according to gbdevwiki sound hardware page
+	if (channel1.lengthCounter == 0) {
+		channel1.lengthCounter = 64;			// always reset to 64 according to gbdevwiki sound hardware page
 	}
 
 	uint16_t frequency = nr13;
 	frequency |= (uint16_t)(nr14 & 0x07) << 8;
-	frequencyCounter1 = 2048 - frequency;		// (2048 - freq) * 4 for T-cycles
+	channel1.frequencyCounter = 2048 - frequency;		// (2048 - freq) * 4 for T-cycles
 
 	// TODO: Evaluate if resetting this should occur
-	waveIndex1 = 0;
+	channel1.waveIndex = 0;
 
 	// If DAC is off, the above actions occur but the channel is disabled again (gbdevwiki sound hardware page)
 	// This is already done in the updateChannel functions this should be redundant
 	if (dacPower1 == 0) {
-		soundOn1 = 0;
+		channel1.soundOn = 0;
 	}
 }
 
@@ -165,22 +165,22 @@ void APU::triggerChannel2() {
 	uint8_t nr23 = mmu->directRead(0xFF18);
 	uint8_t nr24 = mmu->directRead(0xFF19);
 
-	soundOn2 = 1;
-	volume2 = (nr22 & 0xF0) >> 4;				// initial volume
-	envelopeCounter2 = (nr22 & 0x07);			// envelope period
+	channel2.soundOn = 1;
+	channel2.volume = (nr22 & 0xF0) >> 4;				// initial volume
+	channel2.envelopeCounter = (nr22 & 0x07);			// envelope period
 
-	if (soundLengthCounter2 == 0) {
-		soundLengthCounter2 = 64;
+	if (channel2.lengthCounter == 0) {
+		channel2.lengthCounter = 64;
 	}
 
 	uint16_t frequency = nr23;
 	frequency |= (uint16_t)(nr24 & 0x07) << 8;
-	frequencyCounter2 = 2048 - frequency;
+	channel2.frequencyCounter = 2048 - frequency;
 
-	waveIndex2 = 0;
+	channel2.waveIndex = 0;
 
 	if (dacPower2 == 0) {
-		soundOn2 = 0;
+		channel2.soundOn = 0;
 	}
 }
 
@@ -190,22 +190,22 @@ void APU::triggerChannel3() {
 	uint8_t nr33 = mmu->directRead(0xFF1D);
 	uint8_t nr34 = mmu->directRead(0xFF1E);
 
-	soundOn3 = 1;
-	if (soundLengthCounter3 == 0) {
-		soundLengthCounter3 = 256;
+	channel3.soundOn = 1;
+	if (channel3.lengthCounter == 0) {
+		channel3.lengthCounter = 256;
 	}
 
 	uint8_t volumeIndex = (nr32 & 0x60) >> 5;
-	volume3 = waveVolume[volumeIndex];
+	channel3.volume = waveVolume[volumeIndex];
 
 	uint16_t frequency = nr33;
 	frequency |= (uint16_t)(nr34 & 0x07) << 8;
-	frequencyCounter3 = (2048 - frequency) >> 1;		// (2048 - freq) * 2 for T-cycles
+	channel3.frequencyCounter = (2048 - frequency) >> 1;		// (2048 - freq) * 2 for T-cycles
 	
-	waveIndex3 = 0;
+	channel3.waveIndex = 0;
 
 	if (dacPower3 == 0) {
-		soundOn3 = 0;
+		channel3.soundOn = 0;
 	}
 }
 
@@ -214,12 +214,12 @@ void APU::triggerChannel4() {
 	uint8_t nr43 = mmu->directRead(0xFF22);
 	uint8_t nr44 = mmu->directRead(0xFF23);
 
-	soundOn4 = 1;
-	volume4 = (nr42 & 0xF0) >> 4;				// initial volume
-	envelopeCounter4 = (nr42 & 0x07);			// envelope period
+	channel4.soundOn = 1;
+	channel4.volume = (nr42 & 0xF0) >> 4;				// initial volume
+	channel4.envelopeCounter = (nr42 & 0x07);			// envelope period
 
-	if (soundLengthCounter4 == 0) {
-		soundLengthCounter4 = 64;
+	if (channel4.lengthCounter == 0) {
+		channel4.lengthCounter = 64;
 	}
 
 	uint8_t shiftAmount = (nr43 & 0xF0) >> 4;
@@ -229,34 +229,34 @@ void APU::triggerChannel4() {
 	uint8_t divisor = noiseDivisor[divisorCode];
 	//uint8_t divisor = (divisorCode > 0) ? (divisorCode << 4) : 8;
 
-	frequencyCounter4 = (divisor << shiftAmount) >> 2;			// divide by 4 for M-cycles
+	channel4.frequencyCounter = (divisor << shiftAmount) >> 2;			// divide by 4 for M-cycles
 
 	shiftRegister = 0xFFFF;
 
 	if (dacPower4 == 0) {
-		soundOn4 = 0;
+		channel4.soundOn = 0;
 	}
 }
 
 void APU::updateChannel1Timer(uint8_t data) {
-	soundLengthCounter1 = 64 - data;
+	channel1.lengthCounter = 64 - data;
 }
 
 void APU::updateChannel2Timer(uint8_t data) {
-	soundLengthCounter2 = 64 - data;
+	channel2.lengthCounter = 64 - data;
 }
 
 void APU::updateChannel3Timer(uint8_t data) {
-	soundLengthCounter3 = 256 - data;
+	channel3.lengthCounter = 256 - data;
 }
 
 void APU::updateChannel4Timer(uint8_t data) {
-	soundLengthCounter4 = 64 - data;
+	channel4.lengthCounter = 64 - data;
 }
 
 void APU::updateChannel1() {
 	if (dacPower1 == 0) {
-		soundOn1 = 0;
+		channel1.soundOn = 0;
 	}
 
 	// Sound length counter, tick once every 256 Hz or 4096 cycles
@@ -264,26 +264,26 @@ void APU::updateChannel1() {
 		uint8_t nr14 = mmu->directRead(0xFF14);
 		uint8_t lengthEnabled = (nr14 & 0x40) >> 6;
 		
-		if (lengthEnabled && soundLengthCounter1 > 0) {
-			soundLengthCounter1--;
+		if (lengthEnabled && channel1.lengthCounter > 0) {
+			channel1.lengthCounter--;
 		}
 
-		if (soundLengthCounter1 == 0) {
-			soundOn1 = 0;
+		if (channel1.lengthCounter == 0) {
+			channel1.soundOn = 0;
 		}
 	}
 	
 	// Sweep counter, tick once every 128 Hz or 8192 cycles
 	if (sweepClock) {
-		sweepCounter1--;
+		channel1.sweepCounter--;
 
-		if (sweepCounter1 == 0) {
+		if (channel1.sweepCounter == 0) {
 			uint8_t nr10 = mmu->directRead(0xFF10);
 			uint8_t sweepPeriod = (nr10 & 0x70) >> 4;
 			uint8_t sweepDirection = (nr10 & 0x08) >> 3;
 			uint8_t sweepShift = (nr10 & 0x07);
 
-			sweepCounter1 = sweepPeriod;
+			channel1.sweepCounter = sweepPeriod;
 
 			// Only use sweep if sweep period is greater than 0
 			if (sweepPeriod > 0 && sweepShift > 0) {
@@ -303,7 +303,7 @@ void APU::updateChannel1() {
 				}
 
 				if (frequency > 2047) {
-					soundOn1 = 0;
+					channel1.soundOn = 0;
 					frequency = 2047;			// prevent division by 0
 				}
 
@@ -326,7 +326,7 @@ void APU::updateChannel1() {
 				}
 
 				if (overflowCheck > 2047) {
-					soundOn1 = 0;
+					channel1.soundOn = 0;
 				}
 			}
 		}
@@ -334,38 +334,38 @@ void APU::updateChannel1() {
 	
 	// Envelop counter, tick once every 64 Hz or 16384 cycles
 	if (volEnvClock) {
-		envelopeCounter1--;
+		channel1.envelopeCounter--;
 
-		if (envelopeCounter1 == 0) {
+		if (channel1.envelopeCounter == 0) {
 			// Read the envelope register
 			uint8_t nr12 = mmu->directRead(0xFF12);
 			uint8_t envelopeDirection = (nr12 & 0x08) >> 3;
 			uint8_t envelopePeriod = (nr12 & 0x07);
 
-			envelopeCounter1 = envelopePeriod;
+			channel1.envelopeCounter = envelopePeriod;
 
 			// Only use envelope if envelope period is greater than 0
 			if (envelopePeriod > 0) {
 				// Increase or decrease volume within 0x00 and 0x0F
-				if (envelopeDirection == 1 && volume1 < 0x0F) {
-					volume1++;
+				if (envelopeDirection == 1 && channel1.volume < 0x0F) {
+					channel1.volume++;
 				}
-				else if (envelopeDirection == 0 && volume1 > 0x00) {
-					volume1--;
+				else if (envelopeDirection == 0 && channel1.volume > 0x00) {
+					channel1.volume--;
 				}
 			}
 		}
 	}
 	
 	// Frequency counter
-	frequencyCounter1--;
-	if (frequencyCounter1 == 0) {
+	channel1.frequencyCounter--;
+	if (channel1.frequencyCounter == 0) {
 		uint8_t nr13 = mmu->directRead(0xFF13);
 		uint8_t nr14 = mmu->directRead(0xFF14);
 		uint16_t frequency = nr13;						// lower 8 bits
 		frequency |= (uint16_t)(nr14 & 0x07) << 8;		// upper 8 bits
 
-		frequencyCounter1 = 2048 - frequency;
+		channel1.frequencyCounter = 2048 - frequency;
 
 		// Get the correct wave pattern
 		uint8_t nr11 = mmu->directRead(0xFF11);
@@ -373,24 +373,24 @@ void APU::updateChannel1() {
 		uint8_t waveRatio = squareWaveRatio[wavePatternDutyIndex];
 
 		// Update the sample produced in accordance with the wave frequency
-		sample1 = (waveIndex1 & 0x07) < waveRatio ? -1.0f : 1.0f;
+		channel1.sample = (channel1.waveIndex & 0x07) < waveRatio ? -1.0f : 1.0f;
 
 		// Letting it just wrap around for now
-		waveIndex1++;
+		channel1.waveIndex++;
 	}
 	
 	// Fill the buffer every tick
-	buffer1[bufferIndex1] = soundOn1 * volume1 * sample1;
+	channel1.buffer[channel1.bufferIndex] = channel1.soundOn * channel1.volume * channel1.sample;
 
-	bufferIndex1++;
-	if (bufferIndex1 > 1023) {
-		bufferIndex1 = 0;
+	channel1.bufferIndex++;
+	if (channel1.bufferIndex > 1023) {
+		channel1.bufferIndex = 0;
 	}
 }
 
 void APU::updateChannel2() {
 	if (dacPower2 == 0) {
-		soundOn2 = 0;
+		channel2.soundOn = 0;
 	}
 	
 	// Length counter
@@ -398,48 +398,48 @@ void APU::updateChannel2() {
 		uint8_t nr24 = mmu->directRead(0xFF19);
 		uint8_t lengthEnabled = (nr24 & 0x40) >> 6;
 
-		if (lengthEnabled && soundLengthCounter2 > 0) {
-			soundLengthCounter2--;
+		if (lengthEnabled && channel2.lengthCounter > 0) {
+			channel2.lengthCounter--;
 		}
 
-		if (soundLengthCounter2 == 0) {
-			soundOn2 = 0;
+		if (channel2.lengthCounter == 0) {
+			channel2.soundOn = 0;
 		}
 	}
 
 	// Volume envelope counter
 	if (volEnvClock) {
-		envelopeCounter2--;
+		channel2.envelopeCounter--;
 
-		if (envelopeCounter2 == 0) {
+		if (channel2.envelopeCounter == 0) {
 			uint8_t nr22 = mmu->directRead(0xFF17);
 			uint8_t envelopePeriod = (nr22 & 0x07);
 			uint8_t envelopeDirection = (nr22 & 0x08) >> 3;
 
-			envelopeCounter2 = envelopePeriod;
+			channel2.envelopeCounter = envelopePeriod;
 
 			// Only use envelope if envelope period is greater than 0
 			if (envelopePeriod > 0) {
 				// Increase or decrease volume within 0x00 and 0x0F
-				if (envelopeDirection == 1 && volume2 < 0x0F) {
-					volume2++;
+				if (envelopeDirection == 1 && channel2.volume < 0x0F) {
+					channel2.volume++;
 				}
-				else if (envelopeDirection == 0 && volume2 > 0x00) {
-					volume2--;
+				else if (envelopeDirection == 0 && channel2.volume > 0x00) {
+					channel2.volume--;
 				}
 			}
 		}
 	}
 
 	// Frequency counter
-	frequencyCounter2--;
-	if (frequencyCounter2 == 0) {
+	channel2.frequencyCounter--;
+	if (channel2.frequencyCounter == 0) {
 		uint8_t nr23 = mmu->directRead(0xFF18);
 		uint8_t nr24 = mmu->directRead(0xFF19);
 		uint16_t frequency = nr23;						// lower 8 bits
 		frequency |= (uint16_t)(nr24 & 0x07) << 8;		// upper 8 bits
 
-		frequencyCounter2 = 2048 - frequency;
+		channel2.frequencyCounter = 2048 - frequency;
 
 		// Get the correct wave pattern
 		uint8_t nr21 = mmu->directRead(0xFF16);
@@ -447,23 +447,23 @@ void APU::updateChannel2() {
 		uint8_t waveRatio = squareWaveRatio[wavePatternDutyIndex];
 
 		// Update the sample produced in accordance with the wave frequency
-		sample2 = (waveIndex2 & 0x07) < waveRatio ? -1.0f : 1.0f;
+		channel2.sample = (channel2.waveIndex & 0x07) < waveRatio ? -1.0f : 1.0f;
 
-		waveIndex2++;
+		channel2.waveIndex++;
 	}
 
 	// Fill the buffer every tick
-	buffer2[bufferIndex2] = soundOn2 * volume2 * sample2;
+	channel2.buffer[channel2.bufferIndex] = channel2.soundOn * channel2.volume * channel2.sample;
 
-	bufferIndex2++;
-	if (bufferIndex2 > 1023) {
-		bufferIndex2 = 0;
+	channel2.bufferIndex++;
+	if (channel2.bufferIndex > 1023) {
+		channel2.bufferIndex = 0;
 	}
 }
 
 void APU::updateChannel3() {
 	if (dacPower3 == 0) {
-		soundOn3 = 0;
+		channel3.soundOn = 0;
 	}
 
 	// Length counter
@@ -471,29 +471,29 @@ void APU::updateChannel3() {
 		uint8_t nr34 = mmu->directRead(0xFF1E);
 		uint8_t lengthEnabled = (nr34 & 0x40) >> 6;
 
-		if (lengthEnabled && soundLengthCounter3 > 0) {
-			soundLengthCounter3--;
+		if (lengthEnabled && channel3.lengthCounter > 0) {
+			channel3.lengthCounter--;
 		}
 
-		if (soundLengthCounter3 == 0) {
-			soundOn3 = 0;
+		if (channel3.lengthCounter == 0) {
+			channel3.soundOn = 0;
 		}
 	}
 
 	// Frequency counter
-	frequencyCounter3--;
-	if (frequencyCounter3 == 0) {
+	channel3.frequencyCounter--;
+	if (channel3.frequencyCounter == 0) {
 		uint8_t nr33 = mmu->directRead(0xFF1D);
 		uint8_t nr34 = mmu->directRead(0xFF1E);
 		uint16_t frequency = nr33;
 		frequency |= (uint16_t)(nr34 & 0x07) << 8;
 
-		frequencyCounter3 = (2048 - frequency) >> 1;
+		channel3.frequencyCounter = (2048 - frequency) >> 1;
 
-		uint8_t sampleByte = mmu->directRead(0xFF30 + (waveIndex3 / 2));
+		uint8_t sampleByte = mmu->directRead(0xFF30 + (channel3.waveIndex / 2));
 
 		// If it's even, use the upper 4 bits, otherwise read the lower 4 bits
-		if (waveIndex3 % 2 == 0) {
+		if ((channel3.waveIndex & 0x01) == 0) {
 			sampleByte = (sampleByte & 0xF0) >> 4;
 		}
 		else {
@@ -501,27 +501,27 @@ void APU::updateChannel3() {
 		}
 
 		// Convert the byte into a float from -1.0 to 1.0
-		sample3 = 2.0f * float(sampleByte) / 0xF - 1.0f;
+		channel3.sample = 2.0f * float(sampleByte) / 0xF - 1.0f;
 
 		// Every tick of the frequency counter, read in the next sample
-		waveIndex3++;
-		if (waveIndex3 > 31) {
-			waveIndex3 = 0;
+		channel3.waveIndex++;
+		if (channel3.waveIndex > 31) {
+			channel3.waveIndex = 0;
 		}
 	}
 
 	// Fill the buffer every tick
-	buffer3[bufferIndex3] = soundOn3 * volume3 * sample3;
+	channel3.buffer[channel3.bufferIndex] = channel3.soundOn * channel3.volume * channel3.sample;
 
-	bufferIndex3++;
-	if (bufferIndex3 > 1023) {
-		bufferIndex3 = 0;
+	channel3.bufferIndex++;
+	if (channel3.bufferIndex > 1023) {
+		channel3.bufferIndex = 0;
 	}
 }
 
 void APU::updateChannel4() {
 	if (dacPower4 == 0) {
-		soundOn4 = 0;
+		channel4.soundOn = 0;
 	}
 
 	// Length counter
@@ -529,42 +529,42 @@ void APU::updateChannel4() {
 		uint8_t nr44 = mmu->directRead(0xFF23);
 		uint8_t lengthEnabled = (nr44 & 0x40) >> 6;
 
-		if (lengthEnabled && soundLengthCounter4 > 0) {
-			soundLengthCounter4--;
+		if (lengthEnabled && channel4.lengthCounter > 0) {
+			channel4.lengthCounter--;
 		}
 
-		if (soundLengthCounter4 == 0) {
-			soundOn4 = 0;
+		if (channel4.lengthCounter == 0) {
+			channel4.soundOn = 0;
 		}
 	}
 
 	// Volume envelope counter
 	if (volEnvClock) {
-		envelopeCounter4--;
+		channel4.envelopeCounter--;
 
-		if (envelopeCounter4 == 0) {
+		if (channel4.envelopeCounter == 0) {
 			uint8_t nr42 = mmu->directRead(0xFF21);
 			uint8_t envelopePeriod = (nr42 & 0x07);
 			uint8_t envelopeDirection = (nr42 & 0x08) >> 3;
 
-			envelopeCounter4 = envelopePeriod;
+			channel4.envelopeCounter = envelopePeriod;
 
 			// Only use envelope if envelope period is greater than 0
 			if (envelopePeriod > 0) {
 				// Increase or decrease volume within 0x00 and 0x0F
-				if (envelopeDirection == 1 && volume4 < 0x0F) {
-					volume4++;
+				if (envelopeDirection == 1 && channel4.volume < 0x0F) {
+					channel4.volume++;
 				}
-				else if (envelopeDirection == 0 && volume4 > 0x00) {
-					volume4--;
+				else if (envelopeDirection == 0 && channel4.volume > 0x00) {
+					channel4.volume--;
 				}
 			}
 		}
 	}
 
 	// Frequency counter
-	frequencyCounter4--;
-	if (frequencyCounter4 == 0) {
+	channel4.frequencyCounter--;
+	if (channel4.frequencyCounter == 0) {
 		uint8_t nr43 = mmu->directRead(0xFF22);
 		uint8_t shiftAmount = (nr43 & 0xF0) >> 4;
 		uint8_t divisorCode = (nr43 & 0x07);
@@ -573,10 +573,10 @@ void APU::updateChannel4() {
 		uint8_t divisor = noiseDivisor[divisorCode];
 		//uint8_t divisor = (divisorCode > 0) ? (divisorCode << 4) : 8;
 
-		frequencyCounter4 = (divisor << shiftAmount) >> 2;
+		channel4.frequencyCounter = (divisor << shiftAmount) >> 2;
 
 		// Use the inverted first bit as the sample (-1.0f to 1.0f)
-		sample4 = -2.0f * (float)(shiftRegister & 0x01) + 1.0f;
+		channel4.sample = -2.0f * (float)(shiftRegister & 0x01) + 1.0f;
 
 		// Shift register operation
 		uint16_t result = (shiftRegister & 0x01) ^ ((shiftRegister & 0x02) >> 1);
@@ -593,11 +593,11 @@ void APU::updateChannel4() {
 	}
 	
 	// Fill the buffer every tick
-	buffer4[bufferIndex4] = soundOn4 * volume4 * sample4;
+	channel4.buffer[channel4.bufferIndex] = channel4.soundOn * channel4.volume * channel4.sample;
 
-	bufferIndex4++;
-	if (bufferIndex4 > 1023) {
-		bufferIndex4 = 0;
+	channel4.bufferIndex++;
+	if (channel4.bufferIndex > 1023) {
+		channel4.bufferIndex = 0;
 	}	
 }
 

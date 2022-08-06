@@ -465,7 +465,7 @@ void PPU::updateScanline() {
 	bgp[2] = (bgpData & 0x30) >> 4;
 	bgp[3] = (bgpData & 0xC0) >> 6;
 
-	// TODO: Investigate why leaving these unneeded reads seems to improve performance by a couple fps on vita
+	// TODO: Investigate why performing these unneeded reads seems to improve performance by a couple fps on vita
 	/*uint8_t scx = mmu->directRead(0xFF43);
 	uint8_t scy = mmu->directRead(0xFF42);
 	

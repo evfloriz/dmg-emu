@@ -58,55 +58,27 @@ private:
 	uint16_t readPos = 0;
 	uint16_t writePos = 0;
 	
-	// TODO: Simplify apu data
-	
-	// Channel 1 data
-	float buffer1[1024] = {};
-	uint8_t soundOn1 = 0;
-	uint8_t volume1 = 0;
-	float sample1 = 0.0f;
-	
-	uint32_t soundLengthCounter1 = 0;
-	uint32_t sweepCounter1 = 0;
-	uint32_t envelopeCounter1 = 0;
-	uint32_t frequencyCounter1 = 0;
-	uint16_t bufferIndex1 = 0;
-	uint8_t waveIndex1 = 0;
-	
-	// Channel 2 data
-	float buffer2[1024] = {};
-	uint8_t soundOn2 = 0;
-	uint8_t volume2 = 0;
-	float sample2 = 0.0f;
-	
-	uint16_t soundLengthCounter2 = 0;
-	uint32_t envelopeCounter2 = 0;
-	uint32_t frequencyCounter2 = 0;
-	uint16_t bufferIndex2 = 0;
-	uint8_t waveIndex2 = 0;
+	// TODO: Consider switching channel operation to be more object oriented
+	struct channel {
+		float buffer[1024] = {};
+		uint8_t soundOn = 0;
+		uint8_t volume = 0;
+		float sample = 0.0f;
 
-	// Channel 3 data
-	float buffer3[1024] = {};
-	uint8_t soundOn3 = 0;
-	uint8_t volume3 = 0;
-	float sample3 = 0.0f;
-	
-	uint16_t soundLengthCounter3 = 0;
-	uint32_t frequencyCounter3 = 0;
-	uint16_t bufferIndex3 = 0;
-	uint8_t waveIndex3 = 0;
+		uint32_t lengthCounter = 0;
+		uint32_t sweepCounter = 0;
+		uint32_t envelopeCounter = 0;
+		uint32_t frequencyCounter = 0;
+		uint16_t bufferIndex = 0;
+		uint8_t waveIndex = 0;
+	};
 
-	// Channel 4 data
-	float buffer4[1024] = {};
-	uint8_t soundOn4 = 0;
-	uint8_t volume4 = 0;
-	float sample4 = 0.0f;
+	channel channel1;
+	channel channel2;
+	channel channel3;
+	channel channel4;
+
 	uint16_t shiftRegister = 0xFFFF;
-	
-	uint16_t soundLengthCounter4 = 0;
-	uint32_t envelopeCounter4 = 0;
-	uint32_t frequencyCounter4 = 0;
-	uint16_t bufferIndex4 = 0;
 
 	// Frame sequencer state information
 	uint32_t fsCounter = 0;
