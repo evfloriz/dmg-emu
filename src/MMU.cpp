@@ -1,9 +1,11 @@
 #include "CPU.h"
+#include "APU.h"
 
 #include "MMU.h"
 
-MMU::MMU(CPU* cpu) {
+MMU::MMU(CPU* cpu, APU* apu) {
 	this->cpu = cpu;
+	this->apu = apu;
 
 	// Set joypad register to high for now
 	memory[0xFF00] = 0xFF;
@@ -17,20 +19,20 @@ void MMU::write(uint16_t addr, uint8_t data) {
 	if (addr <= 0x7FFF) {
 		// Change the state of mbc chip if there is one
 		cart->setRegister(addr, data);
+		return;
 	}
 	else if (addr >= 0xA000 && addr <= 0xBFFF) {
 		// External ram
 		cart->writeRam(addr, data);
-	}
-	else if (addr >= 0xE000 && addr <= 0xFDFF) {
-		// Echo ram, prohibited
 		return;
 	}
-	else if (addr >= 0xFEA0 && addr <= 0xFEFF) {
-		// Unusable
+	else if ((addr >= 0xE000 && addr <= 0xFDFF) ||		// Echo ram, prohibited
+			(addr >= 0xFEA0 && addr <= 0xFEFF)) {		// Unusable	
 		return;
 	}
-	else if (addr == 0xFF00) {
+	
+	switch (addr) {
+	case 0xFF00: {
 		// Change which set of buttons is selected to be read from
 		if (~data & (1 << 5)) {
 			selectedButtons = &actionButtons;
@@ -43,27 +45,140 @@ void MMU::write(uint16_t addr, uint8_t data) {
 			// TODO: Double check that this is the correct behaviour.
 			selectedButtons = &buttonsOff;
 		}
+		break;
 	}
-	else if (addr == 0xFF04) {
+	
+	case 0xFF04: {
 		// If the divider is written to, set it to 0
 		cpu->resetDivider();
+		break;
 	}
-	else if (addr == 0xFF26) {
+
+	case 0xFF11: {
+		memory[addr] = data;
+
+		// Update the channel 1 length timer
+		data &= 0x3F;
+		apu->updateChannel1Timer(data);
+		break;
+	}
+
+	case 0xFF12: {
+		memory[addr] = data;
+
+		// Update channel 1 dac power
+		apu->dacPower1 = (data & 0xF8);
+		break;
+	}
+
+	case 0xFF14: {
+		memory[addr] = data;
+
+		// Bit 7 restarts channel 1
+		data >>= 7;
+		if (data) {
+			apu->triggerChannel1();
+		}
+		break;
+	}
+
+	case 0xFF16: {
+		memory[addr] = data;
+		data &= 0x3F;
+		apu->updateChannel2Timer(data);
+		break;
+	}
+
+	case 0xFF17: {
+		memory[addr] = data;
+
+		// Update channel 2 dac power
+		apu->dacPower2 = (data & 0xF8);
+		break;
+	}
+
+	case 0xFF19: {
+		memory[addr] = data;
+
+		// Bit 7 restarts channel 2
+		data >>= 7;
+		if (data) {
+			apu->triggerChannel2();
+		}
+		break;
+	}
+
+	case 0xFF1A: {
+		memory[addr] = data;
+
+		// Update channel 3 dac power
+		apu->dacPower3 = (data & 0x80);
+		break;
+	}
+
+	case 0xFF1B: {
+		memory[addr] = data;
+		apu->updateChannel3Timer(data);
+		break;
+	}
+
+	case 0xFF1E: {
+		memory[addr] = data;
+
+		// Bit 7 restarts channel 3
+		data >>= 7;
+		if (data) {
+			apu->triggerChannel3();
+		}
+		break;
+	}
+
+	case 0xFF20: {
+		memory[addr] = data;
+		data &= 0x3F;
+		apu->updateChannel4Timer(data);
+		break;
+	}
+
+	case 0xFF21: {
+		memory[addr] = data;
+
+		// Update channel 4 dac power
+		apu->dacPower4 = (data & 0xF8);
+		break;
+	}
+
+	case 0xFF23: {
+		memory[addr] = data;
+
+		// Bit 7 restarts channel 4
+		data >>= 7;
+		if (data) {
+			apu->triggerChannel4();
+		}
+		break;
+	}
+
+	case 0xFF26: {
 		// Bit 7 turns the sound on or off
 		data >>= 7;
 
 		memory[addr] &= ~0x80;
 		memory[addr] |= data;
+		break;
 	}
-	else if (addr == 0xFF41) {
+
+	case 0xFF41: {
 		// LCD STAT
 		// Bottom 3 bits are read only
 		uint8_t readOnlyBits = memory[addr] & 0x07;
 		data &= 0xF8;
 
 		memory[addr] = data | readOnlyBits;
+		break;
 	}
-	else if (addr == 0xFF46) {
+
+	case 0xFF46: {
 		// Early out if data is out of range
 		if (data > 0xDF) {
 			return;
@@ -76,8 +191,10 @@ void MMU::write(uint16_t addr, uint8_t data) {
 		for (int i = 0; i < 0xA0; i++) {
 			directWrite(oamStart + i, directRead(dataStart + i));
 		}
+		break;
 	}
-	else {
+
+	default:
 		memory[addr] = data;
 	}
 }
@@ -91,12 +208,8 @@ uint8_t MMU::read(uint16_t addr) {
 		// External ram
 		return cart->readRam(addr);
 	}
-	else if (addr >= 0xE000 && addr <= 0xFDFF) {
-		// Echo ram, prohibited
-		return 0xFF;
-	}
-	else if (addr >= 0xFEA0 && addr <= 0xFEFF) {
-		// Unusable
+	else if ((addr >= 0xE000 && addr <= 0xFDFF) ||		// Echo ram, prohibited
+		(addr >= 0xFEA0 && addr <= 0xFEFF)) {			// Unusable	
 		return 0xFF;
 	}
 	else if (addr == 0xFF00) {

@@ -46,12 +46,18 @@ public:
 		bool priority);
 
 	uint32_t* getScreenBuffer();
+	uint32_t* getObjectsBuffer();
+
+	void updateBackgroundScanline(uint32_t* buffer, int* startingIndex);
+	void updateWindowScanline(uint32_t* buffer, int* startingIndex);
+
+	bool frameComplete = false;
+
+public:
+	// Used for debugging
 	uint32_t* getTileDataBuffer();
 	uint32_t* getBackgroundBuffer();
 	uint32_t* getWindowBuffer();
-	uint32_t* getObjectsBuffer();
-
-	bool frameComplete = false;
 
 private:
 	MMU* mmu = nullptr;
@@ -64,9 +70,17 @@ private:
 	uint8_t ly = 0;
 
 	uint32_t* screenBuffer = new uint32_t[util::DMG_WIDTH * util::DMG_HEIGHT];
+	uint32_t* objectsBuffer = new uint32_t[util::MAP_WIDTH * util::MAP_HEIGHT];
+	bool* objectsPriorityBuffer = new bool[util::MAP_WIDTH * util::MAP_HEIGHT];
+
+	uint16_t firstHalfStart = 0x0000;
+	uint16_t secondHalfStart = 0x0000;
+	uint16_t backgroundStart = 0x0000;
+	uint16_t windowStart = 0x0000;
+
+private:
+	// Used for debugging
 	uint32_t* tileDataBuffer = new uint32_t[util::TILE_DATA_WIDTH * util::TILE_DATA_HEIGHT];
 	uint32_t* backgroundBuffer = new uint32_t[util::MAP_WIDTH * util::MAP_HEIGHT];
 	uint32_t* windowBuffer = new uint32_t[util::MAP_WIDTH * util::MAP_HEIGHT];
-	uint32_t* objectsBuffer = new uint32_t[util::MAP_WIDTH * util::MAP_HEIGHT];
-	bool* objectsPriorityBuffer = new bool[util::MAP_WIDTH * util::MAP_HEIGHT];
 };

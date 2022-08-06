@@ -19,6 +19,7 @@ endif()
 include("${VITASDK}/share/vita.cmake" REQUIRED)
 
 find_package(SDL2 REQUIRED)
+#find_package(SDL2_ttf REQUIRED)
 
 ## Configuration options for this app
 # Display name (under bubble in LiveArea)
@@ -57,6 +58,10 @@ target_link_libraries(${PROJECT_NAME}
                     # the most common stubs are automatically included.
   SceDisplay_stub   # This used by debugScreenPrintf()
   SDL2::SDL2
+  SDL2_ttf          # SDL2_ttf dependency information found on HENkaku discord
+  freetype
+  png
+  z
 )
 
 ## Create Vita files
@@ -72,4 +77,5 @@ vita_create_vpk(${PROJECT_NAME}.vpk ${VITA_TITLEID} ${PROJECT_NAME}.self
   FILE ${CMAKE_SOURCE_DIR}/sce_sys/livearea/contents/template.xml sce_sys/livearea/contents/template.xml
   FILE ${CMAKE_SOURCE_DIR}/options.txt options.txt
   FILE ${CMAKE_SOURCE_DIR}/roms/super-mario-land.gb roms/super-mario-land.gb
+  FILE ${CMAKE_SOURCE_DIR}/fonts/consola.ttf fonts/consola.ttf
 )

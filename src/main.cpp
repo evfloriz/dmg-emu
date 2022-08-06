@@ -6,14 +6,15 @@
 #ifdef VITA
 #include <psp2/kernel/processmgr.h>
 #include <SDL2/SDL.h>
+#include <SDL2/SDL_ttf.h>
 #include "debugScreen.h"
 
 #define printf psvDebugScreenPrintf
 #else
 #include <SDL.h>
+#include <SDL_ttf.h>
 #endif
 
-// TODO: Reduce duplicate code between vita main and windows main
 class Demo {
 public:
 	Demo() {
@@ -25,6 +26,10 @@ public:
 
 		srcScreenRect = { 0, 0, DMG_WIDTH, DMG_HEIGHT };
 		destScreenRect = { x, y, DMG_WIDTH * pixelScale, DMG_HEIGHT * pixelScale };
+
+		messageRect = { 0, 0, 64, 32 };
+		fontColor = { 255, 255, 255 };
+		fontSize = 24;
 	}
 
 	~Demo() {
@@ -89,6 +94,19 @@ public:
 		}
 #endif
 
+		// Init TTF
+		if (TTF_Init() == -1) {
+			std::cout << "SDL_ttf could not initialize. TTF Error: " << TTF_GetError() << std::endl;
+			return -1;
+		}
+
+		// Open font
+		font = TTF_OpenFont("fonts/consola.ttf", fontSize);
+		if (font == NULL) {
+			printf("Failed to open font. TTF Error: %s\n", TTF_GetError());
+			return -1;
+		}
+
 		// Start dmg
 		dmg.init();
 
@@ -102,9 +120,8 @@ public:
 		const uint8_t* keyboardState = SDL_GetKeyboardState(NULL);
 #endif
 
-		int secondCounter = 0;
-		uint64_t secondStart = 0;
-		int totalPosDistance = 0;
+		int fpsRenderCounter = 0;
+		double totalElapsed = 0.0;
 		
 		bool quit = false;
 		while (!quit) {
@@ -143,52 +160,65 @@ public:
 			// Keep track of start time for each frame and every 60 frames
 			uint64_t start = SDL_GetPerformanceCounter();
 
-			if (secondCounter == 0) {
-				secondStart = SDL_GetPerformanceCounter();
-			}
-
 			// Execute one full frame of the Game Boy
 			dmg.tickFrame();
 			
-			// Render the result in the pixel buffer (and debug pixel buffer)
+			// Render the result in the pixel buffer
 			render();
 
-			// Keep track of the write and read position difference for debugging
-			totalPosDistance += dmg.apu.getPosDifference();
-
-			// Calculate elapsted time and delay until 16.666 ms have passed
+			// Calculate elapsed time
 			uint64_t end = SDL_GetPerformanceCounter();
 			double elapsed = (end - start) / (double)SDL_GetPerformanceFrequency();
-			double delay = elapsed;
+			totalElapsed += elapsed;
 
-			while (delay < 0.016666) {
+			// Delay until 16.666 ms have passed
+			while (elapsed < 0.016666) {
 				end = SDL_GetPerformanceCounter();
-				delay = (end - start) / (double)SDL_GetPerformanceFrequency();
-			}			
-
-			uint64_t cappedEnd = SDL_GetPerformanceCounter();
-			float cappedElapsed = (cappedEnd - start) / (float)SDL_GetPerformanceFrequency();
-			
-			// Display both the capped and uncapped fps
-			if (util::displayFPS == 1) {
-				std::string uncappedFPS = std::to_string((int)(1.0f / elapsed));
-				std::string cappedFPS = std::to_string((int)(1.0f / cappedElapsed));
-				std::cout << cappedFPS << " | " << uncappedFPS << "    \r" << std::flush;
+				elapsed = (end - start) / (double)SDL_GetPerformanceFrequency();
 			}
 			
-			// Keep track of every second
-			secondCounter++;
-			if (secondCounter > 59) {
-				secondCounter = 0;
-
-				uint64_t secondEnd = SDL_GetPerformanceCounter();
-				float secondElapsed = (secondEnd - secondStart) / (float)SDL_GetPerformanceFrequency();
+			// Render fps at specified rate using the average elapsed time over the last quantity of frames
+			if (fpsRenderCounter == 0) {
+				fpsRenderCounter = fpsRenderTicks;
+				if (util::displayFPS) {
+					std::string uncappedFPS = std::to_string((int)(1.0 / (totalElapsed / fpsRenderTicks)));
+					updateText(uncappedFPS);
+				}
+				totalElapsed = 0.0;
 			}
+			fpsRenderCounter--;
 		}
 		return 0;
 	}
 
+	int updateText(std::string text) {
+		// Free surface and destroy texture if they exist
+		if (textSurface) {
+			SDL_FreeSurface(textSurface);
+		}
+
+		if (textTexture) {
+			SDL_DestroyTexture(textTexture);
+		}
+
+		// Solid is fastest but looks the worst
+		textSurface = TTF_RenderText_Solid(font, text.c_str(), fontColor);
+		textTexture = SDL_CreateTextureFromSurface(renderer, textSurface);
+
+		messageRect.w = textSurface->w;
+		messageRect.h = textSurface->h;
+
+		return 0;
+	}
+	
 	int render() {	
+		SDL_RenderClear(renderer);
+
+		// Render fps counter
+		if (util::displayFPS) {
+			SDL_RenderCopy(renderer, textTexture, NULL, &messageRect);
+		}
+		
 		// Process screen texture
 		renderTexture(
 			dmg.ppu.getScreenBuffer(),
@@ -196,7 +226,7 @@ public:
 			srcScreenRect,
 			destScreenRect,
 			util::DMG_WIDTH * util::DMG_HEIGHT);
-		
+
 		SDL_RenderPresent(renderer);
 
 		return 0;
@@ -256,6 +286,20 @@ public:
 			SDL_GameControllerClose(gameController);
 		}
 #endif
+
+		if (textSurface) {
+			SDL_FreeSurface(textSurface);
+			textSurface = nullptr;
+		}
+
+		if (textTexture) {
+			SDL_DestroyTexture(textTexture);
+			textTexture = nullptr;
+		}
+
+		TTF_CloseFont(font);
+
+		TTF_Quit();
 		
 		SDL_Quit();
 	}
@@ -268,12 +312,18 @@ private:
 	SDL_Rect srcScreenRect;
 	SDL_Rect destScreenRect;
 
+	SDL_Rect messageRect;
+
 	SDL_AudioDeviceID audioDevice;
 	SDL_AudioSpec audioSpec;
 
 #ifdef VITA
 	SDL_GameController* gameController;
 #endif
+
+	TTF_Font* font;
+	SDL_Color fontColor;
+	int fontSize;
 
 	int screenWidth;
 	int screenHeight;
@@ -282,6 +332,11 @@ private:
 
 	DMG dmg;
 
+	bool renderFPS = false;
+	int fpsRenderTicks = 30;
+
+	SDL_Surface* textSurface = NULL;
+	SDL_Texture* textTexture = NULL;
 };
 
 int main(int argc, char **argv) {

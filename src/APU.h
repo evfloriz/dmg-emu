@@ -14,6 +14,16 @@ public:
 	
 	int getPosDifference();
 
+	void triggerChannel1();
+	void triggerChannel2();
+	void triggerChannel3();
+	void triggerChannel4();
+
+	void updateChannel1Timer(uint8_t data);
+	void updateChannel2Timer(uint8_t data);
+	void updateChannel3Timer(uint8_t data);
+	void updateChannel4Timer(uint8_t data);
+
 private:
 	void updateChannel1();
 	void updateChannel2();
@@ -21,6 +31,8 @@ private:
 	void updateChannel4();
 
 	void updateControl();
+
+	void updateFrameSequencer();
 
 private:
 	MMU* mmu = nullptr;
@@ -46,53 +58,46 @@ private:
 	uint16_t readPos = 0;
 	uint16_t writePos = 0;
 	
-	// Channel 1 data
-	float buffer1[1024] = {};
-	uint8_t soundOn1 = 0;
-	uint8_t volume1 = 0;
-	float sample1 = 0.0f;
+	// TODO: Consider switching channel operation to be more object oriented
+	struct channel {
+		float buffer[1024] = {};
+		uint8_t soundOn = 0;
+		uint8_t volume = 0;
+		float sample = 0.0f;
 
-	uint16_t soundLengthCounter1 = 0;
-	uint32_t sweepCounter1 = 0;
-	uint32_t envelopeCounter1 = 0;
-	uint32_t frequencyCounter1 = 0;
-	uint16_t bufferIndex1 = 0;
-	uint8_t waveIndex1 = 0;
-	
-	// Channel 2 data
-	float buffer2[1024] = {};
-	uint8_t soundOn2 = 0;
-	uint8_t volume2 = 0;
-	float sample2 = 0.0f;
-	
-	uint16_t soundLengthCounter2 = 0;
-	uint32_t envelopeCounter2 = 0;
-	uint32_t frequencyCounter2 = 0;
-	uint16_t bufferIndex2 = 0;
-	uint8_t waveIndex2 = 0;
+		uint32_t lengthCounter = 0;
+		uint32_t sweepCounter = 0;
+		uint32_t envelopeCounter = 0;
+		uint32_t frequencyCounter = 0;
+		uint16_t bufferIndex = 0;
+		uint8_t waveIndex = 0;
+	};
 
-	// Channel 3 data
-	float buffer3[1024] = {};
-	uint8_t soundOn3 = 0;
-	uint8_t volume3 = 0;
-	float sample3 = 0.0f;
-	
-	uint16_t soundLengthCounter3 = 0;
-	uint32_t frequencyCounter3 = 0;
-	uint16_t bufferIndex3 = 0;
-	uint8_t waveIndex3 = 0;
+	channel channel1;
+	channel channel2;
+	channel channel3;
+	channel channel4;
 
-	// Channel 4 data
-	float buffer4[1024] = {};
-	uint8_t soundOn4 = 0;
-	uint8_t volume4 = 0;
-	float sample4 = 0.0f;
 	uint16_t shiftRegister = 0xFFFF;
-	
-	uint16_t soundLengthCounter4 = 0;
-	uint32_t envelopeCounter4 = 0;
-	uint32_t frequencyCounter4 = 0;
-	uint16_t bufferIndex4 = 0;
+
+	// Frame sequencer state information
+	uint32_t fsCounter = 0;
+	uint8_t fsStep = 0;
+	bool lengthCtrClock = false;
+	bool volEnvClock = false;
+	bool sweepClock = false;
+
+	// Various arrays to be indexed
+	uint8_t squareWaveRatio[4] = { 1, 2, 4, 6 };
+	uint8_t waveVolume[4] = { 0, 0x0F, 0x07, 0x03 };		// 0%, 100%, 50%, 25%
+	uint8_t noiseDivisor[8] = { 8, 16, 32, 48, 64, 80, 96, 112 };
+
+public:
+	uint8_t dacPower1 = 0;
+	uint8_t dacPower2 = 0;
+	uint8_t dacPower3 = 0;
+	uint8_t dacPower4 = 0;
+
 
 public:
 	// Debug related information

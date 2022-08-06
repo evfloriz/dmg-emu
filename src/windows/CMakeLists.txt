@@ -11,18 +11,34 @@ file(COPY ${CMAKE_SOURCE_DIR}/roms
 	DESTINATION ${CMAKE_CURRENT_BINARY_DIR}
 )
 
+file(COPY ${CMAKE_SOURCE_DIR}/fonts
+	DESTINATION ${CMAKE_CURRENT_BINARY_DIR}
+)
+
 # Set up SDL
-set(SDL_INCLUDE_DIRS $ENV{SDL_PATH}/include)
-set(SDL_LIBRARIES $ENV{SDL_PATH}/lib/x64)
+set(SDL_INCLUDE_DIRS
+	$ENV{SDL_PATH}/include
+	$ENV{SDL_TTF_PATH}/include
+)
+set(SDL_LIBRARIES
+	$ENV{SDL_PATH}/lib/x64
+	$ENV{SDL_TTF_PATH}/lib/x64
+)
 
 include_directories(
 	${SDL_INCLUDE_DIRS}
 )
 
-link_directories(${SDL_LIBRARIES})
+link_directories(
+	${SDL_LIBRARIES}
+)
 
 add_executable (${PROJECT_NAME}
 	${SOURCE}
 )
 
-target_link_libraries(${PROJECT_NAME} SDL2 SDL2main)
+target_link_libraries(${PROJECT_NAME}
+	SDL2
+	SDL2main
+	SDL2_ttf
+)

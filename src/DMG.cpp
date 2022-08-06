@@ -3,7 +3,7 @@
 #include "DMG.h"
 
 DMG::DMG()
-	: mmu(&cpu)
+	: mmu(&cpu, &apu)
 	, cpu(&mmu)
 	, ppu(&mmu)
 	, apu(&mmu) {}
