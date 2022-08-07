@@ -11,7 +11,6 @@ void APU::clock() {
 	// Write a new value on every clock tick until the write position is the same as the read position.
 
 	updateFrameSequencer();
-	updateControl();
 	
 	updateChannel1();
 	updateChannel2();
@@ -42,19 +41,32 @@ void APU::clock() {
 		}
 
 		// Mix samples
-		float channels[4] = {
+		/*float channels[4] = {
 			channel1.buffer[channel1.bufferIndex],
 			channel2.buffer[channel2.bufferIndex],
 			channel3.buffer[channel3.bufferIndex],
 			channel4.buffer[channel4.bufferIndex]
+		};*/
+
+		uint8_t channels[4] = {
+			channel1.bufferSample,
+			channel2.bufferSample,
+			channel3.bufferSample,
+			channel4.bufferSample
 		};
 		
-		float mixSO2 = 0.0f;
-		float mixSO1 = 0.0f;
+		//uint8_t mixSO2 = 0;
+		//uint8_t mixSO1 = 0;
+		float mixSO2 = 0;
+		float mixSO1 = 0;
 		for (int i = 0; i < 4; i++) {
 			mixSO2 += channels[i] * selectionSO2[i];
 			mixSO1 += channels[i] * selectionSO1[i];
 		}
+
+		// Convert uint8_t to float (0..16 = -1.0f..1.0f)
+		mixSO2 = 2.0f * mixSO2 / 16.0f - 1.0f;
+		mixSO1 = 2.0f * mixSO1 / 16.0f - 1.0f;
 
 		// TODO: Make this an option in the options text file
 		/*int channel = 1;
@@ -155,7 +167,7 @@ void APU::triggerChannel1() {
 
 	// If DAC is off, the above actions occur but the channel is disabled again (gbdevwiki sound hardware page)
 	// This is already done in the updateChannel functions this should be redundant
-	if (dacPower1 == 0) {
+	if (channel1.dacPower == 0) {
 		channel1.soundOn = 0;
 	}
 }
@@ -179,7 +191,7 @@ void APU::triggerChannel2() {
 
 	channel2.waveIndex = 0;
 
-	if (dacPower2 == 0) {
+	if (channel2.dacPower == 0) {
 		channel2.soundOn = 0;
 	}
 }
@@ -204,7 +216,7 @@ void APU::triggerChannel3() {
 	
 	channel3.waveIndex = 0;
 
-	if (dacPower3 == 0) {
+	if (channel3.dacPower == 0) {
 		channel3.soundOn = 0;
 	}
 }
@@ -233,29 +245,13 @@ void APU::triggerChannel4() {
 
 	shiftRegister = 0xFFFF;
 
-	if (dacPower4 == 0) {
+	if (channel4.dacPower == 0) {
 		channel4.soundOn = 0;
 	}
 }
 
-void APU::updateChannel1Timer(uint8_t data) {
-	channel1.lengthCounter = 64 - data;
-}
-
-void APU::updateChannel2Timer(uint8_t data) {
-	channel2.lengthCounter = 64 - data;
-}
-
-void APU::updateChannel3Timer(uint8_t data) {
-	channel3.lengthCounter = 256 - data;
-}
-
-void APU::updateChannel4Timer(uint8_t data) {
-	channel4.lengthCounter = 64 - data;
-}
-
 void APU::updateChannel1() {
-	if (dacPower1 == 0) {
+	if (channel1.dacPower == 0) {
 		channel1.soundOn = 0;
 	}
 
@@ -373,23 +369,24 @@ void APU::updateChannel1() {
 		uint8_t waveRatio = squareWaveRatio[wavePatternDutyIndex];
 
 		// Update the sample produced in accordance with the wave frequency
-		channel1.sample = (channel1.waveIndex & 0x07) < waveRatio ? -1.0f : 1.0f;
+		channel1.sample = (channel1.waveIndex & 0x07) < waveRatio ? 0 : 16;
 
 		// Letting it just wrap around for now
 		channel1.waveIndex++;
 	}
 	
 	// Fill the buffer every tick
-	channel1.buffer[channel1.bufferIndex] = channel1.soundOn * channel1.volume * channel1.sample;
+	channel1.bufferSample = channel1.soundOn * channel1.volume * channel1.sample;
+	/*channel1.buffer[channel1.bufferIndex] = channel1.soundOn * channel1.volume * channel1.sample;
 
 	channel1.bufferIndex++;
 	if (channel1.bufferIndex > 1023) {
 		channel1.bufferIndex = 0;
-	}
+	}*/
 }
 
 void APU::updateChannel2() {
-	if (dacPower2 == 0) {
+	if (channel2.dacPower == 0) {
 		channel2.soundOn = 0;
 	}
 	
@@ -447,22 +444,23 @@ void APU::updateChannel2() {
 		uint8_t waveRatio = squareWaveRatio[wavePatternDutyIndex];
 
 		// Update the sample produced in accordance with the wave frequency
-		channel2.sample = (channel2.waveIndex & 0x07) < waveRatio ? -1.0f : 1.0f;
+		channel2.sample = (channel2.waveIndex & 0x07) < waveRatio ? 0 : 16;
 
 		channel2.waveIndex++;
 	}
 
 	// Fill the buffer every tick
-	channel2.buffer[channel2.bufferIndex] = channel2.soundOn * channel2.volume * channel2.sample;
+	channel2.bufferSample = channel2.soundOn * channel2.volume * channel2.sample;
+	/*channel2.buffer[channel2.bufferIndex] = channel2.soundOn * channel2.volume * channel2.sample;
 
 	channel2.bufferIndex++;
 	if (channel2.bufferIndex > 1023) {
 		channel2.bufferIndex = 0;
-	}
+	}*/
 }
 
 void APU::updateChannel3() {
-	if (dacPower3 == 0) {
+	if (channel3.dacPower == 0) {
 		channel3.soundOn = 0;
 	}
 
@@ -501,7 +499,7 @@ void APU::updateChannel3() {
 		}
 
 		// Convert the byte into a float from -1.0 to 1.0
-		channel3.sample = 2.0f * float(sampleByte) / 0xF - 1.0f;
+		channel3.sample = sampleByte;
 
 		// Every tick of the frequency counter, read in the next sample
 		channel3.waveIndex++;
@@ -511,16 +509,17 @@ void APU::updateChannel3() {
 	}
 
 	// Fill the buffer every tick
-	channel3.buffer[channel3.bufferIndex] = channel3.soundOn * channel3.volume * channel3.sample;
+	channel3.bufferSample = channel3.soundOn * channel3.volume * channel3.sample;
+	/*channel3.buffer[channel3.bufferIndex] = channel3.soundOn * channel3.volume * channel3.sample;
 
 	channel3.bufferIndex++;
 	if (channel3.bufferIndex > 1023) {
 		channel3.bufferIndex = 0;
-	}
+	}*/
 }
 
 void APU::updateChannel4() {
-	if (dacPower4 == 0) {
+	if (channel4.dacPower == 0) {
 		channel4.soundOn = 0;
 	}
 
@@ -565,18 +564,20 @@ void APU::updateChannel4() {
 	// Frequency counter
 	channel4.frequencyCounter--;
 	if (channel4.frequencyCounter == 0) {
-		uint8_t nr43 = mmu->directRead(0xFF22);
-		uint8_t shiftAmount = (nr43 & 0xF0) >> 4;
-		uint8_t divisorCode = (nr43 & 0x07);
+		//uint8_t nr43 = mmu->directRead(0xFF22);
+		//uint8_t shiftAmount = (nr43 & 0xF0) >> 4;
+		//uint8_t divisorCode = (nr43 & 0x07);
 
 		// TODO: Profile to see if one way is faster
-		uint8_t divisor = noiseDivisor[divisorCode];
+		//uint8_t divisor = noiseDivisor[channel4.divisorCode];
 		//uint8_t divisor = (divisorCode > 0) ? (divisorCode << 4) : 8;
 
-		channel4.frequencyCounter = (divisor << shiftAmount) >> 2;
+		//channel4.frequencyCounter = (channel4.divisor << channel4.shiftAmount) >> 2;
+		channel4.frequencyCounter = channel4.frequencyPeriod;
 
 		// Use the inverted first bit as the sample (-1.0f to 1.0f)
-		channel4.sample = -2.0f * (float)(shiftRegister & 0x01) + 1.0f;
+		//channel4.sample = -2.0f * (float)(shiftRegister & 0x01) + 1.0f;
+		channel4.sample = ((shiftRegister & 0x01) ^ 0x01) << 4;
 
 		// Shift register operation
 		uint16_t result = (shiftRegister & 0x01) ^ ((shiftRegister & 0x02) >> 1);
@@ -585,20 +586,21 @@ void APU::updateChannel4() {
 		shiftRegister &= ~(result << 14); 
 		shiftRegister |= (result << 14);
 
-		uint8_t widthMode = (nr43 & 0x08) >> 3;
-		if (widthMode) {
+		//uint8_t widthMode = (nr43 & 0x08) >> 3;
+		if (channel4.widthMode) {
 			shiftRegister &= ~(1 << 6);
 			shiftRegister |= (result << 6);
 		}
 	}
 	
 	// Fill the buffer every tick
-	channel4.buffer[channel4.bufferIndex] = channel4.soundOn * channel4.volume * channel4.sample;
-
+	channel4.bufferSample = channel4.soundOn * channel4.volume * channel4.sample;
+	/*channel4.buffer[channel4.bufferIndex] = channel4.soundOn * channel4.volume * channel4.sample;
+	
 	channel4.bufferIndex++;
 	if (channel4.bufferIndex > 1023) {
 		channel4.bufferIndex = 0;
-	}	
+	}*/	
 }
 
 void APU::toggleSound(uint8_t data) {
@@ -606,20 +608,3 @@ void APU::toggleSound(uint8_t data) {
 	soundOn = data;
 }
 
-void APU::updateControl() {
-	uint8_t nr50 = mmu->directRead(0xFF24);
-	uint8_t nr51 = mmu->directRead(0xFF25);
-
-	volumeSO2 = (nr50 & 0x70) >> 4;
-	volumeSO1 = (nr50 & 0x07);
-
-	selectionSO2[3] = (nr51 & 0x80) >> 7;
-	selectionSO2[2] = (nr51 & 0x40) >> 6;
-	selectionSO2[1] = (nr51 & 0x20) >> 5;
-	selectionSO2[0] = (nr51 & 0x10) >> 4;
-
-	selectionSO1[3] = (nr51 & 0x08) >> 3;
-	selectionSO1[2] = (nr51 & 0x04) >> 2;
-	selectionSO1[1] = (nr51 & 0x02) >> 1;
-	selectionSO1[0] = (nr51 & 0x01);
-}

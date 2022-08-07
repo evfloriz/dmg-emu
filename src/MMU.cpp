@@ -59,7 +59,7 @@ void MMU::write(uint16_t addr, uint8_t data) {
 
 		// Update the channel 1 length timer
 		data &= 0x3F;
-		apu->updateChannel1Timer(data);
+		apu->channel1.lengthCounter = 64 - data;
 		break;
 	}
 
@@ -67,7 +67,7 @@ void MMU::write(uint16_t addr, uint8_t data) {
 		memory[addr] = data;
 
 		// Update channel 1 dac power
-		apu->dacPower1 = (data & 0xF8);
+		apu->channel1.dacPower = (data & 0xF8);
 		break;
 	}
 
@@ -85,7 +85,7 @@ void MMU::write(uint16_t addr, uint8_t data) {
 	case 0xFF16: {
 		memory[addr] = data;
 		data &= 0x3F;
-		apu->updateChannel2Timer(data);
+		apu->channel2.lengthCounter = 64 - data;
 		break;
 	}
 
@@ -93,7 +93,7 @@ void MMU::write(uint16_t addr, uint8_t data) {
 		memory[addr] = data;
 
 		// Update channel 2 dac power
-		apu->dacPower2 = (data & 0xF8);
+		apu->channel2.dacPower = (data & 0xF8);
 		break;
 	}
 
@@ -112,13 +112,13 @@ void MMU::write(uint16_t addr, uint8_t data) {
 		memory[addr] = data;
 
 		// Update channel 3 dac power
-		apu->dacPower3 = (data & 0x80);
+		apu->channel3.dacPower = (data & 0x80);
 		break;
 	}
 
 	case 0xFF1B: {
 		memory[addr] = data;
-		apu->updateChannel3Timer(data);
+		apu->channel3.lengthCounter = 256 - data;
 		break;
 	}
 
@@ -136,7 +136,7 @@ void MMU::write(uint16_t addr, uint8_t data) {
 	case 0xFF20: {
 		memory[addr] = data;
 		data &= 0x3F;
-		apu->updateChannel4Timer(data);
+		apu->channel4.lengthCounter = 64 - data;
 		break;
 	}
 
@@ -144,7 +144,19 @@ void MMU::write(uint16_t addr, uint8_t data) {
 		memory[addr] = data;
 
 		// Update channel 4 dac power
-		apu->dacPower4 = (data & 0xF8);
+		apu->channel4.dacPower = (data & 0xF8);
+		break;
+	}
+
+	case 0xFF22: {
+		memory[addr] = data;
+		//apu->channel4.shiftAmount = (data & 0xF0) >> 4;
+		//apu->channel4.divisor = apu->noiseDivisor[(data & 0x07)];
+		uint8_t shiftAmount = (data & 0xF0) >> 4;
+		uint8_t divisor = apu->noiseDivisor[(data & 0x07)];
+
+		apu->channel4.frequencyPeriod = (divisor << shiftAmount) >> 2;
+		apu->channel4.widthMode = (data & 0x08) >> 3;
 		break;
 	}
 
@@ -156,6 +168,29 @@ void MMU::write(uint16_t addr, uint8_t data) {
 		if (data) {
 			apu->triggerChannel4();
 		}
+		break;
+	}
+
+	case 0xFF24: {
+		memory[addr] = data;
+		apu->volumeSO2 = (data & 0x70) >> 4;
+		apu->volumeSO1 = (data & 0x07);
+		break;
+	}
+
+	case 0xFF25: {
+		memory[addr] = data;
+		
+		apu->selectionSO2[3] = (data & 0x80) >> 7;
+		apu->selectionSO2[2] = (data & 0x40) >> 6;
+		apu->selectionSO2[1] = (data & 0x20) >> 5;
+		apu->selectionSO2[0] = (data & 0x10) >> 4;
+
+		apu->selectionSO1[3] = (data & 0x08) >> 3;
+		apu->selectionSO1[2] = (data & 0x04) >> 2;
+		apu->selectionSO1[1] = (data & 0x02) >> 1;
+		apu->selectionSO1[0] = (data & 0x01);
+
 		break;
 	}
 
