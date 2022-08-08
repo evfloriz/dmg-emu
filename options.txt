@@ -2,4 +2,5 @@ romPath=roms/super-mario-land.gb
 palette=mgb
 pixelScale=3
 displayFPS=1
+fontPath=fonts/consola.ttf
 logPath=logs/log.txt

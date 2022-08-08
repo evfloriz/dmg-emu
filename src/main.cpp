@@ -93,18 +93,19 @@ public:
 			return -1;
 		}
 #endif
+		if (util::displayFPS) {
+			// Init TTF
+			if (TTF_Init() == -1) {
+				std::cout << "SDL_ttf could not initialize. TTF Error: " << TTF_GetError() << std::endl;
+				return -1;
+			}
 
-		// Init TTF
-		if (TTF_Init() == -1) {
-			std::cout << "SDL_ttf could not initialize. TTF Error: " << TTF_GetError() << std::endl;
-			return -1;
-		}
-
-		// Open font
-		font = TTF_OpenFont("fonts/consola.ttf", fontSize);
-		if (font == NULL) {
-			printf("Failed to open font. TTF Error: %s\n", TTF_GetError());
-			return -1;
+			// Open font
+			font = TTF_OpenFont(util::fontPath.c_str(), fontSize);
+			if (font == NULL) {
+				printf("Failed to open font. TTF Error: %s\n", TTF_GetError());
+				return -1;
+			}
 		}
 
 		// Start dmg
@@ -295,7 +296,10 @@ public:
 			textTexture = nullptr;
 		}
 
-		TTF_CloseFont(font);
+		if (font) {
+			TTF_CloseFont(font);
+			font = nullptr;
+		}
 
 		TTF_Quit();
 		
@@ -353,7 +357,15 @@ int main(int argc, char **argv) {
 
 	Demo demo;
 
-	demo.init();
+	if (demo.init() == -1) {
+		printf("Exiting...\n");
+#ifdef VITA
+		sceKernelDelayThread(3 * 1000000);
+		sceKernelExitProcess(0);
+#endif
+		return 1;
+	};
+	
 	demo.execute();
 	demo.close();
 
