@@ -31,6 +31,7 @@ public:
 	uint8_t directRead(uint16_t addr);
 
 	void setBit(uint16_t addr, uint8_t pos, uint8_t value);
+	void setIF(uint8_t pos, uint8_t value);
 
 	void insertCartridge(const std::shared_ptr<Cartridge>& cartridge);
 

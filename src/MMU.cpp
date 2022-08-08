@@ -47,13 +47,11 @@ void MMU::write(uint16_t addr, uint8_t data) {
 		}
 		break;
 	}
-	
 	case 0xFF04: {
 		// If the divider is written to, set it to 0
 		cpu->resetDivider();
 		break;
 	}
-
 	case 0xFF11: {
 		memory[addr] = data;
 
@@ -62,7 +60,6 @@ void MMU::write(uint16_t addr, uint8_t data) {
 		apu->channel1.lengthCounter = 64 - data;
 		break;
 	}
-
 	case 0xFF12: {
 		memory[addr] = data;
 
@@ -70,7 +67,6 @@ void MMU::write(uint16_t addr, uint8_t data) {
 		apu->channel1.dacPower = (data & 0xF8);
 		break;
 	}
-
 	case 0xFF14: {
 		memory[addr] = data;
 
@@ -81,14 +77,12 @@ void MMU::write(uint16_t addr, uint8_t data) {
 		}
 		break;
 	}
-
 	case 0xFF16: {
 		memory[addr] = data;
 		data &= 0x3F;
 		apu->channel2.lengthCounter = 64 - data;
 		break;
 	}
-
 	case 0xFF17: {
 		memory[addr] = data;
 
@@ -96,7 +90,6 @@ void MMU::write(uint16_t addr, uint8_t data) {
 		apu->channel2.dacPower = (data & 0xF8);
 		break;
 	}
-
 	case 0xFF19: {
 		memory[addr] = data;
 
@@ -107,7 +100,6 @@ void MMU::write(uint16_t addr, uint8_t data) {
 		}
 		break;
 	}
-
 	case 0xFF1A: {
 		memory[addr] = data;
 
@@ -115,13 +107,11 @@ void MMU::write(uint16_t addr, uint8_t data) {
 		apu->channel3.dacPower = (data & 0x80);
 		break;
 	}
-
 	case 0xFF1B: {
 		memory[addr] = data;
 		apu->channel3.lengthCounter = 256 - data;
 		break;
 	}
-
 	case 0xFF1E: {
 		memory[addr] = data;
 
@@ -132,14 +122,12 @@ void MMU::write(uint16_t addr, uint8_t data) {
 		}
 		break;
 	}
-
 	case 0xFF20: {
 		memory[addr] = data;
 		data &= 0x3F;
 		apu->channel4.lengthCounter = 64 - data;
 		break;
 	}
-
 	case 0xFF21: {
 		memory[addr] = data;
 
@@ -147,7 +135,6 @@ void MMU::write(uint16_t addr, uint8_t data) {
 		apu->channel4.dacPower = (data & 0xF8);
 		break;
 	}
-
 	case 0xFF22: {
 		memory[addr] = data;
 		//apu->channel4.shiftAmount = (data & 0xF0) >> 4;
@@ -159,7 +146,6 @@ void MMU::write(uint16_t addr, uint8_t data) {
 		apu->channel4.widthMode = (data & 0x08) >> 3;
 		break;
 	}
-
 	case 0xFF23: {
 		memory[addr] = data;
 
@@ -170,14 +156,12 @@ void MMU::write(uint16_t addr, uint8_t data) {
 		}
 		break;
 	}
-
 	case 0xFF24: {
 		memory[addr] = data;
 		apu->volumeSO2 = (data & 0x70) >> 4;
 		apu->volumeSO1 = (data & 0x07);
 		break;
 	}
-
 	case 0xFF25: {
 		memory[addr] = data;
 		
@@ -193,7 +177,6 @@ void MMU::write(uint16_t addr, uint8_t data) {
 
 		break;
 	}
-
 	case 0xFF26: {
 		// Bit 7 turns the sound on or off
 		data >>= 7;
@@ -202,7 +185,6 @@ void MMU::write(uint16_t addr, uint8_t data) {
 		memory[addr] |= data;
 		break;
 	}
-
 	case 0xFF41: {
 		// LCD STAT
 		// Bottom 3 bits are read only
@@ -212,7 +194,6 @@ void MMU::write(uint16_t addr, uint8_t data) {
 		memory[addr] = data | readOnlyBits;
 		break;
 	}
-
 	case 0xFF46: {
 		// Early out if data is out of range
 		if (data > 0xDF) {
@@ -228,7 +209,16 @@ void MMU::write(uint16_t addr, uint8_t data) {
 		}
 		break;
 	}
-
+	case 0xFF0F: {
+		// IF
+		cpu->IF = data;
+		break;
+	}
+	case 0xFFFF: {
+		// IE
+		cpu->IE = data;
+		break;
+	}
 	default:
 		memory[addr] = data;
 	}
@@ -247,13 +237,27 @@ uint8_t MMU::read(uint16_t addr) {
 		(addr >= 0xFEA0 && addr <= 0xFEFF)) {			// Unusable	
 		return 0xFF;
 	}
-	else if (addr == 0xFF00) {
+
+	switch (addr) {
+	case 0xFF00: {
 		// Return the int that selectedButtons currently points to based on the previous write
 		return *selectedButtons;
+		break;
 	}
-	else {
+	case 0xFF0F: {
+		return cpu->IF;
+	}
+	/*case 0xFF41: {
+		// STAT
+		return ppu->stat;
+	}*/
+	case 0xFFFF: {
+		return cpu->IE;
+	}
+	default: 
 		return memory[addr];
 	}
+	
 }
 
 void MMU::directWrite(uint16_t addr, uint8_t data) {
@@ -284,7 +288,8 @@ void MMU::writeButton(uint8_t* buttons, uint8_t pos, uint8_t value) {
 
 	// If a bit went from high to low, request a joypad interrupt
 	if (oldButtons > *buttons) {
-		setBit(0xFF0F, 4, 1);
+		setIF(4, 1);
+		//cpu->IF |= (1 << 4);
 	}
 }
 
@@ -293,4 +298,9 @@ void MMU::setBit(uint16_t addr, uint8_t pos, uint8_t value) {
 	data &= ~(1 << pos);
 	data |= (value << pos);
 	memory[addr] = data;
+}
+
+void MMU::setIF(uint8_t pos, uint8_t value) {
+	cpu->IF &= ~(1 << pos);
+	cpu->IF |= (value << pos);
 }

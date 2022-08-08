@@ -354,18 +354,10 @@ CPU::CPU(MMU* mmu) {
 CPU::~CPU() {
 }
 
-void CPU::write(uint16_t addr, uint8_t data) {
-	mmu->write(addr, data);
-}
-
-uint8_t CPU::read(uint16_t addr) {
-	return mmu->read(addr);
-}
-
 void CPU::clock() {
 	// If cycles remaining for an instruction is 0, read next byte
 	if (cycles == 0 && !halt_state) {
-		opcode = read(pc);
+		opcode = mmu->read(pc);
 
 		if (log_capture) {
 			fprintf(file, "0x%04x: 0x%02x ", pc, opcode);
@@ -1567,8 +1559,8 @@ uint8_t CPU::STOP() {
 }
 
 uint8_t CPU::HALT() {	
-	uint8_t IE = mmu->directRead(0xFFFF);
-	uint8_t IF = mmu->directRead(0xFF0F);
+	//uint8_t IE = mmu->directRead(0xFFFF);
+	//uint8_t IF = mmu->directRead(0xFF0F);
 	
 	// Keep track if there was an interrupt pending as soon as halt was called
 	initial_pending_interrupt = IE & IF;
@@ -2000,17 +1992,14 @@ uint8_t CPU::SWAP() {
 
 uint8_t CPU::interrupt_handler() {
 	// Early out if IME is off
-	if (IME == 0) {
+	if (IME == 0 || !(IE & IF)) {
 		return 0;
 	}
 
-	uint8_t IE = mmu->directRead(0xFFFF);
-	uint8_t IF = mmu->directRead(0xFF0F);
+	//uint8_t IE = mmu->directRead(0xFFFF);
+	//uint8_t IF = mmu->directRead(0xFF0F);
 
-	if (IE == 0 || IF == 0) {
-		return 0;
-	}
-
+	uint8_t interrupt = IE & IF;
 	uint8_t interrupt_cycles = 5;
 
 	// Push current pc to stack
@@ -2026,56 +2015,56 @@ uint8_t CPU::interrupt_handler() {
 	};
 
 	// Priority is order of if statements
-	if ((IE & (1 << 0)) && (IF & (1 << 0))) {
+	if (interrupt & 0x01) {
 		// bit 0, vblank
 		IF &= ~(1 << 0);
 		IME = 0;
 
-		mmu->directWrite(0xFF0F, IF);
+		//mmu->directWrite(0xFF0F, IF);
 		push_pc();
 
 		pc = 0x0040;
 		return interrupt_cycles;
 	}
-	else if ((IE & (1 << 1)) && (IF & (1 << 1))) {
+	else if (interrupt & 0x02) {
 		// bit 1, LCD STAT
 		IF &= ~(1 << 1);
 		IME = 0;
 
-		mmu->directWrite(0xFF0F, IF);
+		//mmu->directWrite(0xFF0F, IF);
 		push_pc();
 
 		pc = 0x0048;
 		return interrupt_cycles;
 	}
-	else if ((IE & (1 << 2)) && (IF & (1 << 2))) {
+	else if (interrupt & 0x04) {
 		// bit 2, Timer
 		IF &= ~(1 << 2);
 		IME = 0;
 
-		mmu->directWrite(0xFF0F, IF);
+		//mmu->directWrite(0xFF0F, IF);
 		push_pc();
 		
 		pc = 0x0050;
 		return interrupt_cycles;
 	}
-	else if ((IE & (1 << 3)) && (IF & (1 << 3))) {
+	else if (interrupt & 0x08) {
 		// bit 3, Serial
 		IF &= ~(1 << 3);
 		IME = 0;
 
-		mmu->directWrite(0xFF0F, IF);
+		//mmu->directWrite(0xFF0F, IF);
 		push_pc();
 		
 		pc = 0x0058;
 		return interrupt_cycles;
 	}
-	else if ((IE & (1 << 4)) && (IF & (1 << 4))) {
+	else if (interrupt & 0x10) {
 		// bit 4, Joypad
 		IF &= ~(1 << 4);
 		IME = 0;
 
-		mmu->directWrite(0xFF0F, IF);
+		//mmu->directWrite(0xFF0F, IF);
 		push_pc();
 		
 		pc = 0x0060;
@@ -2131,7 +2120,8 @@ uint8_t CPU::timer() {
 			timer_counter++;
 			if (timer_counter == 0) {
 				// Set timer interrupt if overflow occurred
-				mmu->setBit(0xFF0F, 2, 1);
+				mmu->setIF(2, 1);
+				//IF |= (1 << 2);
 
 				// Set the timer counter to the timer modulo if overflow occurred
 				timer_counter = timer_modulo;
@@ -2148,8 +2138,8 @@ uint8_t CPU::halt_cycle() {
 	// Cycle that executes when CPU is in halt state
 	// TODO: test halt bug
 
-	uint8_t IE = mmu->directRead(0xFFFF);
-	uint8_t IF = mmu->directRead(0xFF0F);
+	//uint8_t IE = mmu->directRead(0xFFFF);
+	//uint8_t IF = mmu->directRead(0xFF0F);
 
 	// Early out cpu should remain in halt state, otherwise wake up
 	if (!(IE & IF)) {

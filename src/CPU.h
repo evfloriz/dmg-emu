@@ -30,6 +30,8 @@ public:
 
 	// Interrupt flag
 	uint8_t IME = 0x00;
+	uint8_t IF = 0x00;			// 0xFF0F
+	uint8_t IE = 0x00;			// 0xFFFF
 
 	// External event functions
 	void clock();
@@ -106,8 +108,6 @@ private:
 
 	// Facilitate link to mmu
 	MMU* mmu = nullptr;
-	void write(uint16_t addr, uint8_t data);
-	uint8_t read(uint16_t addr);
 
 	struct INSTRUCTION {
 		INSTRUCTION(uint8_t(CPU::* o)(void) = nullptr,
