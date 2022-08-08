@@ -7,16 +7,18 @@
 #include "Cartridge.h"
 
 class CPU;
+class PPU;
 class APU;
 
 class MMU {
 public:
-	MMU(CPU* cpu, APU* apu);
+	MMU(CPU* cpu, PPU* ppu, APU* apu);
 	~MMU();
 
 public:
 	std::shared_ptr<Cartridge> cart;
 	CPU* cpu = nullptr;
+	PPU* ppu = nullptr;
 	APU* apu = nullptr;
 
 	// Main memory, bottom half is unused but simplifies addressing

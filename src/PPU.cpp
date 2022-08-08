@@ -52,9 +52,9 @@ void PPU::clock() {
 void PPU::updateLY() {
 	// TODO: does it make sense for the PPU to read random areas of memory other than vram and oam?
 	// First check if screen is off and reset everything if so
-	if (!(mmu->directRead(0xFF40) & 0x80)) {
+	if (!(lcdc & 0x80)) {
 		// LCD off
-		mmu->directWrite(0xFF44, 0x00);
+		ly = 0x00;
 		cycle = 0;
 
 		return;
@@ -62,7 +62,6 @@ void PPU::updateLY() {
 
 	// TODO: Figure out timings, when should things be calculated vs incremented? Right now cycles and LY are
 	// incremented in the middle of a clock cycle
-	uint8_t stat = mmu->directRead(0xFF41);
 
 	// Determine mode
 	if (ly < 144) {
@@ -99,8 +98,6 @@ void PPU::updateLY() {
 	}
 
 	if (incrementLY) {
-		ly = mmu->directRead(0xFF44);
-		
 		// Draw a line of the screen
 		if (ly < 144) {
 			updateScanline();
@@ -135,8 +132,6 @@ void PPU::updateLY() {
 			//updateTileMaps();
 			updateObjects();
 		}
-
-		mmu->directWrite(0xFF44, ly);
 	}
 
 	// Handle STAT interrupt
@@ -147,8 +142,6 @@ void PPU::updateLY() {
 		mmu->setIF(1, 1);
 		//cpu->IF |= (1 << 2);
 	}
-
-	mmu->directWrite(0xFF41, stat);
 }
 
 void PPU::setTile(
@@ -249,8 +242,6 @@ void PPU::updateTileData() {
 }
 
 void PPU::updateTileMaps() {
-	uint8_t lcdc = mmu->directRead(0xFF40);
-	
 	// Early out if LCD is off
 	bool lcdc7 = lcdc & (1 << 7);
 	if (!lcdc7) {
@@ -303,13 +294,13 @@ void PPU::updateTileMaps() {
 
 void PPU::updateObjects() {
 	// Early out if LCD is off
-	bool lcdc7 = mmu->directRead(0xFF40) & (1 << 7);
+	bool lcdc7 = lcdc & (1 << 7);
 	if (!lcdc7) {
 		return;
 	}
 
 	// If lcdc2 = 1, sprites are 8x16 rather than 8x8
-	bool lcdc2 = mmu->directRead(0xFF40) & (1 << 2);
+	bool lcdc2 = lcdc & (1 << 2);
 
 	// Update palette information
 	uint32_t obp0Data = mmu->directRead(0xFF48);
@@ -443,8 +434,6 @@ void PPU::updateScanline() {
 	if (ly > 143) {
 		return;
 	}
-
-	uint8_t lcdc = mmu->directRead(0xFF40);
 
 	bool lcdc5 = lcdc & (1 << 5);				// If lcdc5 = 1, window is enabled
 	bool lcdc1 = lcdc & (1 << 1);				// If lcdc1 = 1, objects are enabled

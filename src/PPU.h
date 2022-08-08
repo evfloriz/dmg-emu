@@ -53,6 +53,10 @@ public:
 
 	bool frameComplete = false;
 
+	uint8_t lcdc = 0x00;
+	uint8_t stat = 0x00;
+	uint8_t ly = 0;
+
 public:
 	// Used for debugging
 	uint32_t* getTileDataBuffer();
@@ -67,7 +71,6 @@ private:
 	uint32_t obp1[4] = {};
 
 	uint16_t cycle = 0;
-	uint8_t ly = 0;
 
 	uint32_t* screenBuffer = new uint32_t[util::DMG_WIDTH * util::DMG_HEIGHT];
 	uint32_t* objectsBuffer = new uint32_t[util::MAP_WIDTH * util::MAP_HEIGHT];

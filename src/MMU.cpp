@@ -1,10 +1,12 @@
 #include "CPU.h"
+#include "PPU.h"
 #include "APU.h"
 
 #include "MMU.h"
 
-MMU::MMU(CPU* cpu, APU* apu) {
+MMU::MMU(CPU* cpu, PPU* ppu, APU* apu) {
 	this->cpu = cpu;
+	this->ppu = ppu;
 	this->apu = apu;
 
 	// Set joypad register to high for now
@@ -185,13 +187,27 @@ void MMU::write(uint16_t addr, uint8_t data) {
 		memory[addr] |= data;
 		break;
 	}
+	case 0xFF40: {
+		// LCDC
+		memory[addr] = data;
+		ppu->lcdc = data;
+		break;
+	}
 	case 0xFF41: {
 		// LCD STAT
 		// Bottom 3 bits are read only
 		uint8_t readOnlyBits = memory[addr] & 0x07;
 		data &= 0xF8;
+		data |= readOnlyBits;
 
-		memory[addr] = data | readOnlyBits;
+		memory[addr] = data;
+		ppu->stat = data;
+		break;
+	}
+	case 0xFF44: {
+		// LY
+		memory[addr] = data;
+		ppu->ly = data;
 		break;
 	}
 	case 0xFF46: {
@@ -247,10 +263,18 @@ uint8_t MMU::read(uint16_t addr) {
 	case 0xFF0F: {
 		return cpu->IF;
 	}
-	/*case 0xFF41: {
+	case 0xFF40: {
+		// LCDC
+		return ppu->lcdc;
+	}
+	case 0xFF41: {
 		// STAT
 		return ppu->stat;
-	}*/
+	}
+	case 0xFF44: {
+		// LY
+		return ppu->ly;
+	}
 	case 0xFFFF: {
 		return cpu->IE;
 	}
