@@ -86,17 +86,34 @@ void MMU::write(uint16_t addr, uint8_t data) {
 	}
 	case 0xFF12: {
 		memory[addr] = data;
-
-		// Update channel 1 dac power
 		apu->channel1.dacPower = (data & 0xF8);
+		
+		// If dac power is off, disable channel 1
+		if (!apu->channel1.dacPower) {
+			apu->channel1.soundOn = 0;
+		}
 		break;
 	}
+	/*case 0xFF13: {
+		memory[addr] = data;
+		// Update channel 1 frequency lsb
+		uint16_t frequency = 2048 - apu->channel1.frequencyPeriod;
+		frequency &= 0xFF00;
+		frequency |= data;
+
+		apu->channel1.frequencyPeriod = 2048 - frequency;
+	}*/
 	case 0xFF14: {
 		memory[addr] = data;
 
+		// Update channel 1 frequency msb
+		/*uint16_t frequency = 2048 - apu->channel1.frequencyPeriod;
+		frequency &= 0x00FF;
+		frequency |= (data * 0x07) << 8;
+		apu->channel1.frequencyPeriod = 2048 - frequency;*/
+
 		// Bit 7 restarts channel 1
-		data >>= 7;
-		if (data) {
+		if (data & 0x80) {
 			apu->triggerChannel1();
 		}
 		break;
@@ -109,9 +126,12 @@ void MMU::write(uint16_t addr, uint8_t data) {
 	}
 	case 0xFF17: {
 		memory[addr] = data;
-
-		// Update channel 2 dac power
 		apu->channel2.dacPower = (data & 0xF8);
+		
+		// If dac power is off, disable channel 2
+		if (!apu->channel2.dacPower) {
+			apu->channel2.soundOn = 0;
+		}
 		break;
 	}
 	case 0xFF19: {
@@ -126,9 +146,13 @@ void MMU::write(uint16_t addr, uint8_t data) {
 	}
 	case 0xFF1A: {
 		memory[addr] = data;
-
-		// Update channel 3 dac power
 		apu->channel3.dacPower = (data & 0x80);
+
+		// If dac power is off, disable channel 3
+		if (!apu->channel3.dacPower) {
+			apu->channel3.soundOn = 0;
+		}
+
 		break;
 	}
 	case 0xFF1B: {
@@ -154,9 +178,12 @@ void MMU::write(uint16_t addr, uint8_t data) {
 	}
 	case 0xFF21: {
 		memory[addr] = data;
-
-		// Update channel 4 dac power
 		apu->channel4.dacPower = (data & 0xF8);
+
+		// If dac power is off, disable channel 4
+		if (!apu->channel4.dacPower) {
+			apu->channel4.soundOn = 0;
+		}
 		break;
 	}
 	case 0xFF22: {
@@ -189,7 +216,7 @@ void MMU::write(uint16_t addr, uint8_t data) {
 	case 0xFF25: {
 		memory[addr] = data;
 		
-		apu->selectionSO2[3] = (data & 0x80) >> 7;
+		/*apu->selectionSO2[3] = (data & 0x80) >> 7;
 		apu->selectionSO2[2] = (data & 0x40) >> 6;
 		apu->selectionSO2[1] = (data & 0x20) >> 5;
 		apu->selectionSO2[0] = (data & 0x10) >> 4;
@@ -197,7 +224,17 @@ void MMU::write(uint16_t addr, uint8_t data) {
 		apu->selectionSO1[3] = (data & 0x08) >> 3;
 		apu->selectionSO1[2] = (data & 0x04) >> 2;
 		apu->selectionSO1[1] = (data & 0x02) >> 1;
-		apu->selectionSO1[0] = (data & 0x01);
+		apu->selectionSO1[0] = (data & 0x01);*/
+
+		apu->channel4.so2 = (data & 0x80) >> 7;
+		apu->channel3.so2 = (data & 0x40) >> 6;
+		apu->channel2.so2 = (data & 0x20) >> 5;
+		apu->channel1.so2 = (data & 0x10) >> 4;
+
+		apu->channel4.so1 = (data & 0x08) >> 3;
+		apu->channel3.so1 = (data & 0x04) >> 2;
+		apu->channel2.so1 = (data & 0x02) >> 1;
+		apu->channel1.so1 = (data & 0x01);
 
 		break;
 	}

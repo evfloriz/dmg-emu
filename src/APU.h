@@ -64,10 +64,11 @@ private:
 		uint8_t widthMode = 0;
 
 		uint32_t frequencyPeriod = 0;
-
 		uint8_t dacPower = 0;
-
 		uint8_t bufferSample = 0;
+
+		uint8_t so2 = 0;
+		uint8_t so1 = 0;
 	};
 
 	uint16_t shiftRegister = 0xFFFF;
@@ -93,8 +94,8 @@ public:
 	// Left and right sound output data
 	uint8_t volumeSO2 = 0;
 	uint8_t volumeSO1 = 0;
-	uint8_t selectionSO2[4] = {};
-	uint8_t selectionSO1[4] = {};
+	//uint8_t selectionSO2[4] = {};
+	//uint8_t selectionSO1[4] = {};
 
 	uint8_t noiseDivisor[8] = { 8, 16, 32, 48, 64, 80, 96, 112 };
 

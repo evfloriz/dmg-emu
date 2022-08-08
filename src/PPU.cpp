@@ -82,7 +82,6 @@ void PPU::clock() {
 		stat |= 0x01;
 	}
 	
-	
 	// Increment LY every 456 real clock cycles
 	// Or 114 M-cycles
 	bool incrementLY = false;
