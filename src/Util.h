@@ -20,6 +20,7 @@ namespace util {
 	extern int pixelScale;
 	extern int displayFPS;
 	extern int debugMode;
+	extern std::string fontPath;
 	extern std::string logPath;
 
 	extern std::unordered_map<std::string, std::string> options;

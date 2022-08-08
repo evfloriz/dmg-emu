@@ -18,6 +18,7 @@ namespace util {
 		{"pixelScale", "1"},
 		{"displayFPS", "0"},
 		{"debugMode", "0"},
+		{"fontPath", ""},
 		{"logPath", "logs/log.txt"},
 	};
 
@@ -26,6 +27,7 @@ namespace util {
 	int pixelScale = std::stoi(options["pixelScale"]);
 	int displayFPS = std::stoi(options["displayFPS"]);
 	int debugMode = std::stoi(options["debugMode"]);
+	std::string fontPath = options["fontPath"];
 	std::string logPath = options["logPath"];
 }
 
@@ -97,7 +99,15 @@ int util::readOptionsFile() {
 	pixelScale = std::stoi(options["pixelScale"]);
 	displayFPS = std::stoi(options["displayFPS"]);
 	debugMode = std::stoi(options["debugMode"]);
+	fontPath = options["fontPath"];
 	logPath = options["logPath"];
+
+	// Check for fontPath if displayFPS is 1
+	if (displayFPS && fontPath == "") {
+		printf("displayFPS=1 requires fontPath\n");
+		ifs.close();
+		return -1;
+	}
 	
 	ifs.close();
 	return 0;

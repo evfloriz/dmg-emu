@@ -76,6 +76,6 @@ vita_create_vpk(${PROJECT_NAME}.vpk ${VITA_TITLEID} ${PROJECT_NAME}.self
   FILE ${CMAKE_SOURCE_DIR}/sce_sys/livearea/contents/startup.png sce_sys/livearea/contents/startup.png
   FILE ${CMAKE_SOURCE_DIR}/sce_sys/livearea/contents/template.xml sce_sys/livearea/contents/template.xml
   FILE ${CMAKE_SOURCE_DIR}/options.txt options.txt
-  FILE ${CMAKE_SOURCE_DIR}/roms/super-mario-land.gb roms/super-mario-land.gb
-  FILE ${CMAKE_SOURCE_DIR}/fonts/consola.ttf fonts/consola.ttf
+  FILE ${CMAKE_SOURCE_DIR}/roms roms
+  FILE ${CMAKE_SOURCE_DIR}/fonts fonts
 )
