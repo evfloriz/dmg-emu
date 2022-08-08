@@ -12,26 +12,11 @@ public:
 	PPU(MMU* mmu);
 	~PPU();
 
-public:
 	void clock();
-	void updateLY();
 
-	// TODO: Do a pass on function access, I think a lot of these should be private. I think this goes alongside
-	// an update to frameComplete in the aim of keeping the PPU state internal to the PPU.
-
-	void updateTileData();
-	void updateTileMaps();
+private:
 	void updateScanline();
 	void updateObjects();
-
-	void setTile(
-		uint32_t* buffer,
-		uint16_t width,
-		uint16_t start,
-		uint16_t index,
-		uint8_t x,
-		uint8_t y,
-		uint32_t* bgp);
 
 	void setObject(
 		uint32_t* buffer,
@@ -45,19 +30,15 @@ public:
 		bool yFlip,
 		bool priority);
 
-	uint32_t* getScreenBuffer();
-	uint32_t* getObjectsBuffer();
-
 	void updateBackgroundScanline(uint32_t* buffer, int* startingIndex);
 	void updateWindowScanline(uint32_t* buffer, int* startingIndex);
 
+public:
 	bool frameComplete = false;
 
-public:
-	// Used for debugging
-	uint32_t* getTileDataBuffer();
-	uint32_t* getBackgroundBuffer();
-	uint32_t* getWindowBuffer();
+	uint8_t lcdc = 0x00;
+	uint8_t stat = 0x00;
+	uint8_t ly = 0;
 
 private:
 	MMU* mmu = nullptr;
@@ -67,7 +48,6 @@ private:
 	uint32_t obp1[4] = {};
 
 	uint16_t cycle = 0;
-	uint8_t ly = 0;
 
 	uint32_t* screenBuffer = new uint32_t[util::DMG_WIDTH * util::DMG_HEIGHT];
 	uint32_t* objectsBuffer = new uint32_t[util::MAP_WIDTH * util::MAP_HEIGHT];
@@ -78,8 +58,28 @@ private:
 	uint16_t backgroundStart = 0x0000;
 	uint16_t windowStart = 0x0000;
 
+public:
+	// Used for debugging
+	uint32_t* getScreenBuffer();
+	uint32_t* getObjectsBuffer();
+	uint32_t* getTileDataBuffer();
+	uint32_t* getBackgroundBuffer();
+	uint32_t* getWindowBuffer();
+
 private:
 	// Used for debugging
+	void setTile(
+		uint32_t* buffer,
+		uint16_t width,
+		uint16_t start,
+		uint16_t index,
+		uint8_t x,
+		uint8_t y,
+		uint32_t* bgp);
+
+	void updateTileData();
+	void updateTileMaps();
+
 	uint32_t* tileDataBuffer = new uint32_t[util::TILE_DATA_WIDTH * util::TILE_DATA_HEIGHT];
 	uint32_t* backgroundBuffer = new uint32_t[util::MAP_WIDTH * util::MAP_HEIGHT];
 	uint32_t* windowBuffer = new uint32_t[util::MAP_WIDTH * util::MAP_HEIGHT];

@@ -45,16 +45,11 @@ PPU::~PPU() {
 
 void PPU::clock() {
 	// Update LY
-	// This function calls the screen updating functions as well
-	updateLY();
-}
-
-void PPU::updateLY() {
 	// TODO: does it make sense for the PPU to read random areas of memory other than vram and oam?
 	// First check if screen is off and reset everything if so
-	if (!(mmu->directRead(0xFF40) & 0x80)) {
+	if (!(lcdc & 0x80)) {
 		// LCD off
-		mmu->directWrite(0xFF44, 0x00);
+		ly = 0x00;
 		cycle = 0;
 
 		return;
@@ -62,7 +57,6 @@ void PPU::updateLY() {
 
 	// TODO: Figure out timings, when should things be calculated vs incremented? Right now cycles and LY are
 	// incremented in the middle of a clock cycle
-	uint8_t stat = mmu->directRead(0xFF41);
 
 	// Determine mode
 	if (ly < 144) {
@@ -88,7 +82,6 @@ void PPU::updateLY() {
 		stat |= 0x01;
 	}
 	
-	
 	// Increment LY every 456 real clock cycles
 	// Or 114 M-cycles
 	bool incrementLY = false;
@@ -99,8 +92,6 @@ void PPU::updateLY() {
 	}
 
 	if (incrementLY) {
-		ly = mmu->directRead(0xFF44);
-		
 		// Draw a line of the screen
 		if (ly < 144) {
 			updateScanline();
@@ -121,7 +112,7 @@ void PPU::updateLY() {
 		
 		// Set VBLANK interrupt flag when LY is 144
 		if (ly == 144) {
-			mmu->setBit(0xFF0F, 0, 1);;
+			mmu->setIF(0, 1);
 		}
 
 		// Reset after 154 cycles
@@ -130,12 +121,8 @@ void PPU::updateLY() {
 			frameComplete = true;
 
 			// Update the tilemaps and objects at the end of every frame
-			//updateTileData();
-			//updateTileMaps();
 			updateObjects();
 		}
-
-		mmu->directWrite(0xFF44, ly);
 	}
 
 	// Handle STAT interrupt
@@ -143,10 +130,8 @@ void PPU::updateLY() {
 		(stat & (1 << 5) && (stat & 0x03) == 2) ||	// OAM interrupt (mode 2)
 		(stat & (1 << 4) && (stat & 0x03) == 1) ||	// VBlank interrupt
 		(stat & (1 << 3) && (stat & 0x03) == 0)) {	// HBlank interrupt
-		mmu->setBit(0xFF0F, 1, 1);
+		mmu->setIF(1, 1);
 	}
-
-	mmu->directWrite(0xFF41, stat);
 }
 
 void PPU::setTile(
@@ -247,8 +232,6 @@ void PPU::updateTileData() {
 }
 
 void PPU::updateTileMaps() {
-	uint8_t lcdc = mmu->directRead(0xFF40);
-	
 	// Early out if LCD is off
 	bool lcdc7 = lcdc & (1 << 7);
 	if (!lcdc7) {
@@ -301,13 +284,13 @@ void PPU::updateTileMaps() {
 
 void PPU::updateObjects() {
 	// Early out if LCD is off
-	bool lcdc7 = mmu->directRead(0xFF40) & (1 << 7);
+	bool lcdc7 = lcdc & (1 << 7);
 	if (!lcdc7) {
 		return;
 	}
 
 	// If lcdc2 = 1, sprites are 8x16 rather than 8x8
-	bool lcdc2 = mmu->directRead(0xFF40) & (1 << 2);
+	bool lcdc2 = lcdc & (1 << 2);
 
 	// Update palette information
 	uint32_t obp0Data = mmu->directRead(0xFF48);
@@ -441,8 +424,6 @@ void PPU::updateScanline() {
 	if (ly > 143) {
 		return;
 	}
-
-	uint8_t lcdc = mmu->directRead(0xFF40);
 
 	bool lcdc5 = lcdc & (1 << 5);				// If lcdc5 = 1, window is enabled
 	bool lcdc1 = lcdc & (1 << 1);				// If lcdc1 = 1, objects are enabled

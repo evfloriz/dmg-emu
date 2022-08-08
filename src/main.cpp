@@ -155,8 +155,6 @@ public:
 			dmg.mmu.writeActionButton(3, !keyboardState[SDL_SCANCODE_A]);		// Start
 #endif
 
-			// TODO: Clean up main loop
-
 			// Keep track of start time for each frame and every 60 frames
 			uint64_t start = SDL_GetPerformanceCounter();
 

@@ -7,16 +7,18 @@
 #include "Cartridge.h"
 
 class CPU;
+class PPU;
 class APU;
 
 class MMU {
 public:
-	MMU(CPU* cpu, APU* apu);
+	MMU(CPU* cpu, PPU* ppu, APU* apu);
 	~MMU();
 
 public:
 	std::shared_ptr<Cartridge> cart;
 	CPU* cpu = nullptr;
+	PPU* ppu = nullptr;
 	APU* apu = nullptr;
 
 	// Main memory, bottom half is unused but simplifies addressing
@@ -31,6 +33,7 @@ public:
 	uint8_t directRead(uint16_t addr);
 
 	void setBit(uint16_t addr, uint8_t pos, uint8_t value);
+	void setIF(uint8_t pos, uint8_t value);
 
 	void insertCartridge(const std::shared_ptr<Cartridge>& cartridge);
 
