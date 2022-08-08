@@ -54,6 +54,28 @@ void MMU::write(uint16_t addr, uint8_t data) {
 		cpu->resetDivider();
 		break;
 	}
+	case 0xFF05: {
+		// If the divider is written to, set it to 0
+		cpu->timer.counter = data;
+		break;
+	}
+	case 0xFF06: {
+		// If the divider is written to, set it to 0
+		cpu->timer.modulo = data;
+		break;
+	}
+	case 0xFF07: {
+		// If the divider is written to, set it to 0
+		cpu->timer.on = data & 0x04;
+		cpu->timer.speedIndex = data & 0x03;
+		cpu->timer.speed = cpu->timerSpeeds[data & 0x03];
+		break;
+	}
+	case 0xFF0F: {
+		// IF
+		cpu->IF = data;
+		break;
+	}
 	case 0xFF11: {
 		memory[addr] = data;
 
@@ -225,11 +247,6 @@ void MMU::write(uint16_t addr, uint8_t data) {
 		}
 		break;
 	}
-	case 0xFF0F: {
-		// IF
-		cpu->IF = data;
-		break;
-	}
 	case 0xFFFF: {
 		// IE
 		cpu->IE = data;
@@ -258,7 +275,18 @@ uint8_t MMU::read(uint16_t addr) {
 	case 0xFF00: {
 		// Return the int that selectedButtons currently points to based on the previous write
 		return *selectedButtons;
-		break;
+	}
+	case 0xFF04: {
+		return cpu->timer.divider;
+	}
+	case 0xFF05: {
+		return cpu->timer.counter;
+	}
+	case 0xFF06: {
+		return cpu->timer.modulo;
+	}
+	case 0xFF07: {
+		return (cpu->timer.on << 2) | cpu->timer.speedIndex;
 	}
 	case 0xFF0F: {
 		return cpu->IF;

@@ -46,7 +46,7 @@ private:
 	uint16_t writePos = 0;
 
 	// TODO: Consider switching channel operation to be more object oriented
-	struct channel {
+	struct Channel {
 		float buffer[1024] = {};
 		uint8_t soundOn = 0;
 		uint8_t volume = 0;
@@ -85,10 +85,10 @@ private:
 	//uint8_t noiseDivisor[8] = { 8, 16, 32, 48, 64, 80, 96, 112 };
 
 public:
-	channel channel1;
-	channel channel2;
-	channel channel3;
-	channel channel4;
+	Channel channel1;
+	Channel channel2;
+	Channel channel3;
+	Channel channel4;
 
 	// Left and right sound output data
 	uint8_t volumeSO2 = 0;
