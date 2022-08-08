@@ -131,7 +131,6 @@ void PPU::clock() {
 		(stat & (1 << 4) && (stat & 0x03) == 1) ||	// VBlank interrupt
 		(stat & (1 << 3) && (stat & 0x03) == 0)) {	// HBlank interrupt
 		mmu->setIF(1, 1);
-		//cpu->IF |= (1 << 2);
 	}
 }
 

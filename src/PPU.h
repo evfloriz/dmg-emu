@@ -12,7 +12,6 @@ public:
 	PPU(MMU* mmu);
 	~PPU();
 
-public:
 	void clock();
 
 private:

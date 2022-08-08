@@ -55,17 +55,15 @@ void MMU::write(uint16_t addr, uint8_t data) {
 		break;
 	}
 	case 0xFF05: {
-		// If the divider is written to, set it to 0
 		cpu->timer.counter = data;
 		break;
 	}
 	case 0xFF06: {
-		// If the divider is written to, set it to 0
 		cpu->timer.modulo = data;
 		break;
 	}
 	case 0xFF07: {
-		// If the divider is written to, set it to 0
+		// Update timer speed and keep track of speed index in case it is read
 		cpu->timer.on = data & 0x04;
 		cpu->timer.speedIndex = data & 0x03;
 		cpu->timer.speed = cpu->timerSpeeds[data & 0x03];
@@ -88,7 +86,7 @@ void MMU::write(uint16_t addr, uint8_t data) {
 		memory[addr] = data;
 		apu->channel1.dacPower = (data & 0xF8);
 		
-		// If dac power is off, disable channel 1
+		// If dac power is off, disable channel
 		if (!apu->channel1.dacPower) {
 			apu->channel1.soundOn = 0;
 		}
@@ -96,7 +94,7 @@ void MMU::write(uint16_t addr, uint8_t data) {
 	}
 	case 0xFF14: {
 		memory[addr] = data;
-		// Bit 7 restarts channel 1
+		// Bit 7 restarts channel
 		if (data & 0x80) {
 			apu->triggerChannel1();
 		}
@@ -111,8 +109,6 @@ void MMU::write(uint16_t addr, uint8_t data) {
 	case 0xFF17: {
 		memory[addr] = data;
 		apu->channel2.dacPower = (data & 0xF8);
-		
-		// If dac power is off, disable channel 2
 		if (!apu->channel2.dacPower) {
 			apu->channel2.soundOn = 0;
 		}
@@ -128,12 +124,9 @@ void MMU::write(uint16_t addr, uint8_t data) {
 	case 0xFF1A: {
 		memory[addr] = data;
 		apu->channel3.dacPower = (data & 0x80);
-
-		// If dac power is off, disable channel 3
 		if (!apu->channel3.dacPower) {
 			apu->channel3.soundOn = 0;
 		}
-
 		break;
 	}
 	case 0xFF1B: {
@@ -157,8 +150,6 @@ void MMU::write(uint16_t addr, uint8_t data) {
 	case 0xFF21: {
 		memory[addr] = data;
 		apu->channel4.dacPower = (data & 0xF8);
-
-		// If dac power is off, disable channel 4
 		if (!apu->channel4.dacPower) {
 			apu->channel4.soundOn = 0;
 		}
@@ -166,9 +157,11 @@ void MMU::write(uint16_t addr, uint8_t data) {
 	}
 	case 0xFF22: {
 		memory[addr] = data;
+		
+		// Update channel 4 frequency period
 		uint8_t shiftAmount = (data & 0xF0) >> 4;
 		uint8_t divisor = apu->noiseDivisor[(data & 0x07)];
-
+		
 		apu->channel4.frequencyPeriod = (divisor << shiftAmount) >> 2;
 		apu->channel4.widthMode = (data & 0x08) >> 3;
 		break;
@@ -198,7 +191,6 @@ void MMU::write(uint16_t addr, uint8_t data) {
 		apu->channel3.so1 = (data & 0x04) >> 2;
 		apu->channel2.so1 = (data & 0x02) >> 1;
 		apu->channel1.so1 = (data & 0x01);
-
 		break;
 	}
 	case 0xFF26: {
@@ -212,7 +204,6 @@ void MMU::write(uint16_t addr, uint8_t data) {
 		apu->channel2.soundOn = data;
 		apu->channel3.soundOn = data;
 		apu->channel4.soundOn = data;
-
 		break;
 	}
 	case 0xFF40: {
@@ -224,7 +215,7 @@ void MMU::write(uint16_t addr, uint8_t data) {
 	case 0xFF41: {
 		// LCD STAT
 		data &= 0xF8;
-		data |= (memory[addr] & 0x07);		// Bottom 3 bits are read only
+		data |= (memory[addr] & 0x07);		// bottom 3 bits are read only
 
 		memory[addr] = data;
 		ppu->stat = data;
@@ -296,15 +287,12 @@ uint8_t MMU::read(uint16_t addr) {
 		return cpu->IF;
 	}
 	case 0xFF40: {
-		// LCDC
 		return ppu->lcdc;
 	}
 	case 0xFF41: {
-		// STAT
 		return ppu->stat;
 	}
 	case 0xFF44: {
-		// LY
 		return ppu->ly;
 	}
 	case 0xFFFF: {

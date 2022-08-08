@@ -43,7 +43,7 @@ public:
 		uint8_t modulo = 0x00;
 	};
 	Timer timer;
-	uint16_t timerSpeeds[4] = { 256, 4, 16, 64 };		// { 1024, 16, 64, 256 } divided by 4 for M cycles
+	uint16_t timerSpeeds[4] = { 256, 4, 16, 64 };		// { 1024, 16, 64, 256 } divided by 4 for M-cycles
 
 	// External event functions
 	void clock();

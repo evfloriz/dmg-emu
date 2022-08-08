@@ -355,6 +355,8 @@ CPU::~CPU() {
 }
 
 void CPU::clock() {
+	// TODO: Double check proper order of opcode execution, interrupt handling, and timer operation
+
 	// If cycles remaining for an instruction is 0, read next byte
 	if (cycles == 0 && !halt_state) {
 		opcode = mmu->read(pc);
@@ -398,24 +400,16 @@ void CPU::clock() {
 	}
 
 	// Handle interrupts
-	// If interrupt_handler returns more than 0 cycles, an interrupt occurred so update cycles accordingly
-	// TODO: reorganize this logic a bit
 	if (IME && (IE & IF)) {
 		cycles = interrupt_handler();
 	}
-
-	// Execute timer function
-	// TODO: when should this be? I think it just needs to be "before" the interrupt handler
-	// so that it catches the overflow before the next instruction occurs.
 	
 	// Divider
-	// 16384 Hz is every 256 cycles at 4 MHz
-	// Or every 64 cycles at 1 MHz
+	// 16384 Hz is every 256 T-cycles or 64 cycles M-cycles
 	divider_clock++;
 	if (divider_clock > 63) {
 		divider_clock = 0;
 
-		// Increment divider every 64 cycles
 		// Divider will automatically overflow
 		timer.divider++;
 	}
@@ -427,7 +421,6 @@ void CPU::clock() {
 		if (timer_clock > timer.speed - 1) {
 			timer_clock = 0;
 
-			// Increment timer after correct number of cycles
 			timer.counter++;
 			if (timer.counter == 0) {
 				// Set timer interrupt if overflow occurred
@@ -2004,10 +1997,7 @@ uint8_t CPU::SWAP() {
 }
 
 uint8_t CPU::interrupt_handler() {
-	uint8_t interrupt = IE & IF;
-	uint8_t interrupt_cycles = 5;
-
-	// Push current pc to stack
+	// Function to push current pc to stack
 	auto push_pc = [&]() {
 		uint16_t next = pc;
 		uint8_t next_lo = next & 0xFF;
@@ -2019,50 +2009,34 @@ uint8_t CPU::interrupt_handler() {
 		mmu->write(sp, next_lo);
 	};
 
+	IME = 0;
+	push_pc();
+	uint8_t interrupt = IE & IF;
+
 	// Priority is order of if statements
 	if (interrupt & 0x01) {
-		// bit 0, vblank
-		IF &= ~(1 << 0);
-		IME = 0;
-
-		push_pc();
-
+		// Bit 0, vblank
+		mmu->setIF(0, 0);
 		pc = 0x0040;
 	}
 	else if (interrupt & 0x02) {
-		// bit 1, LCD STAT
-		IF &= ~(1 << 1);
-		IME = 0;
-
-		push_pc();
-
+		// Bit 1, LCD STAT
+		mmu->setIF(1, 0);
 		pc = 0x0048;
 	}
 	else if (interrupt & 0x04) {
-		// bit 2, Timer
-		IF &= ~(1 << 2);
-		IME = 0;
-
-		push_pc();
-		
+		// Bit 2, Timer
+		mmu->setIF(2, 0);
 		pc = 0x0050;
 	}
 	else if (interrupt & 0x08) {
-		// bit 3, Serial
-		IF &= ~(1 << 3);
-		IME = 0;
-
-		push_pc();
-		
+		// Bit 3, Serial
+		mmu->setIF(3, 0);	
 		pc = 0x0058;
 	}
 	else if (interrupt & 0x10) {
-		// bit 4, Joypad
-		IF &= ~(1 << 4);
-		IME = 0;
-
-		push_pc();
-		
+		// Bit 4, Joypad
+		mmu->setIF(4, 0);
 		pc = 0x0060;
 	}
 	else {

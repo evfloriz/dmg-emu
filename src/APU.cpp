@@ -48,7 +48,6 @@ void APU::clock() {
 			return;
 		}
 
-		// Mix samples
 		// TODO: Find a more elegant way to mix these channels
 		uint16_t mixSO2 = channel1.bufferSample * channel1.so2 * channel1.soundOn +
 			channel2.bufferSample * channel2.so2 * channel2.soundOn +
@@ -156,7 +155,6 @@ void APU::triggerChannel1() {
 	channel1.waveIndex = 0;
 
 	// If DAC is off, the above actions occur but the channel is disabled again (gbdevwiki sound hardware page)
-	// This is already done in the updateChannel functions this should be redundant
 	if (channel1.dacPower == 0) {
 		channel1.soundOn = 0;
 	}
@@ -357,6 +355,7 @@ void APU::updateChannel1() {
 		uint8_t waveRatio = squareWaveRatio[wavePatternDutyIndex];
 
 		// Update the sample produced in accordance with the wave frequency
+		// TODO: Evaluate if there's a better way to do this
 		channel1.sample = (channel1.waveIndex & 0x07) < waveRatio ? 0 : 16;
 
 		// Letting it just wrap around for now
