@@ -47,11 +47,15 @@ private:
 
 	// TODO: Consider switching channel operation to be more object oriented
 	struct Channel {
-		float buffer[1024] = {};
+		uint8_t dacPower = 0;
 		uint8_t soundOn = 0;
-		uint8_t volume = 0;
+		uint8_t bufferSample = 0;
 		uint8_t sample = 0;		// (0 to 16 for -1.0 to 1.0)
-
+		uint8_t volume = 0;
+		
+		uint8_t so2 = 0;
+		uint8_t so1 = 0;
+		
 		uint32_t lengthCounter = 0;
 		uint32_t sweepCounter = 0;
 		uint32_t envelopeCounter = 0;
@@ -59,16 +63,11 @@ private:
 		uint16_t bufferIndex = 0;
 		uint8_t waveIndex = 0;
 
+		// Channel 4 additional data
 		uint8_t shiftAmount = 0;
 		uint8_t divisor = 0;
 		uint8_t widthMode = 0;
-
 		uint32_t frequencyPeriod = 0;
-		uint8_t dacPower = 0;
-		uint8_t bufferSample = 0;
-
-		uint8_t so2 = 0;
-		uint8_t so1 = 0;
 	};
 
 	uint16_t shiftRegister = 0xFFFF;
@@ -83,7 +82,6 @@ private:
 	// Various arrays to be indexed
 	uint8_t squareWaveRatio[4] = { 1, 2, 4, 6 };
 	uint8_t waveVolume[4] = { 0, 0x0F, 0x07, 0x03 };		// 0%, 100%, 50%, 25%
-	//uint8_t noiseDivisor[8] = { 8, 16, 32, 48, 64, 80, 96, 112 };
 
 public:
 	Channel channel1;
@@ -94,8 +92,6 @@ public:
 	// Left and right sound output data
 	uint8_t volumeSO2 = 0;
 	uint8_t volumeSO1 = 0;
-	//uint8_t selectionSO2[4] = {};
-	//uint8_t selectionSO1[4] = {};
 
 	uint8_t noiseDivisor[8] = { 8, 16, 32, 48, 64, 80, 96, 112 };
 

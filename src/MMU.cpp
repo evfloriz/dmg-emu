@@ -94,24 +94,8 @@ void MMU::write(uint16_t addr, uint8_t data) {
 		}
 		break;
 	}
-	/*case 0xFF13: {
-		memory[addr] = data;
-		// Update channel 1 frequency lsb
-		uint16_t frequency = 2048 - apu->channel1.frequencyPeriod;
-		frequency &= 0xFF00;
-		frequency |= data;
-
-		apu->channel1.frequencyPeriod = 2048 - frequency;
-	}*/
 	case 0xFF14: {
 		memory[addr] = data;
-
-		// Update channel 1 frequency msb
-		/*uint16_t frequency = 2048 - apu->channel1.frequencyPeriod;
-		frequency &= 0x00FF;
-		frequency |= (data * 0x07) << 8;
-		apu->channel1.frequencyPeriod = 2048 - frequency;*/
-
 		// Bit 7 restarts channel 1
 		if (data & 0x80) {
 			apu->triggerChannel1();
@@ -136,10 +120,7 @@ void MMU::write(uint16_t addr, uint8_t data) {
 	}
 	case 0xFF19: {
 		memory[addr] = data;
-
-		// Bit 7 restarts channel 2
-		data >>= 7;
-		if (data) {
+		if (data & 0x80) {
 			apu->triggerChannel2();
 		}
 		break;
@@ -162,10 +143,7 @@ void MMU::write(uint16_t addr, uint8_t data) {
 	}
 	case 0xFF1E: {
 		memory[addr] = data;
-
-		// Bit 7 restarts channel 3
-		data >>= 7;
-		if (data) {
+		if (data & 0x80) {
 			apu->triggerChannel3();
 		}
 		break;
@@ -188,8 +166,6 @@ void MMU::write(uint16_t addr, uint8_t data) {
 	}
 	case 0xFF22: {
 		memory[addr] = data;
-		//apu->channel4.shiftAmount = (data & 0xF0) >> 4;
-		//apu->channel4.divisor = apu->noiseDivisor[(data & 0x07)];
 		uint8_t shiftAmount = (data & 0xF0) >> 4;
 		uint8_t divisor = apu->noiseDivisor[(data & 0x07)];
 
@@ -199,10 +175,7 @@ void MMU::write(uint16_t addr, uint8_t data) {
 	}
 	case 0xFF23: {
 		memory[addr] = data;
-
-		// Bit 7 restarts channel 4
-		data >>= 7;
-		if (data) {
+		if (data & 0x80) {
 			apu->triggerChannel4();
 		}
 		break;
@@ -215,17 +188,7 @@ void MMU::write(uint16_t addr, uint8_t data) {
 	}
 	case 0xFF25: {
 		memory[addr] = data;
-		
-		/*apu->selectionSO2[3] = (data & 0x80) >> 7;
-		apu->selectionSO2[2] = (data & 0x40) >> 6;
-		apu->selectionSO2[1] = (data & 0x20) >> 5;
-		apu->selectionSO2[0] = (data & 0x10) >> 4;
-
-		apu->selectionSO1[3] = (data & 0x08) >> 3;
-		apu->selectionSO1[2] = (data & 0x04) >> 2;
-		apu->selectionSO1[1] = (data & 0x02) >> 1;
-		apu->selectionSO1[0] = (data & 0x01);*/
-
+	
 		apu->channel4.so2 = (data & 0x80) >> 7;
 		apu->channel3.so2 = (data & 0x40) >> 6;
 		apu->channel2.so2 = (data & 0x20) >> 5;
@@ -239,11 +202,17 @@ void MMU::write(uint16_t addr, uint8_t data) {
 		break;
 	}
 	case 0xFF26: {
-		// Bit 7 turns the sound on or off
-		data >>= 7;
-
-		memory[addr] &= ~0x80;
+		// Bit 7 turns all sound on or off
+		data &= 0x80;
+		memory[addr] &= 0x7F;
 		memory[addr] |= data;
+
+		data >>= 7;
+		apu->channel1.soundOn = data;
+		apu->channel2.soundOn = data;
+		apu->channel3.soundOn = data;
+		apu->channel4.soundOn = data;
+
 		break;
 	}
 	case 0xFF40: {
@@ -254,10 +223,8 @@ void MMU::write(uint16_t addr, uint8_t data) {
 	}
 	case 0xFF41: {
 		// LCD STAT
-		// Bottom 3 bits are read only
-		uint8_t readOnlyBits = memory[addr] & 0x07;
 		data &= 0xF8;
-		data |= readOnlyBits;
+		data |= (memory[addr] & 0x07);		// Bottom 3 bits are read only
 
 		memory[addr] = data;
 		ppu->stat = data;
@@ -270,12 +237,12 @@ void MMU::write(uint16_t addr, uint8_t data) {
 		break;
 	}
 	case 0xFF46: {
+		// DMA transfer
 		// Early out if data is out of range
 		if (data > 0xDF) {
 			return;
 		}
 
-		// DMA transfer
 		// Write data from 0xXX00-0xXX9F to 0xFE00-0xFE9F
 		uint16_t dataStart = data * 0x100;
 		uint16_t oamStart = 0xFE00;
@@ -378,7 +345,6 @@ void MMU::writeButton(uint8_t* buttons, uint8_t pos, uint8_t value) {
 	// If a bit went from high to low, request a joypad interrupt
 	if (oldButtons > *buttons) {
 		setIF(4, 1);
-		//cpu->IF |= (1 << 4);
 	}
 }
 

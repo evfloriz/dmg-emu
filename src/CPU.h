@@ -33,7 +33,7 @@ public:
 	uint8_t IF = 0x00;			// 0xFF0F
 	uint8_t IE = 0x00;			// 0xFFFF
 
-	// CPU state things for quick access
+	// CPU timer state for quicker access
 	struct Timer {
 		uint8_t divider = 0x00;
 		uint8_t on = 0x00;
@@ -42,12 +42,11 @@ public:
 		uint8_t counter = 0x00;
 		uint8_t modulo = 0x00;
 	};
-	uint16_t timerSpeeds[4] = { 256, 4, 16, 64 };	// { 1024, 16, 64, 256 } divided by 4 for M cycles
 	Timer timer;
+	uint16_t timerSpeeds[4] = { 256, 4, 16, 64 };		// { 1024, 16, 64, 256 } divided by 4 for M cycles
 
 	// External event functions
 	void clock();
-	uint8_t updateTimer();
 	uint8_t interrupt_handler();
 	uint8_t halt_cycle();
 	void resetDivider();

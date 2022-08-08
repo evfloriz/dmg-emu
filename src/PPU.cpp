@@ -113,7 +113,6 @@ void PPU::clock() {
 		// Set VBLANK interrupt flag when LY is 144
 		if (ly == 144) {
 			mmu->setIF(0, 1);
-			//cpu->IF |= (1 << 0);
 		}
 
 		// Reset after 154 cycles
@@ -122,8 +121,6 @@ void PPU::clock() {
 			frameComplete = true;
 
 			// Update the tilemaps and objects at the end of every frame
-			//updateTileData();
-			//updateTileMaps();
 			updateObjects();
 		}
 	}
