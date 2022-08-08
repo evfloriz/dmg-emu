@@ -400,15 +400,45 @@ void CPU::clock() {
 	// Handle interrupts
 	// If interrupt_handler returns more than 0 cycles, an interrupt occurred so update cycles accordingly
 	// TODO: reorganize this logic a bit
-	uint8_t interrupt_cycles = interrupt_handler();
-	if (interrupt_cycles) {
-		cycles = interrupt_cycles;
+	if (IME && (IE & IF)) {
+		cycles = interrupt_handler();
 	}
 
 	// Execute timer function
 	// TODO: when should this be? I think it just needs to be "before" the interrupt handler
 	// so that it catches the overflow before the next instruction occurs.
-	updateTimer();
+	//updateTimer();
+	// Divider
+	// 16384 Hz is every 256 cycles at 4 MHz
+	// Or every 64 cycles at 1 MHz
+	divider_clock++;
+	if (divider_clock > 63) {
+		divider_clock = 0;
+
+		// Increment divider every 64 cycles
+		// Divider will automatically overflow
+		timer.divider++;
+	}
+
+	// Timer
+	if (timer.on) {
+		timer_clock++;
+		// Divide speeds by 4 to count M-cycles
+		if (timer_clock > timer.speed - 1) {
+			timer_clock = 0;
+
+			// Increment timer after correct number of cycles
+			timer.counter++;
+			if (timer.counter == 0) {
+				// Set timer interrupt if overflow occurred
+				mmu->setIF(2, 1);
+				//IF |= (1 << 2);
+
+				// Set the timer counter to the timer modulo if overflow occurred
+				timer.counter = timer.modulo;
+			}
+		}
+	}
 
 	global_cycles++;
 
@@ -1991,11 +2021,6 @@ uint8_t CPU::SWAP() {
 }
 
 uint8_t CPU::interrupt_handler() {
-	// Early out if IME is off
-	if (IME == 0 || !(IE & IF)) {
-		return 0;
-	}
-
 	//uint8_t IE = mmu->directRead(0xFFFF);
 	//uint8_t IF = mmu->directRead(0xFF0F);
 
@@ -2024,7 +2049,6 @@ uint8_t CPU::interrupt_handler() {
 		push_pc();
 
 		pc = 0x0040;
-		return interrupt_cycles;
 	}
 	else if (interrupt & 0x02) {
 		// bit 1, LCD STAT
@@ -2035,7 +2059,6 @@ uint8_t CPU::interrupt_handler() {
 		push_pc();
 
 		pc = 0x0048;
-		return interrupt_cycles;
 	}
 	else if (interrupt & 0x04) {
 		// bit 2, Timer
@@ -2046,7 +2069,6 @@ uint8_t CPU::interrupt_handler() {
 		push_pc();
 		
 		pc = 0x0050;
-		return interrupt_cycles;
 	}
 	else if (interrupt & 0x08) {
 		// bit 3, Serial
@@ -2057,7 +2079,6 @@ uint8_t CPU::interrupt_handler() {
 		push_pc();
 		
 		pc = 0x0058;
-		return interrupt_cycles;
 	}
 	else if (interrupt & 0x10) {
 		// bit 4, Joypad
@@ -2068,10 +2089,12 @@ uint8_t CPU::interrupt_handler() {
 		push_pc();
 		
 		pc = 0x0060;
-		return interrupt_cycles;
+	}
+	else {
+		printf("Interrupt handler error\n");
 	}
 	
-	return 0;
+	return 5;
 }
 
 void CPU::resetDivider() {
@@ -2132,7 +2155,7 @@ uint8_t CPU::halt_cycle() {
 
 	uint8_t extra_cycles = 0;
 
-	if (IME) {
+	if (IME && (IE & IF)) {
 		// Wake up and call interrupt handler
 		extra_cycles = interrupt_handler();
 	}

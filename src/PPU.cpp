@@ -45,11 +45,6 @@ PPU::~PPU() {
 
 void PPU::clock() {
 	// Update LY
-	// This function calls the screen updating functions as well
-	updateLY();
-}
-
-void PPU::updateLY() {
 	// TODO: does it make sense for the PPU to read random areas of memory other than vram and oam?
 	// First check if screen is off and reset everything if so
 	if (!(lcdc & 0x80)) {
